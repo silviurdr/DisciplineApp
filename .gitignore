@@ -1,0 +1,130 @@
+# .NET Core
+bin/
+obj/
+out/
+*.user
+*.suo
+*.cache
+*.docstates
+[Dd]ebugPS/
+[Rr]elease*/
+_ReSharper*/
+packages/
+NuGetPackages
+_TeamCity*
+*.dotCover
+*.ncrunch*
+.*crunch*.local.xml
+nCrunchTemp_*
+*.tmp
+*.TMP
+*.log
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.log
+*.scc
+*.sln.docstates
+*.userprefs
+*.DS_Store
+[Tt]humbs.db
+*.swp
+*.swo
+*~
+*.tmp
+*.bak
+*.cache
+*.ilk
+*.meta
+*.obj
+*.pch
+*.pdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.vspscc
+*.vssscc
+.builds
+
+# Visual Studio
+.vs/
+*.sln.ide/
+
+# Angular / Node.js
+DisciplineApp.Frontend/node_modules/
+DisciplineApp.Frontend/dist/
+DisciplineApp.Frontend/tmp/
+DisciplineApp.Frontend/.angular/
+DisciplineApp.Frontend/.sass-cache/
+DisciplineApp.Frontend/connect.lock
+DisciplineApp.Frontend/coverage/
+DisciplineApp.Frontend/libpeerconnection.log
+DisciplineApp.Frontend/npm-debug.log*
+DisciplineApp.Frontend/yarn-error.log
+DisciplineApp.Frontend/testem.log
+DisciplineApp.Frontend/typings/
+
+# Angular e2e
+DisciplineApp.Frontend/e2e/*.js
+DisciplineApp.Frontend/e2e/*.map
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pids
+*.pid
+*.seed
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# .NET Build outputs
+bin/
+obj/
+out/
+
+# Angular
+node_modules/
+dist/
+.angular/
+
+# Database
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
