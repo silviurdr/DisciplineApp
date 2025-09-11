@@ -77,15 +77,26 @@ export class HabitService {
   /**
    * Get day status for a specific date
    */
-  getDayStatus(date: string): Observable<ApiDayStatus> {
-    return this.http.get<ApiDayStatus>(`${this.apiUrl}/habittracking/day/${date}`)
-      .pipe(
-        catchError(error => {
-          console.error('Error fetching day status:', error);
-          return of(this.getMockDayStatus(date));
-        })
-      );
-  }
+ getDayStatus(date: string): Observable<ApiDayStatus> {
+  return this.http.get<ApiDayStatus>(`${this.apiUrl}/habittracking/day/${date}`)
+    .pipe(
+      catchError(error => {
+        console.error('Error fetching day status:', error);
+        // Return empty day status instead of mock data for cleaner testing
+        return of({
+          date,
+          isCompleted: false,
+          isPartiallyCompleted: false,
+          isGraceUsed: false,
+          canUseGrace: true,
+          requiredHabits: [],
+          optionalHabits: [],
+          warnings: [],
+          recommendations: []
+        });
+      })
+    );
+}
 
   /**
    * Load data for the current week (September 11-17, 2025)
@@ -151,53 +162,33 @@ export class HabitService {
    * Toggle habit completion for a specific date
    */
 toggleHabitCompletion(habitId: string, date: string, isCompleted: boolean): Observable<any> {
-  // Map string habit IDs to numeric IDs that your backend expects
-  const habitIdMap: { [key: string]: number } = {
-    'phone-lock': 1,
-    'dishes': 2,
-    'vacuum': 3,
-    'gym': 4,
-    'bathroom': 5,
-    'kitchen-deep': 6,
-    'windows': 7
-  };
-
-  const numericHabitId = habitIdMap[habitId];
-  if (!numericHabitId) {
-    console.error(`No numeric habit ID found for: ${habitId}`);
+  const numericHabitId = parseInt(habitId, 10);
+  
+  if (isNaN(numericHabitId)) {
+    console.error(`Invalid habit ID: ${habitId}`);
     return of(null);
   }
 
-  const request: CompleteHabitRequest = {
-    habitId: numericHabitId, // Use numeric ID
-    date,
-    isCompleted
+  // Your backend expects a direct CompleteHabitRequest object (not wrapped)
+  const request = {
+    habitId: numericHabitId,
+    date: date,
+    isCompleted: isCompleted
   };
 
-  // Wrap the request in a request object as your API expects
-  const payload = {
-    request: request
-  };
+  console.log('Sending habit completion request:', request);
 
   return this.http.post<any>(
     `${this.apiUrl}/habittracking/complete`,
-    payload // Send wrapped payload
+    request  // Send direct request, not wrapped
   ).pipe(
-    tap(updatedDay => {
-      // Update local state
-      const currentDays = this.currentWeekDaysSubject.value;
-      const dayIndex = currentDays.findIndex(d => d.date === date);
-      if (dayIndex !== -1) {
-        // Map the response back to your frontend format
-        currentDays[dayIndex] = this.mapApiResponseToFrontend(updatedDay);
-        this.currentWeekDaysSubject.next([...currentDays]);
-      }
-      
-      this.refreshWeeklyProgress();
+    tap(response => {
+      console.log('Habit completion response:', response);
     }),
     catchError(error => {
-      console.error('Error toggling habit:', error);
-      return of(null);
+      console.error('Error toggling habit completion:', error);
+      console.error('Error details:', error.error);
+      return of({ error: true, message: error.message });
     })
   );
 }

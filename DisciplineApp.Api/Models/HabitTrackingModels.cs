@@ -113,6 +113,8 @@ namespace DisciplineApp.Api.Models
 
         [Required]
         public DateTime Date { get; set; }
+        [Required]
+        public bool IsCompleted { get; set; }
 
         public string? Notes { get; set; }
     }
