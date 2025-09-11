@@ -20,10 +20,8 @@ interface MonthlyDayData {
   streakDay: number | null;
   rewards: string[];
   hasWarnings: boolean;
-  tasks?: string[];           // Required tasks for this day
-  completedTasks?: string[];  // Completed required tasks
-  optionalTasks?: string[];   // Optional tasks (for weekly habits not yet critical)
-  optionalCompletedTasks?: string[]; // Completed optional tasks
+  tasks: string[];           // ONLY required tasks for this day
+  completedTasks: string[];  // ONLY completed required tasks
 }
 
 interface MonthlyStats {
@@ -122,12 +120,12 @@ interface MonthlyStats {
   class="calendar-day"
   [class.other-month]="!day.isCurrentMonth"
   [class.today]="day.isToday"
-  [class.completed]="day.isCompleted || (day.totalHabits === 0 && !isFutureDate(day.date))"
+  [class.completed]="day.isCompleted"
   [class.partial]="day.isPartiallyCompleted"
   [class.grace-used]="day.isGraceUsed"
   [class.has-warnings]="day.hasWarnings"
   [class.future]="isFutureDate(day.date)"
-  [class.no-tasks-required]="day.totalHabits === 0 && !isFutureDate(day.date)"
+  [class.free-day]="day.totalHabits === 0 && !isFutureDate(day.date)"
   (click)="selectDay(day)">
   
   <!-- Day Number -->
@@ -136,48 +134,30 @@ interface MonthlyStats {
   <!-- Completion Status -->
   <div class="day-status" *ngIf="!isFutureDate(day.date)">
     <div class="status-indicator">
-      <span *ngIf="day.isCompleted || (day.totalHabits === 0 && !isFutureDate(day.date))" class="status-icon completed">✓</span>
-      <span *ngIf="day.isPartiallyCompleted && !day.isCompleted && day.totalHabits > 0" class="status-icon partial">◐</span>
+      <span *ngIf="day.isCompleted" class="status-icon completed">✓</span>
+      <span *ngIf="day.isPartiallyCompleted && !day.isCompleted" class="status-icon partial">◐</span>
       <span *ngIf="day.isGraceUsed" class="status-icon grace">G</span>
       <span *ngIf="day.hasWarnings" class="status-icon warning">⚠</span>
     </div>
   </div>
 
-  <!-- Task List or No Tasks Message -->
-  <div class="task-list" *ngIf="(day.tasks && day.tasks.length > 0) || (day.optionalTasks && day.optionalTasks.length > 0)">
-    
-    <!-- Required Tasks Section -->
-    <div class="required-tasks" *ngIf="day.tasks && day.tasks.length > 0">
-      <div class="task-count required">{{ day.completedHabits }}/{{ day.totalHabits }}</div>
-      <div class="task-items">
-        <div *ngFor="let task of day.tasks" 
-            class="task-item required" 
-            [class.completed]="isTaskCompleted(day, task)"
-            [title]="'Required: ' + task + (isTaskCompleted(day, task) ? ' ✓' : '')"
-            (click)="toggleTaskCompletion(task, day.date, $event)">
-          {{ getTaskInitial(task) }}
-        </div>
-      </div>
-    </div>
-
-    <!-- Optional Tasks Section -->
-    <div class="optional-tasks" *ngIf="day.optionalTasks && day.optionalTasks.length > 0">
-      <div class="task-count optional">{{ day.optionalCompletedTasks?.length || 0 }}/{{ day.optionalTasks.length }} opt</div>
-      <div class="task-items optional">
-        <div *ngFor="let task of day.optionalTasks" 
-            class="task-item optional" 
-            [class.completed]="day.optionalCompletedTasks?.includes(task)"
-            [title]="'Optional: ' + task + (day.optionalCompletedTasks?.includes(task) ? ' ✓' : '')"
-            (click)="toggleTaskCompletion(task, day.date, $event)">
-          {{ getTaskInitial(task) }}
-        </div>
+  <!-- ONLY Required Tasks -->
+  <div class="task-list" *ngIf="day.tasks && day.tasks.length > 0">
+    <div class="task-count">{{ day.completedHabits }}/{{ day.totalHabits }}</div>
+    <div class="task-items">
+      <div *ngFor="let task of day.tasks" 
+          class="task-item" 
+          [class.completed]="isTaskCompleted(day, task)"
+          [title]="task + (isTaskCompleted(day, task) ? ' ✓' : '')"
+          (click)="toggleTaskCompletion(task, day.date, $event)">
+        {{ getTaskInitial(task) }}
       </div>
     </div>
   </div>
 
-  <!-- No Required Tasks Message -->
-  <div class="no-required-tasks" *ngIf="!day.tasks?.length && !day.optionalTasks?.length && !isFutureDate(day.date) && day.isCurrentMonth">
-    Free day
+  <!-- Free Day Message -->
+  <div class="free-day-message" *ngIf="day.totalHabits === 0 && !isFutureDate(day.date) && day.isCurrentMonth">
+    Free
   </div>
 
   <!-- Future date indicator -->
@@ -1333,6 +1313,168 @@ interface MonthlyStats {
               }
             }
           }
+
+          .task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.task-count {
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-align: center;
+  color: #64b5f6;
+}
+
+.task-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  justify-content: center;
+}
+
+.task-item {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  /* Clean, simple styling for required tasks */
+  background: rgba(100, 181, 246, 0.2);
+  border: 1px solid rgba(100, 181, 246, 0.4);
+  color: #90caf9;
+  
+  &:hover {
+    background: rgba(100, 181, 246, 0.3);
+    border-color: rgba(100, 181, 246, 0.6);
+    transform: scale(1.1);
+  }
+  
+  &.completed {
+    background: rgba(76, 175, 80, 0.6);
+    border-color: rgba(76, 175, 80, 0.8);
+    color: #ffffff;
+    
+    &:hover {
+      background: rgba(76, 175, 80, 0.7);
+    }
+  }
+}
+
+.free-day-message {
+  font-size: 0.6rem;
+  color: rgba(144, 202, 249, 0.7);
+  text-align: center;
+  font-style: italic;
+  margin-top: 4px;
+  padding: 2px;
+  background: rgba(144, 202, 249, 0.1);
+  border-radius: 2px;
+}
+
+/* Calendar day states */
+.calendar-day {
+  position: relative;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: rgba(100, 181, 246, 0.5);
+    transform: translateY(-1px);
+  }
+  
+  /* Completed - all required tasks done */
+  &.completed {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.1));
+    border-color: rgba(76, 175, 80, 0.6);
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+  }
+  
+  /* Partial - some required tasks done */
+  &.partial {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.3), rgba(255, 193, 7, 0.1));
+    border-color: rgba(255, 193, 7, 0.6);
+    box-shadow: 0 0 6px rgba(255, 193, 7, 0.2);
+  }
+  
+  /* Free day - no required tasks */
+  &.free-day {
+    background: linear-gradient(135deg, rgba(144, 202, 249, 0.2), rgba(144, 202, 249, 0.05));
+    border-color: rgba(144, 202, 249, 0.3);
+    
+    .day-number {
+      color: #90caf9;
+    }
+  }
+  
+  /* Grace day used */
+  &.grace-used {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.3), rgba(33, 150, 243, 0.1));
+    border-color: rgba(33, 150, 243, 0.6);
+  }
+  
+  /* Today highlight */
+  &.today {
+    border-color: #64b5f6;
+    box-shadow: 0 0 12px rgba(100, 181, 246, 0.4);
+    
+    .day-number {
+      color: #64b5f6;
+      font-weight: bold;
+    }
+  }
+  
+  /* Future dates */
+  &.future {
+    opacity: 0.6;
+    
+    .task-item, .task-count {
+      opacity: 0.5;
+    }
+  }
+  
+  /* Other month */
+  &.other-month {
+    opacity: 0.3;
+    
+    .day-number {
+      color: rgba(255, 255, 255, 0.3);
+    }
+  }
+}
+
+.status-indicator {
+  .status-icon {
+    &.completed {
+      color: #4caf50;
+      font-weight: bold;
+    }
+    
+    &.partial {
+      color: #ffc107;
+      font-weight: bold;
+    }
+    
+    &.grace {
+      color: #2196f3;
+      font-weight: bold;
+    }
+    
+    &.warning {
+      color: #ff5722;
+      font-weight: bold;
+    }
+  }
+}
      /* Responsive */
       @media (max-width: 768px) {
         .modal-content {
@@ -1465,46 +1607,35 @@ private generateCalendarWithAPIData(apiData: any[]): MonthlyDayData[] {
     let dayData: MonthlyDayData;
 
     if (dayApiData && dayApiData.data) {
-      // Use real API data and filter by required vs optional habits
+      // Use real API data - ONLY REQUIRED HABITS
       const apiDay = dayApiData.data;
       
-      // Get only REQUIRED habits for this day
+      // ✅ SIMPLIFIED: Get only REQUIRED habits for this day
       const requiredHabits = apiDay.habitStatuses ? 
         apiDay.habitStatuses.filter((h: any) => h.isRequired) : [];
       
-      // Get optional habits (for potential display)
-      const optionalHabits = apiDay.habitStatuses ? 
-        apiDay.habitStatuses.filter((h: any) => !h.isRequired) : [];
-      
-      // Calculate completion based on REQUIRED habits only
       const completedRequiredHabits = requiredHabits.filter((h: any) => h.isCompleted);
-      const allRequiredCompleted = requiredHabits.length > 0 && 
-        completedRequiredHabits.length === requiredHabits.length;
-      const someRequiredCompleted = completedRequiredHabits.length > 0 && 
-        completedRequiredHabits.length < requiredHabits.length;
 
       dayData = {
         date: dateStr,
         dayNumber: date.getDate(),
         isCurrentMonth,
         isToday: date.getTime() === today.getTime(),
-        isCompleted: apiDay.isCompleted || allRequiredCompleted,
-        isPartiallyCompleted: apiDay.isPartiallyCompleted || someRequiredCompleted,
+        isCompleted: requiredHabits.length > 0 ? 
+          completedRequiredHabits.length === requiredHabits.length : 
+          true, // If no required habits, day is complete
+        isPartiallyCompleted: completedRequiredHabits.length > 0 && 
+          completedRequiredHabits.length < requiredHabits.length,
         isGraceUsed: apiDay.isGraceUsed || false,
         completedHabits: completedRequiredHabits.length,
         totalHabits: requiredHabits.length,
-        streakDay: null, // Calculate if needed
+        streakDay: null,
         rewards: apiDay.rewards || [],
         hasWarnings: apiDay.warnings && apiDay.warnings.length > 0,
         
-        // ✅ KEY FIX: Only show REQUIRED tasks for this day
+        // ✅ ONLY required tasks - no optional complexity
         tasks: requiredHabits.map((h: any) => this.mapHabitNameToTaskName(h.habitName)),
-        completedTasks: completedRequiredHabits.map((h: any) => this.mapHabitNameToTaskName(h.habitName)),
-        
-        // Store optional habits separately (for future use)
-        optionalTasks: optionalHabits.map((h: any) => this.mapHabitNameToTaskName(h.habitName)),
-        optionalCompletedTasks: optionalHabits.filter((h: any) => h.isCompleted)
-          .map((h: any) => this.mapHabitNameToTaskName(h.habitName))
+        completedTasks: completedRequiredHabits.map((h: any) => this.mapHabitNameToTaskName(h.habitName))
       };
     } else {
       // No API data available - create empty day
@@ -1513,7 +1644,7 @@ private generateCalendarWithAPIData(apiData: any[]): MonthlyDayData[] {
         dayNumber: date.getDate(),
         isCurrentMonth,
         isToday: date.getTime() === today.getTime(),
-        isCompleted: false,
+        isCompleted: true, // No required tasks = complete
         isPartiallyCompleted: false,
         isGraceUsed: false,
         completedHabits: 0,
@@ -1522,16 +1653,14 @@ private generateCalendarWithAPIData(apiData: any[]): MonthlyDayData[] {
         rewards: [],
         hasWarnings: false,
         tasks: [],
-        completedTasks: [],
-        optionalTasks: [],
-        optionalCompletedTasks: []
+        completedTasks: []
       };
     }
 
     days.push(dayData);
   }
 
-  console.log('Generated calendar days with API data:', days);
+  console.log('Generated calendar days (required tasks only):', days);
   return days;
 }
 
@@ -2091,71 +2220,34 @@ private calculateTaskBasedStats(): MonthlyStats {
   }
 
   private generateCleanCalendarDays(realDayData: any[]): MonthlyDayData[] {
-    const days: MonthlyDayData[] = [];
-    const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
+  const days: MonthlyDayData[] = [];
+  const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+  const startDate = new Date(firstDay);
+  startDate.setDate(startDate.getDate() - firstDay.getDay());
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-    for (let i = 0; i < 42; i++) {
-      const date = new Date(startDate);
-      date.setDate(startDate.getDate() + i);
-      
-      const isCurrentMonth = date.getMonth() === this.currentMonth;
-      const isFuture = date > today;
-      
-      // Find real data for this date
-      const realData = realDayData.find(d => 
-        d.date.toDateString() === date.toDateString()
-      );
+  for (let i = 0; i < 42; i++) {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + i);
+    
+    const isCurrentMonth = date.getMonth() === this.currentMonth;
+    const isFuture = date > today;
+    
+    // Find real data for this date
+    const realData = realDayData.find(d => 
+      d.date.toDateString() === date.toDateString()
+    );
 
-      let dayData: MonthlyDayData;
+    let dayData: MonthlyDayData;
 
-      if (realData && !isFuture) {
-        // Use real API data
-        dayData = this.convertApiDataToMonthlyData(date, realData.data, isCurrentMonth);
-      } else {
-        // Empty data for future days or days without API data
-        dayData = {
-          date: date.toISOString().split('T')[0],
-          dayNumber: date.getDate(),
-          isCurrentMonth,
-          isToday: date.getTime() === today.getTime(),
-          isCompleted: false,
-          isPartiallyCompleted: false,
-          isGraceUsed: false,
-          completedHabits: 0,
-          totalHabits: 0, // No habits shown for days without data
-          streakDay: null,
-          rewards: [],
-          hasWarnings: false
-        };
-      }
-
-      days.push(dayData);
-    }
-
-    return days;
-  }
-
-  private generateEmptyCalendarDays(): MonthlyDayData[] {
-    const days: MonthlyDayData[] = [];
-    const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    for (let i = 0; i < 42; i++) {
-      const date = new Date(startDate);
-      date.setDate(startDate.getDate() + i);
-      
-      const isCurrentMonth = date.getMonth() === this.currentMonth;
-      
-      days.push({
+    if (realData && !isFuture) {
+      // Use real API data
+      dayData = this.convertApiDataToMonthlyData(date, realData.data, isCurrentMonth);
+    } else {
+      // Empty data for future days or days without API data
+      dayData = {
         date: date.toISOString().split('T')[0],
         dayNumber: date.getDate(),
         isCurrentMonth,
@@ -2164,38 +2256,89 @@ private calculateTaskBasedStats(): MonthlyStats {
         isPartiallyCompleted: false,
         isGraceUsed: false,
         completedHabits: 0,
-        totalHabits: 0,
+        totalHabits: 0, // No habits shown for days without data
         streakDay: null,
         rewards: [],
-        hasWarnings: false
-      });
+        hasWarnings: false,
+        tasks: [], // ✅ FIXED: Use empty array instead of undefined dayTasks
+        completedTasks: [] // Initialize empty completed tasks array
+      };
     }
 
-    return days;
+    days.push(dayData);
   }
 
-  private convertApiDataToMonthlyData(date: Date, apiData: any, isCurrentMonth: boolean): MonthlyDayData {
+  return days;
+}
+
+private generateEmptyCalendarDays(): MonthlyDayData[] {
+  const days: MonthlyDayData[] = [];
+  const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+  const startDate = new Date(firstDay);
+  startDate.setDate(startDate.getDate() - firstDay.getDay());
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Count completed habits from API data
-  const completedHabits = (apiData.requiredHabits || [])
-    .filter((h: any) => h.isCompleted).length;
-  const totalHabits = (apiData.requiredHabits || []).length;
+  for (let i = 0; i < 42; i++) {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + i);
+    
+    const isCurrentMonth = date.getMonth() === this.currentMonth;
+    
+    days.push({
+      date: date.toISOString().split('T')[0],
+      dayNumber: date.getDate(),
+      isCurrentMonth,
+      isToday: date.getTime() === today.getTime(),
+      isCompleted: false,
+      isPartiallyCompleted: false,
+      isGraceUsed: false,
+      completedHabits: 0,
+      totalHabits: 0,
+      streakDay: null,
+      rewards: [],
+      hasWarnings: false,
+      tasks: [], // ✅ FIXED: Use empty array instead of undefined dayTasks
+      completedTasks: [] // Initialize empty completed tasks array
+    });
+  }
+
+  return days;
+}
+
+private convertApiDataToMonthlyData(date: Date, apiData: any, isCurrentMonth: boolean): MonthlyDayData {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // ✅ FIXED: Extract required tasks from API data
+  const allHabits = apiData.habitStatuses || apiData.HabitStatuses || [];
+  const requiredHabits = allHabits.filter((h: any) => h.isRequired || h.IsRequired);
+  const completedRequiredHabits = requiredHabits.filter((h: any) => h.isCompleted || h.IsCompleted);
+
+  // Map habit names to task names
+  const requiredTasks = requiredHabits.map((h: any) => 
+    this.mapHabitNameToTaskName(h.habitName || h.HabitName)
+  );
+  const completedTasks = completedRequiredHabits.map((h: any) => 
+    this.mapHabitNameToTaskName(h.habitName || h.HabitName)
+  );
 
   return {
     date: date.toISOString().split('T')[0],
     dayNumber: date.getDate(),
     isCurrentMonth,
     isToday: date.getTime() === today.getTime(),
-    isCompleted: false, // Changed: Always false to remove green styling
-    isPartiallyCompleted: false, // Changed: Always false to remove partial styling
-    isGraceUsed: false, // Changed: Always false to remove grace styling
-    completedHabits: 0, // Changed: Always 0 to hide progress bars
-    totalHabits: 0, // Changed: Always 0 to hide progress bars
-    streakDay: null, // Changed: Always null to remove streak indicators
-    rewards: [], // Changed: Always empty to remove reward icons
-    hasWarnings: false // Changed: Always false to remove warning indicators
+    isCompleted: requiredHabits.length > 0 ? completedRequiredHabits.length === requiredHabits.length : true,
+    isPartiallyCompleted: completedRequiredHabits.length > 0 && completedRequiredHabits.length < requiredHabits.length,
+    isGraceUsed: apiData.isGraceUsed || apiData.IsGraceUsed || false,
+    completedHabits: completedRequiredHabits.length,
+    totalHabits: requiredHabits.length,
+    streakDay: null,
+    rewards: apiData.rewards || apiData.Rewards || [],
+    hasWarnings: (apiData.warnings && apiData.warnings.length > 0) || (apiData.Warnings && apiData.Warnings.length > 0),
+    tasks: requiredTasks, // ✅ FIXED: Use actual required tasks from API
+    completedTasks: completedTasks // ✅ FIXED: Use actual completed tasks from API
   };
 }
 
