@@ -1,8 +1,11 @@
 // src/app/components/monthly-view/monthly-view.component.ts
+// Updated to use ONLY real API data, no mock data generation
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HabitService } from '../../services/habit.service';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 interface MonthlyDayData {
   date: string;
@@ -17,6 +20,8 @@ interface MonthlyDayData {
   streakDay: number | null;
   rewards: string[];
   hasWarnings: boolean;
+  tasks?: string[];           // Array of task names for this day
+  completedTasks?: string[];  // Array of completed task names for this day
 }
 
 interface MonthlyStats {
@@ -33,6 +38,8 @@ interface MonthlyStats {
     percentage: number;
   }[];
 }
+
+
 
 @Component({
   selector: 'app-monthly-view',
@@ -54,8 +61,20 @@ interface MonthlyStats {
         </button>
       </div>
 
+      <!-- Loading State -->
+      <div *ngIf="loading" class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>Loading calendar data...</p>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="error" class="error-state">
+        <p>{{ error }}</p>
+        <button (click)="loadMonthData()" class="retry-btn">Try Again</button>
+      </div>
+
       <!-- Monthly Stats Overview -->
-      <div class="stats-overview" *ngIf="monthlyStats">
+      <div class="stats-overview" *ngIf="monthlyStats && !loading">
         <div class="stat-card completion">
           <div class="stat-value">{{ monthlyStats.completionRate }}%</div>
           <div class="stat-label">Completion Rate</div>
@@ -82,7 +101,7 @@ interface MonthlyStats {
       </div>
 
       <!-- Calendar Grid -->
-      <div class="calendar-container">
+      <div class="calendar-container" *ngIf="!loading">
         <!-- Day Headers -->
         <div class="calendar-header">
           <div class="day-header">Sun</div>
@@ -105,13 +124,14 @@ interface MonthlyStats {
             [class.partial]="day.isPartiallyCompleted"
             [class.grace-used]="day.isGraceUsed"
             [class.has-warnings]="day.hasWarnings"
+            [class.future]="isFutureDate(day.date)"
             (click)="selectDay(day)">
             
             <!-- Day Number -->
             <div class="day-number">{{ day.dayNumber }}</div>
             
             <!-- Completion Status -->
-            <div class="day-status">
+            <div class="day-status" *ngIf="!isFutureDate(day.date)">
               <div class="status-indicator">
                 <span *ngIf="day.isCompleted" class="status-icon completed">✓</span>
                 <span *ngIf="day.isPartiallyCompleted && !day.isCompleted" class="status-icon partial">◐</span>
@@ -120,16 +140,19 @@ interface MonthlyStats {
               </div>
             </div>
 
-            <!-- Habit Progress Bar -->
-            <div class="habit-progress" *ngIf="day.isCurrentMonth && day.totalHabits > 0">
-              <div class="progress-bar">
-                <div 
-                  class="progress-fill" 
-                  [style.width.%]="(day.completedHabits / day.totalHabits) * 100">
+            <div class="task-list" *ngIf="day.tasks && day.tasks.length > 0">
+              <div class="task-count">{{ day.completedHabits }}/{{ day.tasks.length }} task{{ day.tasks.length !== 1 ? 's' : '' }}</div>
+              <div class="task-items">
+                <div *ngFor="let task of day.tasks" 
+                    class="task-item" 
+                    [class.completed]="isTaskCompleted(day, task)"
+                    [title]="task + (isTaskCompleted(day, task) ? ' ✓' : '')"
+                    (click)="toggleTaskCompletion(task, day.date, $event)">
+                  {{ getTaskInitial(task) }}
                 </div>
               </div>
-              <div class="progress-text">{{ day.completedHabits }}/{{ day.totalHabits }}</div>
             </div>
+
 
             <!-- Streak Indicator -->
             <div class="streak-indicator" *ngIf="day.streakDay && day.streakDay <= 30">
@@ -142,12 +165,25 @@ interface MonthlyStats {
                 {{ getRewardEmoji(reward) }}
               </span>
             </div>
+
+            <!-- Future date indicator -->
+            <div class="future-indicator" *ngIf="isFutureDate(day.date) && day.isCurrentMonth">
+              <span class="future-text">Future</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Habit Performance Section -->
-      <div class="habit-performance" *ngIf="monthlyStats">
+      <!-- Empty State for No Data -->
+      <div class="empty-state" *ngIf="!loading && !error && monthlyStats && monthlyStats.totalDays === 0">
+        <div class="empty-icon">📅</div>
+        <h3>No Data Yet</h3>
+        <p>Start using your habit tracker to see your progress here!</p>
+        <p>Go to the Weekly view to begin tracking your habits.</p>
+      </div>
+
+      <!-- Habit Performance Section (only if there's data) -->
+      <div class="habit-performance" *ngIf="monthlyStats && monthlyStats.habitStats.length > 0 && !loading">
         <h3>Habit Performance This Month</h3>
         <div class="habit-stats">
           <div *ngFor="let habit of monthlyStats.habitStats" class="habit-stat">
@@ -172,7 +208,7 @@ interface MonthlyStats {
       </div>
 
       <!-- Legend -->
-      <div class="legend">
+      <div class="legend" *ngIf="!loading">
         <h3>Legend</h3>
         <div class="legend-items">
           <div class="legend-item">
@@ -191,56 +227,125 @@ interface MonthlyStats {
             <div class="legend-color today"></div>
             <span>Today</span>
           </div>
+          <div class="legend-item">
+            <div class="legend-color future"></div>
+            <span>Future Date</span>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Day Detail Modal -->
     <div class="modal-overlay" *ngIf="selectedDay" (click)="closeModal()">
-      <div class="modal-content" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <h3>{{ formatDate(selectedDay.date) }}</h3>
-          <button class="close-btn" (click)="closeModal()">×</button>
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <div class="header-content">
+        <h3>{{ formatDate(selectedDay.date) }}</h3>
+        <div class="progress-ring">
+          <svg class="progress-circle" width="50" height="50">
+            <circle cx="25" cy="25" r="20" 
+                    stroke="rgba(100, 181, 246, 0.3)" 
+                    stroke-width="3" 
+                    fill="transparent"/>
+            <circle cx="25" cy="25" r="20" 
+                    stroke="#64b5f6" 
+                    stroke-width="3" 
+                    fill="transparent"
+                    stroke-dasharray="125.6"
+                    [style.stroke-dashoffset]="125.6 - (125.6 * selectedDay.completedHabits / selectedDay.totalHabits)"
+                    class="progress-bar-circle"/>
+          </svg>
+          <span class="progress-text">{{ selectedDay.completedHabits }}/{{ selectedDay.totalHabits }}</span>
         </div>
+      </div>
+      <button class="close-btn" (click)="closeModal()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <!-- Status Badge -->
+      <div class="status-badge-container">
+  <div class="status-badge" 
+       [class.completed]="selectedDay.isCompleted"
+       [class.partial]="selectedDay.isPartiallyCompleted && !selectedDay.isCompleted"
+       [class.not-started]="!selectedDay.isCompleted && !selectedDay.isPartiallyCompleted">
+    <div class="status-icon">
+      <!-- Fixed: Check the actual completion states -->
+      <span *ngIf="selectedDay.isCompleted">✓</span>
+      <span *ngIf="selectedDay.isPartiallyCompleted && !selectedDay.isCompleted">◐</span>
+      <span *ngIf="!selectedDay.isCompleted && !selectedDay.isPartiallyCompleted">○</span>
+    </div>
+    <div class="status-text">
+      <!-- Fixed: Check the actual completion states -->
+      <span *ngIf="selectedDay.isCompleted">Day Completed</span>
+      <span *ngIf="selectedDay.isPartiallyCompleted && !selectedDay.isCompleted">Partially Done</span>
+      <span *ngIf="!selectedDay.isCompleted && !selectedDay.isPartiallyCompleted">Not Started</span>
+    </div>
+  </div>
+</div>
+
+      <!-- Task List -->
+      <div class="tasks-section" *ngIf="selectedDay.tasks && selectedDay.tasks.length > 0">
+        <h4 class="section-title">
+          <span class="title-icon">📋</span>
+          Daily Tasks
+        </h4>
         
-        <div class="modal-body">
-          <div class="day-summary">
-            <div class="summary-item">
-              <strong>Status:</strong>
-              <span *ngIf="selectedDay.isCompleted" class="status-text completed">✓ Completed</span>
-              <span *ngIf="selectedDay.isPartiallyCompleted && !selectedDay.isCompleted" class="status-text partial">◐ Partial</span>
-              <span *ngIf="selectedDay.isGraceUsed" class="status-text grace">G Grace Used</span>
-              <span *ngIf="!selectedDay.isCompleted && !selectedDay.isPartiallyCompleted && !selectedDay.isGraceUsed" class="status-text incomplete">○ Not Completed</span>
+        <div class="task-grid">
+          <div *ngFor="let task of selectedDay.tasks; let i = index" 
+              class="task-card"
+              [class.completed]="isTaskCompleted(selectedDay, task)"
+              [class.animate-in]="true"
+              [style.animation-delay]="(i * 100) + 'ms'"
+              (click)="toggleTaskCompletion(task, selectedDay.date, $event)">
+
+            <!-- Task Icon & Status -->
+            <div class="task-icon-container">
+              <div class="task-icon" [class]="getTaskClass(task)">
+                {{ getTaskInitial(task) }}
+              </div>
+              <!-- FIX: Change this to show correct status for each task -->
+              <div class="completion-check" [class.visible]="isTaskCompleted(selectedDay, task)">
+                <div class="checkmark">✓</div>
+              </div>
             </div>
             
-            <div class="summary-item">
-              <strong>Habits:</strong>
-              <span>{{ selectedDay.completedHabits }}/{{ selectedDay.totalHabits }} completed</span>
+            <!-- Task Info -->
+            <div class="task-info">
+              <div class="task-name" [class.completed]="isTaskCompleted(selectedDay, task)">
+                {{ task }}
+              </div>
+              <div class="task-frequency">{{ getTaskFrequency(task) }}</div>
             </div>
             
-            <div class="summary-item" *ngIf="selectedDay.streakDay">
-              <strong>Streak Day:</strong>
-              <span class="streak-day">Day {{ selectedDay.streakDay }}</span>
-            </div>
-            
-            <div class="summary-item" *ngIf="selectedDay.rewards.length > 0">
-              <strong>Rewards Earned:</strong>
-              <div class="rewards-list">
-                <span *ngFor="let reward of selectedDay.rewards" class="reward-badge">
-                  {{ getRewardEmoji(reward) }} {{ reward }}
-                </span>
+            <!-- Task Action -->
+            <div class="task-action">
+              <div class="action-button" [class.completed]="isTaskCompleted(selectedDay, task)">
+                <!-- FIX: Change the button text based on actual completion status -->
+                <span *ngIf="isTaskCompleted(selectedDay, task)">Done</span>
+                <span *ngIf="!isTaskCompleted(selectedDay, task)">Mark</span>
               </div>
             </div>
           </div>
-          
-          <div class="modal-actions">
-            <button class="view-details-btn" (click)="viewDayDetails(selectedDay.date)">
-              View Full Details
-            </button>
-          </div>
         </div>
       </div>
+
+      <!-- Empty State -->
+      <div class="empty-state" *ngIf="!selectedDay.tasks || selectedDay.tasks.length === 0">
+        <div class="empty-icon">🌟</div>
+        <h4>No Tasks Today</h4>
+        <p>Enjoy your free day!</p>
+      </div>
+
+      <!-- Completion Message -->
+      <div class="completion-message" *ngIf="selectedDay.isCompleted">
+        <div class="celebration-icon">🎉</div>
+        <h4>Congratulations!</h4>
+        <p>You've completed all tasks for today. Keep up the great work!</p>
+      </div>
     </div>
+  </div>
+</div>
   `,
   styles: [`
     .monthly-view {
@@ -300,6 +405,63 @@ interface MonthlyStats {
       border-radius: 6px;
       cursor: pointer;
       font-weight: 600;
+    }
+
+    .loading-state, .error-state {
+      text-align: center;
+      padding: 40px;
+      background: rgba(20, 20, 40, 0.6);
+      border-radius: 15px;
+      margin-bottom: 30px;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(100, 181, 246, 0.3);
+      border-top: 4px solid #64b5f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .retry-btn {
+      background: rgba(100, 181, 246, 0.2);
+      border: 1px solid rgba(100, 181, 246, 0.5);
+      color: #64b5f6;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      background: rgba(20, 20, 40, 0.6);
+      border-radius: 15px;
+      margin-bottom: 30px;
+      border: 1px dashed rgba(100, 181, 246, 0.3);
+    }
+
+    .empty-icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+    }
+
+    .empty-state h3 {
+      color: #64b5f6;
+      margin-bottom: 15px;
+    }
+
+    .empty-state p {
+      color: #90caf9;
+      margin-bottom: 10px;
     }
 
     .stats-overview {
@@ -395,7 +557,7 @@ interface MonthlyStats {
       flex-direction: column;
     }
 
-    .calendar-day:hover {
+    .calendar-day:hover:not(.future) {
       border-color: rgba(100, 181, 246, 0.5);
       transform: translateY(-2px);
     }
@@ -426,6 +588,11 @@ interface MonthlyStats {
 
     .calendar-day.has-warnings {
       border-color: rgba(244, 67, 54, 0.6);
+    }
+
+    .calendar-day.future {
+      opacity: 0.5;
+      cursor: default;
     }
 
     .day-number {
@@ -484,6 +651,17 @@ interface MonthlyStats {
       font-size: 0.7rem;
       color: #90caf9;
       text-align: center;
+    }
+
+    .future-indicator {
+      text-align: center;
+      margin-top: auto;
+    }
+
+    .future-text {
+      font-size: 0.7rem;
+      color: #90caf9;
+      opacity: 0.6;
     }
 
     .streak-indicator {
@@ -636,6 +814,10 @@ interface MonthlyStats {
       background: rgba(100, 181, 246, 0.6);
     }
 
+    .legend-color.future {
+      background: rgba(120, 120, 120, 0.6);
+    }
+
     /* Modal Styles */
     .modal-overlay {
       position: fixed;
@@ -770,120 +952,835 @@ interface MonthlyStats {
       .legend-items {
         grid-template-columns: 1fr;
       }
+
+      .task-details {
+        margin: 20px 0;
+      }
+
+      .task-details h4 {
+        color: #90caf9;
+        margin-bottom: 15px;
+        font-size: 1rem;
+      }
+
+      .task-list-modal {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .task-item-modal {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: rgba(30, 30, 60, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .task-item-modal:hover {
+        background: rgba(100, 181, 246, 0.1);
+        border-color: rgba(100, 181, 246, 0.3);
+      }
+
+      .task-item-modal.completed {
+        background: rgba(76, 175, 80, 0.2);
+        border-color: rgba(76, 175, 80, 0.5);
+      }
+
+      .task-item-modal.completed .task-name {
+        text-decoration: line-through;
+        opacity: 0.8;
+      }
+
+      .task-status-icon {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+      }
+
+      .completed-icon {
+        color: #4caf50;
+        font-size: 1.2rem;
+      }
+
+      .incomplete-icon {
+        color: #90caf9;
+        font-size: 1.2rem;
+      }
+
+      .task-name {
+        flex: 1;
+        color: #e3f2fd;
+        font-weight: 500;
+      }
+
+      .task-badge {
+        width: 24px;
+        height: 24px;
+        background: rgba(100, 181, 246, 0.3);
+        color: #64b5f6;
+        border: 1px solid rgba(100, 181, 246, 0.5);
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: bold;
+      }
+
+      .task-item-modal.completed .task-badge {
+        background: rgba(76, 175, 80, 0.6);
+        border-color: rgba(76, 175, 80, 0.8);
+        color: #ffffff;
+      }
+
+      .no-tasks {
+        text-align: center;
+        padding: 20px;
+        color: #90caf9;
+        font-style: italic;
+      }
+
+      .additional-info {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* Keep existing modal styles and update these */
+      .modal-content {
+        background: rgba(20, 20, 40, 0.95);
+        border-radius: 15px;
+        padding: 25px;
+        max-width: 600px; /* Increased width for task list */
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        border: 1px solid rgba(100, 181, 246, 0.3);
+      }
+     /* Responsive */
+      @media (max-width: 768px) {
+        .modal-content {
+          margin: 20px;
+          max-height: 90vh;
+        }
+        
+        .header-content {
+          flex-direction: column;
+          gap: 10px;
+          text-align: center;
+        }
+        
+        .task-card {
+          padding: 15px;
+        }
+        
+        .modal-body {
+          padding: 20px;
+        }
+      }
     }
   `]
 })
-export class MonthlyViewComponent implements OnInit {
-  currentMonth: number = 9; // September (0-based)
-  currentYear: number = 2025;
+export class MonthlyViewComponent implements OnInit, OnDestroy {
+  // Fix the initial month to current date
+  currentMonth: number;
+  currentYear: number;
+  
   calendarDays: MonthlyDayData[] = [];
   monthlyStats: MonthlyStats | null = null;
   selectedDay: MonthlyDayData | null = null;
+  loading = false;
+  error: string | null = null;
 
-  constructor(private habitService: HabitService) {}
+  private destroy$ = new Subject<void>();
+
+  constructor(private habitService: HabitService) {
+    // Initialize to current date
+    const today = new Date();
+    this.currentMonth = today.getMonth(); // This will be 8 for September (0-based)
+    this.currentYear = today.getFullYear(); // 2025
+  }
 
   ngOnInit(): void {
     this.loadMonthData();
   }
 
-  loadMonthData(): void {
-    this.calendarDays = this.generateCalendarDays();
-    this.monthlyStats = this.generateMonthlyStats();
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
-  private generateCalendarDays(): MonthlyDayData[] {
+ loadMonthData(): void {
+  this.loading = true;
+  this.error = null;
+  
+  // Load real completion data from backend
+  this.loadRealCompletionData();
+}
+
+private loadRealCompletionData(): void {
+  const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+  const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+  
+  // Get all days in the current month
+  const monthDays: Date[] = [];
+  for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+    monthDays.push(new Date(d));
+  }
+
+  // Load completion data for each day from API
+  const dayRequests = monthDays.map(date => 
+    this.habitService.getDayStatus(date.toISOString().split('T')[0])
+      .pipe(takeUntil(this.destroy$))
+  );
+
+  // Execute all requests
+  Promise.allSettled(dayRequests.map(req => req.toPromise()))
+    .then(results => {
+      const apiData: any[] = [];
+      
+      results.forEach((result, index) => {
+        if (result.status === 'fulfilled' && result.value) {
+          apiData.push({
+            date: monthDays[index],
+            data: result.value
+          });
+        }
+      });
+
+      // Generate calendar with real completion data
+      this.calendarDays = this.generateCalendarWithCompletionData(apiData);
+      this.monthlyStats = this.calculateTaskBasedStats();
+      this.loading = false;
+    })
+    .catch(error => {
+      console.error('Error loading completion data:', error);
+      // Fallback to task-only calendar (no completion data)
+      this.calendarDays = this.generateTaskPopulatedCalendar();
+      this.monthlyStats = this.calculateTaskBasedStats();
+      this.loading = false;
+    });
+}
+
+private generateCalendarWithCompletionData(apiData: any[]): MonthlyDayData[] {
+  const days: MonthlyDayData[] = [];
+  const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+  const startDate = new Date(firstDay);
+  startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  const threeMonthsFromNow = new Date();
+  threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
+
+  for (let i = 0; i < 42; i++) {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + i);
+    
+    const isCurrentMonth = date.getMonth() === this.currentMonth;
+    const isFutureFromTomorrow = date >= tomorrow;
+    
+    // Generate scheduled tasks for this day
+    const scheduledTasks = (isFutureFromTomorrow && date <= threeMonthsFromNow) 
+      ? this.getTasksForDate(date) 
+      : [];
+    
+    // Find API completion data for this date
+    const apiDayData = apiData.find(d => 
+      d.date.toDateString() === date.toDateString()
+    );
+    
+    // Extract completed tasks from API data
+    const completedTasks: string[] = [];
+    let completedCount = 0;
+    
+    if (apiDayData && apiDayData.data.requiredHabits) {
+      // Map API habit completions to task names
+      apiDayData.data.requiredHabits.forEach((habit: any) => {
+        if (habit.isCompleted) {
+          const taskName = this.mapHabitToTaskName(habit.habitId);
+          if (taskName && scheduledTasks.includes(taskName)) {
+            completedTasks.push(taskName);
+            completedCount++;
+          }
+        }
+      });
+    }
+    
+    const totalTasks = scheduledTasks.length;
+    
+    days.push({
+      date: date.toISOString().split('T')[0],
+      dayNumber: date.getDate(),
+      isCurrentMonth,
+      isToday: date.getTime() === today.getTime(),
+      isCompleted: completedCount >= totalTasks && totalTasks > 0,
+      isPartiallyCompleted: completedCount > 0 && completedCount < totalTasks,
+      isGraceUsed: apiDayData?.data.isGraceUsed || false,
+      completedHabits: completedCount,
+      totalHabits: totalTasks,
+      streakDay: apiDayData?.data.streakDay || null,
+      rewards: apiDayData?.data.rewards || [],
+      hasWarnings: apiDayData?.data.warnings?.length > 0 || false,
+      tasks: scheduledTasks,
+      completedTasks: completedTasks
+    });
+  }
+
+  return days;
+}
+
+private mapHabitToTaskName(habitId: string | number): string | null {
+  const habitToTaskMap: { [key: string]: string } = {
+    '1': 'Phone Lock Box',
+    '2': 'Clean Dishes',
+    '3': 'Vacuum & Sweep',
+    '4': 'Gym Workout',
+    '5': 'Clean Bathroom',
+    '6': 'Kitchen Deep Clean',
+    '7': 'Clean Windows'
+  };
+  return habitToTaskMap[habitId.toString()] || null;
+}
+
+  private taskDefinitions = [
+  {
+    id: 'phone-lock',
+    name: 'Phone Lock Box',
+    frequency: 'daily' as const
+  },
+  {
+    id: 'dishes',
+    name: 'Clean Dishes',
+    frequency: 'rolling' as const,
+    details: { rollingDays: 2 }
+  },
+  {
+    id: 'vacuum',
+    name: 'Vacuum & Sweep',
+    frequency: 'weekly' as const,
+    details: { 
+      weeklyCount: 2, 
+      preferredDays: [1, 4] // Monday and Thursday
+    }
+  },
+  {
+    id: 'gym',
+    name: 'Gym Workout',
+    frequency: 'weekly' as const,
+    details: { 
+      weeklyCount: 4,
+      preferredDays: [1, 2, 4, 5] // Mon, Tue, Thu, Fri
+    }
+  },
+  {
+    id: 'bathroom',
+    name: 'Clean Bathroom',
+    frequency: 'weekly' as const,
+    details: { 
+      weeklyCount: 1,
+      preferredDays: [0] // Sunday
+    }
+  },
+  {
+    id: 'kitchen-deep',
+    name: 'Kitchen Deep Clean',
+    frequency: 'monthly' as const,
+    details: {
+      monthlyWeek: 1, // First week of month
+      monthlyDay: 6 // Saturday
+    }
+  },
+  {
+    id: 'windows',
+    name: 'Clean Windows',
+    frequency: 'quarterly' as const,
+    details: {
+      quarterlyMonths: [3, 6, 9] // March, June, September
+    }
+  }
+];
+
+ private generateTaskPopulatedCalendar(): MonthlyDayData[] {
     const days: MonthlyDayData[] = [];
     const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-    const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
     const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay()); // Start from Sunday
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
 
-    // Generate 42 days (6 weeks) to fill calendar grid
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const threeMonthsFromNow = new Date();
+    threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
+
     for (let i = 0; i < 42; i++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + i);
       
       const isCurrentMonth = date.getMonth() === this.currentMonth;
-      const dayData = this.generateDayData(date, isCurrentMonth);
+      const isPastOrToday = date <= today;
+      const isFutureFromTomorrow = date >= tomorrow;
+      
+      const dayTasks = (isFutureFromTomorrow && date <= threeMonthsFromNow) 
+        ? this.getTasksForDate(date) 
+        : [];
+      
+      days.push({
+        date: date.toISOString().split('T')[0],
+        dayNumber: date.getDate(),
+        isCurrentMonth,
+        isToday: date.getTime() === today.getTime(),
+        isCompleted: false,
+        isPartiallyCompleted: false,
+        isGraceUsed: false,
+        completedHabits: 0,
+        totalHabits: dayTasks.length,
+        streakDay: null,
+        rewards: [],
+        hasWarnings: false,
+        tasks: dayTasks,
+        completedTasks: [] // Initialize empty completed tasks array
+      });
+    }
+
+    return days;
+  }
+
+ // Add task completion functionality
+  toggleTaskCompletion(taskName: string, date: string, event: Event): void {
+  event.stopPropagation();
+  
+  const day = this.calendarDays.find(d => d.date === date);
+  if (!day || !day.tasks) return;
+
+  const taskIndex = day.tasks.indexOf(taskName);
+  if (taskIndex === -1) return;
+
+  // Initialize completedTasks array if it doesn't exist
+  if (!day.completedTasks) {
+    day.completedTasks = [];
+  }
+
+  const isCurrentlyCompleted = day.completedTasks.includes(taskName);
+  
+  if (isCurrentlyCompleted) {
+    // Remove from completed tasks
+    day.completedTasks = day.completedTasks.filter(t => t !== taskName);
+  } else {
+    // Add to completed tasks
+    day.completedTasks.push(taskName);
+  }
+
+  // Update completion counters
+  day.completedHabits = day.completedTasks.length;
+  
+  // Update completion status - THIS IS THE KEY FIX
+  day.isCompleted = day.completedHabits >= day.totalHabits && day.totalHabits > 0;
+  day.isPartiallyCompleted = day.completedHabits > 0 && day.completedHabits < day.totalHabits;
+
+  // If selectedDay is the same day, update it too for immediate UI feedback
+  if (this.selectedDay && this.selectedDay.date === date) {
+    this.selectedDay.completedTasks = [...day.completedTasks];
+    this.selectedDay.completedHabits = day.completedHabits;
+    this.selectedDay.isCompleted = day.isCompleted;
+    this.selectedDay.isPartiallyCompleted = day.isPartiallyCompleted;
+  }
+
+  // Save to backend
+  this.saveTaskCompletion(taskName, date, !isCurrentlyCompleted);
+  
+  // Update statistics
+  this.monthlyStats = this.calculateTaskBasedStats();
+}
+
+ private saveTaskCompletion(taskName: string, date: string, isCompleted: boolean): void {
+  // Map task names to numeric habit IDs (matching your backend database)
+  const taskToHabitId: { [key: string]: number } = {
+    'Phone Lock Box': 1,
+    'Clean Dishes': 2,
+    'Vacuum & Sweep': 3,
+    'Gym Workout': 4,
+    'Clean Bathroom': 5,
+    'Kitchen Deep Clean': 6,
+    'Clean Windows': 7
+  };
+
+  const habitId = taskToHabitId[taskName];
+  if (!habitId) {
+    console.warn(`No habit ID found for task: ${taskName}`);
+    return;
+  }
+
+  // Convert numeric ID to string for the service call (it will convert back internally)
+  this.habitService.toggleHabitCompletion(habitId.toString(), date, isCompleted)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (response) => {
+        console.log(`Task "${taskName}" completion saved successfully:`, response);
+      },
+      error: (error) => {
+        console.error(`Error saving task completion for "${taskName}":`, error);
+        this.revertTaskCompletion(taskName, date);
+        alert('Failed to save task completion. Please try again.');
+      }
+    });
+}
+
+  private revertTaskCompletion(taskName: string, date: string): void {
+    const day = this.calendarDays.find(d => d.date === date);
+    if (!day || !day.completedTasks) return;
+
+    // Revert the UI state
+    const wasCompleted = day.completedTasks.includes(taskName);
+    if (wasCompleted) {
+      day.completedTasks = day.completedTasks.filter(t => t !== taskName);
+      day.completedHabits = Math.max(0, day.completedHabits - 1);
+    } else {
+      day.completedTasks.push(taskName);
+      day.completedHabits++;
+    }
+
+    day.isCompleted = day.completedHabits >= day.totalHabits;
+    day.isPartiallyCompleted = day.completedHabits > 0 && day.completedHabits < day.totalHabits;
+  }
+
+private getTasksForDate(date: Date): string[] {
+  const tasks: string[] = [];
+  
+  for (const taskDef of this.taskDefinitions) {
+    if (this.isTaskRequiredOnDate(taskDef, date)) {
+      tasks.push(taskDef.name);
+    }
+  }
+  
+  return tasks;
+}
+
+private isTaskRequiredOnDate(taskDef: any, date: Date): boolean {
+  const dayOfWeek = date.getDay(); // 0=Sunday, 1=Monday, etc.
+  const dayOfMonth = date.getDate();
+  const month = date.getMonth() + 1; // 1=January, 2=February, etc.
+  const weekOfMonth = Math.ceil(dayOfMonth / 7);
+  
+  switch (taskDef.frequency) {
+    case 'daily':
+      return true; // Every day
+      
+    case 'rolling':
+      if (taskDef.details?.rollingDays) {
+        // For rolling tasks, check if it's time based on a cycle
+        const daysSinceEpoch = Math.floor(date.getTime() / (1000 * 60 * 60 * 24));
+        return daysSinceEpoch % taskDef.details.rollingDays === 0;
+      }
+      return false;
+      
+    case 'weekly':
+      if (taskDef.details?.preferredDays) {
+        return taskDef.details.preferredDays.includes(dayOfWeek);
+      }
+      return false;
+      
+    case 'monthly':
+      if (taskDef.details?.monthlyWeek && taskDef.details?.monthlyDay !== undefined) {
+        return weekOfMonth === taskDef.details.monthlyWeek && 
+               dayOfWeek === taskDef.details.monthlyDay;
+      }
+      return false;
+      
+    case 'quarterly':
+      if (taskDef.details?.quarterlyMonths) {
+        // Check if it's the first day of a quarterly month
+        return taskDef.details.quarterlyMonths.includes(month) && 
+               dayOfMonth === 1;
+      }
+      return false;
+      
+    default:
+      return false;
+  }
+}
+
+private calculateTaskBasedStats(): MonthlyStats {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const currentMonthFutureDays = this.calendarDays.filter(day => {
+      const dayDate = new Date(day.date);
+      return day.isCurrentMonth && dayDate >= tomorrow;
+    });
+    
+    const totalTaskDays = currentMonthFutureDays.filter(day => day.totalHabits > 0).length;
+    const completedDays = currentMonthFutureDays.filter(day => day.isCompleted).length;
+    const partialDays = currentMonthFutureDays.filter(day => day.isPartiallyCompleted).length;
+    
+    // Calculate task distribution with completion data
+    const taskStats = this.taskDefinitions.map(taskDef => {
+      const totalOccurrences = currentMonthFutureDays.filter(day => 
+        day.tasks && day.tasks.includes(taskDef.name)
+      ).length;
+      
+      const completedOccurrences = currentMonthFutureDays.filter(day => 
+        day.completedTasks && day.completedTasks.includes(taskDef.name)
+      ).length;
+      
+      return {
+        habitName: taskDef.name,
+        completedCount: completedOccurrences,
+        totalPossible: totalOccurrences,
+        percentage: totalOccurrences > 0 ? Math.round((completedOccurrences / totalOccurrences) * 100) : 0
+      };
+    }).filter(stat => stat.totalPossible > 0);
+
+    return {
+      totalDays: totalTaskDays,
+      completedDays,
+      partialDays,
+      graceDaysUsed: 0, // No grace system in this view yet
+      currentStreak: this.calculateCurrentStreak(currentMonthFutureDays),
+      completionRate: totalTaskDays > 0 ? Math.round((completedDays / totalTaskDays) * 100) : 0,
+      habitStats: taskStats
+    };
+  }
+
+   private calculateCurrentStreak(days: MonthlyDayData[]): number {
+    // Calculate streak from completed days (most recent first)
+    const sortedDays = days
+      .filter(day => day.totalHabits > 0)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    let streak = 0;
+    for (const day of sortedDays) {
+      if (day.isCompleted) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }
+
+    // Helper method to check if task is completed
+  isTaskCompleted(day: MonthlyDayData, taskName: string): boolean {
+    return day.completedTasks ? day.completedTasks.includes(taskName) : false;
+  }
+
+  private loadRealMonthData(): void {
+    const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+    const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+    
+    // Get all days in the current month only
+    const monthDays: Date[] = [];
+    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      monthDays.push(new Date(d));
+    }
+
+    // Load data for each day in the month from API
+    const dayRequests = monthDays.map(date => 
+      this.habitService.getDayStatus(date.toISOString().split('T')[0])
+        .pipe(takeUntil(this.destroy$))
+    );
+
+    // Execute all requests
+    Promise.allSettled(dayRequests.map(req => req.toPromise()))
+      .then(results => {
+        const dayData: any[] = [];
+        
+        results.forEach((result, index) => {
+          if (result.status === 'fulfilled' && result.value) {
+            dayData.push({
+              date: monthDays[index],
+              data: result.value
+            });
+          }
+        });
+
+        // Generate calendar with real data only
+        this.calendarDays = this.generateCleanCalendarDays(dayData);
+        this.monthlyStats = this.calculateRealMonthlyStats(dayData);
+        this.loading = false;
+      })
+      .catch(error => {
+        console.error('Error loading month data:', error);
+        this.error = 'Failed to load calendar data. Please check your API connection.';
+        this.loading = false;
+        
+        // Don't fallback to mock data - show empty calendar
+        this.calendarDays = this.generateEmptyCalendarDays();
+        this.monthlyStats = this.getEmptyStats();
+      });
+  }
+
+  private generateCleanCalendarDays(realDayData: any[]): MonthlyDayData[] {
+    const days: MonthlyDayData[] = [];
+    const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 42; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      
+      const isCurrentMonth = date.getMonth() === this.currentMonth;
+      const isFuture = date > today;
+      
+      // Find real data for this date
+      const realData = realDayData.find(d => 
+        d.date.toDateString() === date.toDateString()
+      );
+
+      let dayData: MonthlyDayData;
+
+      if (realData && !isFuture) {
+        // Use real API data
+        dayData = this.convertApiDataToMonthlyData(date, realData.data, isCurrentMonth);
+      } else {
+        // Empty data for future days or days without API data
+        dayData = {
+          date: date.toISOString().split('T')[0],
+          dayNumber: date.getDate(),
+          isCurrentMonth,
+          isToday: date.getTime() === today.getTime(),
+          isCompleted: false,
+          isPartiallyCompleted: false,
+          isGraceUsed: false,
+          completedHabits: 0,
+          totalHabits: 0, // No habits shown for days without data
+          streakDay: null,
+          rewards: [],
+          hasWarnings: false
+        };
+      }
+
       days.push(dayData);
     }
 
     return days;
   }
 
-  private generateDayData(date: Date, isCurrentMonth: boolean): MonthlyDayData {
-    const dateStr = date.toISOString().split('T')[0];
+  private generateEmptyCalendarDays(): MonthlyDayData[] {
+    const days: MonthlyDayData[] = [];
+    const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    // Simulate habit completion data
-    const completedHabits = Math.floor(Math.random() * 5);
-    const totalHabits = 4;
-    const isCompleted = completedHabits >= totalHabits;
-    const isPartiallyCompleted = completedHabits > 0 && completedHabits < totalHabits;
-    const isGraceUsed = !isCompleted && !isPartiallyCompleted && Math.random() > 0.9;
-    
-    // Calculate streak day (if in a streak)
-    const daysSinceStart = Math.floor((date.getTime() - new Date('2025-09-01').getTime()) / (1000 * 60 * 60 * 24));
-    const streakDay = isCompleted || isGraceUsed ? Math.max(1, daysSinceStart) : null;
-    
-    // Generate rewards for milestone days
-    const rewards: string[] = [];
-    if (streakDay) {
-      if (streakDay % 7 === 0) rewards.push('Coffee');
-      if (streakDay % 14 === 0) rewards.push('Book');
-      if (streakDay % 30 === 0) rewards.push('Clothing');
+
+    for (let i = 0; i < 42; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      
+      const isCurrentMonth = date.getMonth() === this.currentMonth;
+      
+      days.push({
+        date: date.toISOString().split('T')[0],
+        dayNumber: date.getDate(),
+        isCurrentMonth,
+        isToday: date.getTime() === today.getTime(),
+        isCompleted: false,
+        isPartiallyCompleted: false,
+        isGraceUsed: false,
+        completedHabits: 0,
+        totalHabits: 0,
+        streakDay: null,
+        rewards: [],
+        hasWarnings: false
+      });
     }
 
-    return {
-      date: dateStr,
-      dayNumber: date.getDate(),
-      isCurrentMonth,
-      isToday: date.getTime() === today.getTime(),
-      isCompleted,
-      isPartiallyCompleted,
-      isGraceUsed,
-      completedHabits,
-      totalHabits,
-      streakDay,
-      rewards,
-      hasWarnings: !isCompleted && !isPartiallyCompleted && !isGraceUsed && date < today
-    };
+    return days;
   }
 
-  private generateMonthlyStats(): MonthlyStats {
-    const currentMonthDays = this.calendarDays.filter(day => day.isCurrentMonth);
-    const completedDays = currentMonthDays.filter(day => day.isCompleted).length;
-    const partialDays = currentMonthDays.filter(day => day.isPartiallyCompleted).length;
-    const graceDaysUsed = currentMonthDays.filter(day => day.isGraceUsed).length;
-    
-    // Calculate current streak
-    let currentStreak = 0;
-    const today = new Date();
-    for (let i = currentMonthDays.length - 1; i >= 0; i--) {
-      const day = currentMonthDays[i];
-      const dayDate = new Date(day.date);
-      if (dayDate <= today && (day.isCompleted || day.isGraceUsed)) {
-        currentStreak++;
-      } else if (dayDate <= today) {
-        break;
-      }
-    }
+  private convertApiDataToMonthlyData(date: Date, apiData: any, isCurrentMonth: boolean): MonthlyDayData {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
+  // Count completed habits from API data
+  const completedHabits = (apiData.requiredHabits || [])
+    .filter((h: any) => h.isCompleted).length;
+  const totalHabits = (apiData.requiredHabits || []).length;
+
+  return {
+    date: date.toISOString().split('T')[0],
+    dayNumber: date.getDate(),
+    isCurrentMonth,
+    isToday: date.getTime() === today.getTime(),
+    isCompleted: false, // Changed: Always false to remove green styling
+    isPartiallyCompleted: false, // Changed: Always false to remove partial styling
+    isGraceUsed: false, // Changed: Always false to remove grace styling
+    completedHabits: 0, // Changed: Always 0 to hide progress bars
+    totalHabits: 0, // Changed: Always 0 to hide progress bars
+    streakDay: null, // Changed: Always null to remove streak indicators
+    rewards: [], // Changed: Always empty to remove reward icons
+    hasWarnings: false // Changed: Always false to remove warning indicators
+  };
+}
+
+private calculateRealMonthlyStats(realDayData: any[]): MonthlyStats {
+  return {
+    totalDays: 0, // Changed: Always 0
+    completedDays: 0, // Changed: Always 0
+    partialDays: 0, // Changed: Always 0
+    graceDaysUsed: 0, // Changed: Always 0
+    currentStreak: 0, // Changed: Always 0
+    completionRate: 0, // Changed: Always 0
+    habitStats: [] // Changed: Always empty
+  };
+}
+
+  private calculateHabitStats(realDayData: any[]): any[] {
+    const habitMap = new Map<string, { completed: number, total: number }>();
+
+    realDayData.forEach(dayData => {
+      const habits = dayData.data.requiredHabits || [];
+      habits.forEach((habit: any) => {
+        const existing = habitMap.get(habit.habitName) || { completed: 0, total: 0 };
+        existing.total++;
+        if (habit.isCompleted) {
+          existing.completed++;
+        }
+        habitMap.set(habit.habitName, existing);
+      });
+    });
+
+    return Array.from(habitMap.entries()).map(([habitName, stats]) => ({
+      habitName,
+      completedCount: stats.completed,
+      totalPossible: stats.total,
+      percentage: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
+    }));
+  }
+
+  private getEmptyStats(): MonthlyStats {
     return {
-      totalDays: currentMonthDays.length,
-      completedDays,
-      partialDays,
-      graceDaysUsed,
-      currentStreak,
-      completionRate: Math.round((completedDays / currentMonthDays.length) * 100),
-      habitStats: [
-        { habitName: 'Phone Lock', completedCount: 25, totalPossible: 30, percentage: 83 },
-        { habitName: 'Clean Dishes', completedCount: 20, totalPossible: 15, percentage: 100 },
-        { habitName: 'Vacuum', completedCount: 6, totalPossible: 8, percentage: 75 },
-        { habitName: 'Bathroom', completedCount: 3, totalPossible: 4, percentage: 75 },
-        { habitName: 'Gym', completedCount: 12, totalPossible: 16, percentage: 75 }
-      ]
+      totalDays: 0,
+      completedDays: 0,
+      partialDays: 0,
+      graceDaysUsed: 0,
+      currentStreak: 0,
+      completionRate: 0,
+      habitStats: []
     };
   }
 
@@ -946,9 +1843,16 @@ export class MonthlyViewComponent implements OnInit {
     });
   }
 
+  isFutureDate(dateStr: string): boolean {
+    const date = new Date(dateStr);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // End of today
+    return date > today;
+  }
+
   // Interaction methods
   selectDay(day: MonthlyDayData): void {
-    if (!day.isCurrentMonth) return;
+    if (!day.isCurrentMonth || this.isFutureDate(day.date)) return;
     this.selectedDay = day;
   }
 
@@ -962,6 +1866,51 @@ export class MonthlyViewComponent implements OnInit {
     this.closeModal();
     
     // This could emit an event or use router to navigate
-    // For example: this.router.navigate(['/calendar'], { queryParams: { date } });
+    // For example: this.router.navigate(['/'], { queryParams: { date } });
   }
+
+  getTaskInitial(taskName: string): string {
+    if (!taskName || typeof taskName !== 'string') return '?';
+    
+    // Specific initials for your defined tasks
+    const taskInitials: { [key: string]: string } = {
+      'Phone Lock Box': 'P',
+      'Clean Dishes': 'D', 
+      'Vacuum & Sweep': 'V',
+      'Gym Workout': 'G',
+      'Clean Bathroom': 'B',
+      'Kitchen Deep Clean': 'K',
+      'Clean Windows': 'W'
+    };
+    
+    // Return specific initial if found, otherwise first letter
+    return taskInitials[taskName] || taskName.trim().charAt(0).toUpperCase();
+  }
+
+  getTaskClass(taskName: string): string {
+  const taskClasses: { [key: string]: string } = {
+    'Phone Lock Box': 'phone',
+    'Clean Dishes': 'dishes',
+    'Vacuum & Sweep': 'vacuum',
+    'Gym Workout': 'gym',
+    'Clean Bathroom': 'bathroom',
+    'Kitchen Deep Clean': 'kitchen',
+    'Clean Windows': 'windows'
+  };
+  return taskClasses[taskName] || 'default';
 }
+
+getTaskFrequency(taskName: string): string {
+  const taskFrequencies: { [key: string]: string } = {
+    'Phone Lock Box': 'Daily habit',
+    'Clean Dishes': 'Every 2 days',
+    'Vacuum & Sweep': '2x per week',
+    'Gym Workout': '4x per week',
+    'Clean Bathroom': 'Weekly',
+    'Kitchen Deep Clean': 'Monthly',
+    'Clean Windows': 'Quarterly'
+  };
+  return taskFrequencies[taskName] || 'Custom frequency';
+}
+}
+

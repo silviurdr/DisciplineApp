@@ -48,7 +48,7 @@ export interface ApiHabitProgress {
 }
 
 export interface CompleteHabitRequest {
-  habitId: string;
+  habitId: number; // Changed from string to number
   date: string;
   isCompleted: boolean;
 }
@@ -150,37 +150,74 @@ export class HabitService {
   /**
    * Toggle habit completion for a specific date
    */
-  toggleHabitCompletion(habitId: string, date: string, isCompleted: boolean): Observable<ApiDayStatus> {
-    const request: CompleteHabitRequest = {
-      habitId,
-      date,
-      isCompleted
-    };
+toggleHabitCompletion(habitId: string, date: string, isCompleted: boolean): Observable<any> {
+  // Map string habit IDs to numeric IDs that your backend expects
+  const habitIdMap: { [key: string]: number } = {
+    'phone-lock': 1,
+    'dishes': 2,
+    'vacuum': 3,
+    'gym': 4,
+    'bathroom': 5,
+    'kitchen-deep': 6,
+    'windows': 7
+  };
 
-    return this.http.post<ApiDayStatus>(
-      `${this.apiUrl}/habittracking/complete`,
-      request
-    ).pipe(
-      tap(updatedDay => {
-        // Update local state
-        const currentDays = this.currentWeekDaysSubject.value;
-        const dayIndex = currentDays.findIndex(d => d.date === date);
-        if (dayIndex !== -1) {
-          currentDays[dayIndex] = updatedDay;
-          this.currentWeekDaysSubject.next([...currentDays]);
-        }
-        
-        // Refresh weekly progress
-        this.refreshWeeklyProgress();
-      }),
-      catchError(error => {
-        console.error('Error toggling habit:', error);
-        // Return current state or mock updated state
-        return of(this.getMockDayStatus(date));
-      })
-    );
+  const numericHabitId = habitIdMap[habitId];
+  if (!numericHabitId) {
+    console.error(`No numeric habit ID found for: ${habitId}`);
+    return of(null);
   }
 
+  const request: CompleteHabitRequest = {
+    habitId: numericHabitId, // Use numeric ID
+    date,
+    isCompleted
+  };
+
+  // Wrap the request in a request object as your API expects
+  const payload = {
+    request: request
+  };
+
+  return this.http.post<any>(
+    `${this.apiUrl}/habittracking/complete`,
+    payload // Send wrapped payload
+  ).pipe(
+    tap(updatedDay => {
+      // Update local state
+      const currentDays = this.currentWeekDaysSubject.value;
+      const dayIndex = currentDays.findIndex(d => d.date === date);
+      if (dayIndex !== -1) {
+        // Map the response back to your frontend format
+        currentDays[dayIndex] = this.mapApiResponseToFrontend(updatedDay);
+        this.currentWeekDaysSubject.next([...currentDays]);
+      }
+      
+      this.refreshWeeklyProgress();
+    }),
+    catchError(error => {
+      console.error('Error toggling habit:', error);
+      return of(null);
+    })
+  );
+}
+
+private mapApiResponseToFrontend(apiResponse: any): any {
+  // Transform the API response to match your frontend DayStatus format
+  return {
+    date: apiResponse.date || apiResponse.Date,
+    isCompleted: apiResponse.isCompleted || apiResponse.IsCompleted,
+    isPartiallyCompleted: apiResponse.isPartiallyCompleted || apiResponse.IsPartiallyCompleted,
+    isGraceUsed: apiResponse.isGraceUsed || apiResponse.IsGraceUsed,
+    canUseGrace: apiResponse.canUseGrace || apiResponse.CanUseGrace,
+    requiredHabits: apiResponse.requiredHabits || apiResponse.RequiredHabits || [],
+    optionalHabits: apiResponse.optionalHabits || apiResponse.OptionalHabits || [],
+    warnings: apiResponse.warnings || apiResponse.Warnings || [],
+    recommendations: apiResponse.recommendations || apiResponse.Recommendations || [],
+    streakDay: apiResponse.streakDay || apiResponse.StreakDay,
+    rewards: apiResponse.rewards || apiResponse.Rewards || []
+  };
+}
   /**
    * Use a grace day for a specific date
    */
