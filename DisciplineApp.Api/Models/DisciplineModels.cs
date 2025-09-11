@@ -16,6 +16,7 @@ namespace DisciplineApp.Api.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public bool IsGraceUsed { get; set; } = false;
 
         // Navigation properties
         public List<Reward> Rewards { get; set; } = new List<Reward>();

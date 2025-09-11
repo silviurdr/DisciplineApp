@@ -12,6 +12,10 @@ namespace DisciplineApp.Api.Data
         public DbSet<DisciplineEntry> DisciplineEntries { get; set; }
         public DbSet<Reward> Rewards { get; set; }
 
+        // New habit tracking tables
+        public DbSet<Habit> Habits { get; set; }
+        public DbSet<HabitCompletion> HabitCompletions { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -23,6 +27,9 @@ namespace DisciplineApp.Api.Data
                 entity.HasIndex(e => e.Date).IsUnique();
                 entity.Property(e => e.Date).IsRequired();
                 entity.Property(e => e.Notes).HasMaxLength(500);
+
+                // Add new properties for grace handling
+                entity.Property(e => e.IsGraceUsed).HasDefaultValue(false);
 
                 // Configure relationship with Rewards
                 entity.HasMany(e => e.Rewards)
@@ -39,108 +46,44 @@ namespace DisciplineApp.Api.Data
                 entity.Property(r => r.DisciplineEntryId).IsRequired();
             });
 
-            // Seed some example data for 2025
-            SeedExampleData(modelBuilder);
-        }
-
-        private void SeedExampleData(ModelBuilder modelBuilder)
-        {
-            var entries = new List<DisciplineEntry>();
-            var rewards = new List<Reward>();
-            int entryId = 1;
-            int rewardId = 1;
-
-            // 8-day streak: Jan 15-22
-            for (int day = 15; day <= 22; day++)
+            // Configure Habit
+            modelBuilder.Entity<Habit>(entity =>
             {
-                var date = new DateTime(2025, 1, day);
-                entries.Add(new DisciplineEntry
-                {
-                    Id = entryId,
-                    Date = date,
-                    IsCompleted = true,
-                    CreatedAt = new DateTime(2025, 1, 1),
-                    UpdatedAt = new DateTime(2025, 1, 1)
-                });
+                entity.HasKey(h => h.Id);
+                entity.Property(h => h.Name).IsRequired().HasMaxLength(200);
+                entity.Property(h => h.Frequency).IsRequired();
+                entity.Property(h => h.RequiredCount).HasDefaultValue(1);
+                entity.Property(h => h.WindowDays).HasDefaultValue(1);
+                entity.Property(h => h.IsActive).HasDefaultValue(true);
 
-                // Add coffee reward on day 7 of streak (Jan 21)
-                if (day == 21)
-                {
-                    rewards.Add(new Reward
-                    {
-                        Id = rewardId++,
-                        Type = RewardType.Coffee,
-                        DisciplineEntryId = entryId,
-                        EarnedAt = new DateTime(2025, 1, 1)
-                    });
-                }
+                // Configure relationship with HabitCompletions
+                entity.HasMany(h => h.Completions)
+                      .WithOne(c => c.Habit)
+                      .HasForeignKey(c => c.HabitId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
 
-                entryId++;
-            }
-
-            // 100-day streak: Mar 10 - Jun 17
-            var startDate = new DateTime(2025, 3, 10);
-            for (int i = 0; i < 100; i++)
+            // Configure HabitCompletion
+            modelBuilder.Entity<HabitCompletion>(entity =>
             {
-                var date = startDate.AddDays(i);
-                entries.Add(new DisciplineEntry
-                {
-                    Id = entryId,
-                    Date = date,
-                    IsCompleted = true,
-                    CreatedAt = new DateTime(2025, 3, 10),
-                    UpdatedAt = new DateTime(2025, 3, 10)
-                });
+                entity.HasKey(c => c.Id);
+                entity.Property(c => c.HabitId).IsRequired();
+                entity.Property(c => c.Date).IsRequired();
+                entity.Property(c => c.IsCompleted).HasDefaultValue(false);
+                entity.Property(c => c.Notes).HasMaxLength(500);
 
-                // Add rewards at milestones
-                int dayInStreak = i + 1;
-                if (dayInStreak == 7)
-                {
-                    rewards.Add(new Reward
-                    {
-                        Id = rewardId++,
-                        Type = RewardType.Coffee,
-                        DisciplineEntryId = entryId,
-                        EarnedAt = new DateTime(2025, 3, 16)
-                    });
-                }
-                else if (dayInStreak == 14)
-                {
-                    rewards.Add(new Reward
-                    {
-                        Id = rewardId++,
-                        Type = RewardType.Book,
-                        DisciplineEntryId = entryId,
-                        EarnedAt = new DateTime(2025, 3, 23)
-                    });
-                }
-                else if (dayInStreak == 30)
-                {
-                    rewards.Add(new Reward
-                    {
-                        Id = rewardId++,
-                        Type = RewardType.Clothing,
-                        DisciplineEntryId = entryId,
-                        EarnedAt = new DateTime(2025, 4, 8)
-                    });
-                }
-                else if (dayInStreak == 90)
-                {
-                    rewards.Add(new Reward
-                    {
-                        Id = rewardId++,
-                        Type = RewardType.Tennis,
-                        DisciplineEntryId = entryId,
-                        EarnedAt = new DateTime(2025, 6, 7)
-                    });
-                }
+                // Create unique index on HabitId + Date to prevent duplicate entries
+                entity.HasIndex(c => new { c.HabitId, c.Date }).IsUnique();
+            });
 
-                entryId++;
+            // Seed your specific habits
+            HabitSeedData.SeedHabits(modelBuilder);
+
+            // Optionally seed some sample completions for testing
+            if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
+            {
+                HabitSeedData.SeedSampleCompletions(modelBuilder);
             }
-
-            modelBuilder.Entity<DisciplineEntry>().HasData(entries);
-            modelBuilder.Entity<Reward>().HasData(rewards);
-            
         }
     }
 }
