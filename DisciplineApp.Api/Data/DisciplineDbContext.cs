@@ -27,8 +27,6 @@ namespace DisciplineApp.Api.Data
                 entity.HasIndex(e => e.Date).IsUnique();
                 entity.Property(e => e.Date).IsRequired();
                 entity.Property(e => e.Notes).HasMaxLength(500);
-
-                // Add new properties for grace handling
                 entity.Property(e => e.IsGraceUsed).HasDefaultValue(false);
 
                 // Configure relationship with Rewards
@@ -75,15 +73,6 @@ namespace DisciplineApp.Api.Data
                 // Create unique index on HabitId + Date to prevent duplicate entries
                 entity.HasIndex(c => new { c.HabitId, c.Date }).IsUnique();
             });
-
-            // Seed your specific habits
-            HabitSeedData.SeedHabits(modelBuilder);
-
-            // Optionally seed some sample completions for testing
-            if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
-            {
-                HabitSeedData.SeedSampleCompletions(modelBuilder);
-            }
         }
     }
 }

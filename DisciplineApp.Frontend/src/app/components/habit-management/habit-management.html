@@ -1,0 +1,91 @@
+<div class="habit-management">
+  <div class="header">
+    <h2>Habit Management</h2>
+    <button class="add-btn" (click)="showAddHabitForm = !showAddHabitForm">
+      {{ showAddHabitForm ? 'Cancel' : '+ Add New Habit' }}
+    </button>
+  </div>
+
+  <!-- Add/Edit Habit Form -->
+  <div class="habit-form-container" *ngIf="showAddHabitForm || editingHabit">
+    <div class="habit-form">
+      <h3>{{ editingHabit ? 'Edit Habit' : 'Add New Habit' }}</h3>
+      
+      <!-- Basic Info -->
+      <div class="form-group">
+        <label for="habitName">Habit Name</label>
+        <input 
+          id="habitName"
+          type="text" 
+          [(ngModel)]="formHabit.name" 
+          placeholder="e.g., Exercise, Read, Clean Kitchen"
+          maxlength="50">
+      </div>
+
+      <div class="form-group">
+        <label for="habitDescription">Description</label>
+        <textarea 
+          id="habitDescription"
+          [(ngModel)]="formHabit.description" 
+          placeholder="Describe what this habit involves..."
+          rows="3"
+          maxlength="200"></textarea>
+      </div>
+
+      <!-- Frequency Selection -->
+      <div class="form-group">
+        <label for="frequency">Frequency</label>
+        <select id="frequency" [(ngModel)]="formHabit.frequency" (ngModelChange)="onFrequencyChange()">
+          <option value="Daily">Daily</option>
+          <option value="Rolling">Every X Days (Rolling)</option>
+          <option value="Weekly">Weekly</option>
+          <option value="Monthly">Monthly</option>
+          <option value="Seasonal">Seasonal</option>
+        </select>
+      </div>
+
+      <!-- Form actions -->
+      <div class="form-actions">
+        <button type="button" class="save-btn" (click)="saveHabit()">
+          {{ editingHabit ? 'Update Habit' : 'Create Habit' }}
+        </button>
+        <button type="button" class="cancel-btn" (click)="cancelForm()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Existing Habits List -->
+  <div class="habits-list">
+    <h3>Your Habits</h3>
+    
+    <div class="habit-categories">
+      <!-- Daily Habits -->
+      <div class="category" *ngIf="getDailyHabits().length > 0">
+        <h4>Daily Habits</h4>
+        <div *ngFor="let habit of getDailyHabits()" class="habit-card daily">
+          <div class="habit-info">
+            <h5>{{ habit.name }}</h5>
+            <p>{{ habit.description }}</p>
+            <span class="frequency-badge">Every day</span>
+          </div>
+          <div class="habit-actions">
+            <button class="edit-btn" (click)="editHabit(habit)">Edit</button>
+            <button class="toggle-btn" 
+                    [class.active]="habit.isActive"
+                    (click)="toggleHabitActive(habit)">
+              {{ habit.isActive ? 'Active' : 'Paused' }}
+            </button>
+            <button class="delete-btn" (click)="deleteHabit(habit.id)">Delete</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add similar sections for Weekly, Rolling, Monthly, Seasonal habits -->
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="habits.length === 0">
+      <p>No habits created yet. Click "Add New Habit" to get started!</p>
+    </div>
+  </div>
+</div>
