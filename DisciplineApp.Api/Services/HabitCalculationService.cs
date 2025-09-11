@@ -26,33 +26,111 @@ namespace DisciplineApp.Api.Services
 
         public async Task<DayStatus> CalculateDayStatusAsync(DateTime date)
         {
-            var habits = await GetActiveHabitsForDateAsync(date);
             var dayStatus = new DayStatus { Date = date };
 
-            foreach (var habit in habits)
+            // For September 2025:
+            // - Days 1-11: Return empty (no tasks, not completed)
+            // - Days 12-30: Generate tasks according to schedule
+            // - Other months: Return empty
+
+            if (date.Year != 2025 || date.Month != 9)
             {
-                var habitStatus = await CalculateHabitStatusAsync(habit, date);
+                // Not September 2025 - return empty
+                return dayStatus;
+            }
+
+            if (date.Day < 12)
+            {
+                // September 1-11: Return empty (not completed, no tasks)
+                dayStatus.IsCompleted = false;
+                dayStatus.IsGraceUsed = false;
+                dayStatus.CanUseGrace = false;
+                return dayStatus;
+            }
+
+            // September 12-30: Generate tasks
+            var requiredHabits = GetRequiredHabitsForDate(date);
+
+            foreach (var habitInfo in requiredHabits)
+            {
+                var habitStatus = await GetHabitStatusAsync(habitInfo.HabitId, habitInfo.HabitName, date);
                 dayStatus.HabitStatuses.Add(habitStatus);
             }
 
-            // Check if day is completed (all required habits done or grace used)
-            var weeklyProgress = await GetWeeklyProgressAsync(date);
-            var requiredHabits = dayStatus.HabitStatuses.Where(h => h.IsRequired && !h.IsCompleted).ToList();
+            // Calculate day completion
+            var requiredCount = dayStatus.HabitStatuses.Count(h => h.IsRequired);
+            var completedCount = dayStatus.HabitStatuses.Count(h => h.IsRequired && h.IsCompleted);
 
-            if (requiredHabits.Count == 0)
-            {
-                dayStatus.IsCompleted = true;
-            }
-            else if (requiredHabits.Count == 1 && weeklyProgress.GraceRemaining > 0)
-            {
-                dayStatus.CanUseGrace = true;
-                dayStatus.Recommendations.Add($"You can use your weekly grace to skip: {requiredHabits.First().HabitName}");
-            }
-
-            // Generate warnings and recommendations
-            await GenerateInsightsAsync(dayStatus);
+            dayStatus.IsCompleted = requiredCount > 0 && completedCount == requiredCount;
 
             return dayStatus;
+        }
+        private List<(int HabitId, string HabitName)> GetRequiredHabitsForDate(DateTime date)
+        {
+            var required = new List<(int HabitId, string HabitName)>();
+
+            // Only for September 12-30, 2025
+            if (date.Year != 2025 || date.Month != 9 || date.Day < 12)
+            {
+                return required; // Return empty list
+            }
+
+            // Phone Lock - EVERY DAY from Sept 12 onwards
+            required.Add((1, "Lock Phone in Box"));
+
+            // Dishes - Every 2 days starting Sept 12
+            // Sept 12 = Day 0, Sept 14 = Day 2, Sept 16 = Day 4, etc.
+            var daysSinceSept12 = date.Day - 12;
+            if (daysSinceSept12 % 2 == 0)
+            {
+                required.Add((2, "Clean Dishes/Sink"));
+            }
+
+            // Weekly tasks based on day of week
+            var dayOfWeek = date.DayOfWeek;
+
+            // Gym - Monday, Wednesday, Friday, Saturday
+            if (dayOfWeek == DayOfWeek.Monday || dayOfWeek == DayOfWeek.Wednesday ||
+                dayOfWeek == DayOfWeek.Friday || dayOfWeek == DayOfWeek.Saturday)
+            {
+                required.Add((4, "Gym Workout"));
+            }
+
+            // Vacuum - Tuesday, Friday  
+            if (dayOfWeek == DayOfWeek.Tuesday || dayOfWeek == DayOfWeek.Friday)
+            {
+                required.Add((3, "Vacuum/Sweep Floors"));
+            }
+
+            // Bathroom - Sunday
+            if (dayOfWeek == DayOfWeek.Sunday)
+            {
+                required.Add((5, "Clean Bathroom"));
+            }
+
+            // Kitchen - Sept 25 only
+            if (date.Day == 25)
+            {
+                required.Add((6, "Kitchen Deep Clean"));
+            }
+
+            return required;
+        }
+
+        private async Task<HabitStatus> GetHabitStatusAsync(int habitId, string habitName, DateTime date)
+        {
+            var completion = await _context.HabitCompletions
+                .FirstOrDefaultAsync(c => c.HabitId == habitId && c.Date.Date == date.Date);
+
+            return new HabitStatus
+            {
+                HabitId = habitId,
+                HabitName = habitName,
+                IsRequired = true, // All habits returned by GetRequiredHabitsForDate are required
+                IsCompleted = completion?.IsCompleted ?? false,
+                Status = completion?.IsCompleted == true ? "Completed" : "Required",
+                LastCompletedDate = completion?.Date
+            };
         }
 
         private async Task<List<Habit>> GetActiveHabitsForDateAsync(DateTime date)
@@ -117,47 +195,37 @@ namespace DisciplineApp.Api.Services
             var completion = await _context.HabitCompletions
                 .FirstOrDefaultAsync(c => c.HabitId == habit.Id && c.Date.Date == date.Date);
 
+            // Daily habits (Phone Lock) - ALWAYS required every single day
             status.IsRequired = true;
             status.IsCompleted = completion?.IsCompleted ?? false;
             status.LastCompletedDate = completion?.Date;
-            status.Status = status.IsCompleted ? "Completed" : "Required";
+            status.Status = status.IsCompleted ? "Completed" : "Required daily";
         }
 
         private async Task CalculateRollingHabitStatusAsync(Habit habit, DateTime date, HabitStatus status)
         {
-            // For rolling habits (like dishes every 2 days), check the rolling window
-            var windowStart = date.AddDays(-habit.WindowDays + 1);
-            var completionsInWindow = await _context.HabitCompletions
-                .Where(c => c.HabitId == habit.Id &&
-                           c.Date >= windowStart &&
-                           c.Date <= date &&
-                           c.IsCompleted)
-                .CountAsync();
-
-            var lastCompletion = await _context.HabitCompletions
-                .Where(c => c.HabitId == habit.Id && c.IsCompleted)
-                .OrderByDescending(c => c.Date)
-                .FirstOrDefaultAsync();
-
-            status.CurrentWindowCount = completionsInWindow;
-            status.LastCompletedDate = lastCompletion?.Date;
-
-            // Check if we need to do this habit today
-            if (lastCompletion == null)
-            {
-                status.IsRequired = true;
-                status.Status = "First time required";
-            }
-            else
-            {
-                var daysSinceLastCompletion = (date - lastCompletion.Date).Days;
-                status.IsRequired = daysSinceLastCompletion >= habit.WindowDays;
-                status.Status = status.IsRequired ? "Required" : $"Optional ({daysSinceLastCompletion}/{habit.WindowDays} days)";
-            }
-
+            // Check if completed today
             var todayCompletion = await _context.HabitCompletions
                 .FirstOrDefaultAsync(c => c.HabitId == habit.Id && c.Date.Date == date.Date);
             status.IsCompleted = todayCompletion?.IsCompleted ?? false;
+
+            // ✅ SIMPLE APPROACH: Fixed pattern based on date
+            // For dishes (WindowDays = 2), show every 2 days starting from a reference date
+
+            // Use a fixed reference date (e.g., Jan 1, 2025)
+            var referenceDate = new DateTime(2025, 1, 1);
+            var daysSinceReference = (date.Date - referenceDate).Days;
+
+            // Required every WindowDays (e.g., every 2 days)
+            // This creates pattern: Day 0=Required, Day 1=Not, Day 2=Required, Day 3=Not, etc.
+            bool isRequiredToday = (daysSinceReference % habit.WindowDays) == 0;
+
+            status.IsRequired = isRequiredToday;
+            status.Status = isRequiredToday ? "Required (scheduled)" : $"Not scheduled (next in {habit.WindowDays - (daysSinceReference % habit.WindowDays)} days)";
+
+            // Set some default values
+            status.CurrentWindowCount = status.IsCompleted ? 1 : 0;
+            status.LastCompletedDate = status.IsCompleted ? date : null;
         }
 
         private async Task CalculateWeeklyHabitStatusAsync(Habit habit, DateTime date, HabitStatus status)
@@ -172,27 +240,39 @@ namespace DisciplineApp.Api.Services
                            c.IsCompleted)
                 .CountAsync();
 
-            var remainingDays = (weekEnd - date).Days + 1;
-            var neededCompletions = habit.RequiredCount - completionsThisWeek;
+            var todayCompletion = await _context.HabitCompletions
+                .FirstOrDefaultAsync(c => c.HabitId == habit.Id && c.Date.Date == date.Date);
+            status.IsCompleted = todayCompletion?.IsCompleted ?? false;
+
+            var remainingDaysInWeek = (weekEnd - date).Days + 1;
+            var stillNeeded = habit.RequiredCount - completionsThisWeek;
 
             status.CurrentWindowCount = completionsThisWeek;
-            status.IsCompleted = await _context.HabitCompletions
-                .AnyAsync(c => c.HabitId == habit.Id && c.Date.Date == date.Date && c.IsCompleted);
 
-            if (neededCompletions <= 0)
+            // ✅ SIMPLE LOGIC: Only required when becoming impossible to meet weekly target
+            if (stillNeeded <= 0)
             {
-                status.Status = "Week target achieved";
+                // Already met weekly target
                 status.IsRequired = false;
+                status.Status = $"Week complete ({completionsThisWeek}/{habit.RequiredCount})";
             }
-            else if (neededCompletions <= remainingDays)
+            else if (stillNeeded > remainingDaysInWeek)
             {
-                status.Status = $"Need {neededCompletions} more this week";
-                status.IsRequired = false; // Optional today, but needed this week
+                // Impossible to meet target - too late
+                status.IsRequired = false;
+                status.Status = $"Week target missed ({completionsThisWeek}/{habit.RequiredCount})";
+            }
+            else if (stillNeeded == remainingDaysInWeek)
+            {
+                // Must do EVERY remaining day - REQUIRED
+                status.IsRequired = true;
+                status.Status = $"CRITICAL: Must do every remaining day ({stillNeeded} left)";
             }
             else
             {
-                status.Status = "Week target impossible";
-                status.IsRequired = true; // Must do today to have any chance
+                // Still have flexibility - NOT REQUIRED
+                status.IsRequired = false;
+                status.Status = $"Optional: {stillNeeded} needed in {remainingDaysInWeek} days";
             }
         }
 
@@ -208,30 +288,58 @@ namespace DisciplineApp.Api.Services
                            c.IsCompleted)
                 .CountAsync();
 
+            var todayCompletion = await _context.HabitCompletions
+                .FirstOrDefaultAsync(c => c.HabitId == habit.Id && c.Date.Date == date.Date);
+            status.IsCompleted = todayCompletion?.IsCompleted ?? false;
+
+            var remainingDaysInMonth = (monthEnd - date).Days + 1;
+            var stillNeeded = habit.RequiredCount - completionsThisMonth;
+
             status.CurrentWindowCount = completionsThisMonth;
-            status.IsCompleted = await _context.HabitCompletions
-                .AnyAsync(c => c.HabitId == habit.Id && c.Date.Date == date.Date && c.IsCompleted);
 
-            var remainingDays = (monthEnd - date).Days + 1;
-            var neededCompletions = habit.RequiredCount - completionsThisMonth;
-
-            if (neededCompletions <= 0)
+            // ✅ SIMPLE LOGIC: Only required in last few days of month
+            if (stillNeeded <= 0)
             {
-                status.Status = "Month target achieved";
+                // Already completed this month
                 status.IsRequired = false;
+                status.Status = "Month target complete";
+            }
+            else if (remainingDaysInMonth <= 3)
+            {
+                // Last 3 days of month - REQUIRED
+                status.IsRequired = true;
+                status.Status = $"URGENT: {stillNeeded} needed, only {remainingDaysInMonth} days left";
             }
             else
             {
-                status.Status = $"Need {neededCompletions} more this month";
-                status.IsRequired = remainingDays <= 7; // Required if less than a week left
+                // Still plenty of time - NOT REQUIRED
+                status.IsRequired = false;
+                status.Status = $"Optional: {stillNeeded} needed this month";
             }
         }
 
         private async Task CalculateSeasonalHabitStatusAsync(Habit habit, DateTime date, HabitStatus status)
         {
-            // Similar to monthly but for the seasonal period
-            var seasonStart = new DateTime(date.Year, habit.StartMonth!.Value, 1);
-            var seasonEnd = new DateTime(date.Year, habit.EndMonth!.Value, DateTime.DaysInMonth(date.Year, habit.EndMonth.Value));
+            // Check if we're in the active season
+            if (habit.StartMonth.HasValue && habit.EndMonth.HasValue)
+            {
+                var currentMonth = date.Month;
+                var isInSeason = currentMonth >= habit.StartMonth.Value && currentMonth <= habit.EndMonth.Value;
+
+                if (!isInSeason)
+                {
+                    // Out of season - NEVER required
+                    status.Status = "Out of season";
+                    status.IsRequired = false;
+                    status.IsCompleted = false;
+                    return;
+                }
+            }
+
+            // Calculate seasonal window (March to October = 8 months)
+            var seasonStart = new DateTime(date.Year, habit.StartMonth ?? 1, 1);
+            var seasonEnd = new DateTime(date.Year, habit.EndMonth ?? 12,
+                DateTime.DaysInMonth(date.Year, habit.EndMonth ?? 12));
 
             var completionsThisSeason = await _context.HabitCompletions
                 .Where(c => c.HabitId == habit.Id &&
@@ -240,24 +348,42 @@ namespace DisciplineApp.Api.Services
                            c.IsCompleted)
                 .CountAsync();
 
+            var todayCompletion = await _context.HabitCompletions
+                .FirstOrDefaultAsync(c => c.HabitId == habit.Id && c.Date.Date == date.Date);
+            status.IsCompleted = todayCompletion?.IsCompleted ?? false;
+
+            var remainingDaysInSeason = (seasonEnd - date).Days + 1;
+            var stillNeeded = habit.RequiredCount - completionsThisSeason;
+
             status.CurrentWindowCount = completionsThisSeason;
-            status.IsCompleted = await _context.HabitCompletions
-                .AnyAsync(c => c.HabitId == habit.Id && c.Date.Date == date.Date && c.IsCompleted);
 
-            var remainingDays = (seasonEnd - date).Days + 1;
-            var neededCompletions = habit.RequiredCount - completionsThisSeason;
-
-            if (neededCompletions <= 0)
+            // ✅ SIMPLE LOGIC: Only required when season is ending and target not met
+            if (stillNeeded <= 0)
             {
-                status.Status = "Season target achieved";
+                // Already completed seasonal target (e.g., 3 window cleanings done)
                 status.IsRequired = false;
+                status.Status = $"Season complete ({completionsThisSeason}/{habit.RequiredCount})";
+            }
+            else if (remainingDaysInSeason <= 14)
+            {
+                // Last 2 weeks of season - REQUIRED
+                status.IsRequired = true;
+                status.Status = $"URGENT: {stillNeeded} needed, season ends in {remainingDaysInSeason} days";
+            }
+            else if (remainingDaysInSeason <= 30)
+            {
+                // Last month of season - recommended but not required
+                status.IsRequired = false;
+                status.Status = $"Recommended: {stillNeeded} needed, season ends soon";
             }
             else
             {
-                status.Status = $"Need {neededCompletions} more this season";
-                status.IsRequired = remainingDays <= 30; // Required if less than a month left
+                // Plenty of time left in season - NOT REQUIRED
+                status.IsRequired = false;
+                status.Status = $"Optional: {stillNeeded} needed this season";
             }
         }
+
 
         public async Task<WeeklyProgress> GetWeeklyProgressAsync(DateTime date)
         {
@@ -370,29 +496,54 @@ namespace DisciplineApp.Api.Services
             }
         }
 
+
         public async Task<bool> CompleteHabitAsync(CompleteHabitRequest request)
         {
             var existing = await _context.HabitCompletions
                 .FirstOrDefaultAsync(c => c.HabitId == request.HabitId && c.Date.Date == request.Date.Date);
 
-            if (existing != null)
+            if (request.IsCompleted)
             {
-                existing.IsCompleted = true;
-                existing.Notes = request.Notes;
+                // User is CHECKING the task - mark as completed
+                if (existing != null)
+                {
+                    existing.IsCompleted = true;
+                    existing.Notes = request.Notes;
+                }
+                else
+                {
+                    _context.HabitCompletions.Add(new HabitCompletion
+                    {
+                        HabitId = request.HabitId,
+                        Date = request.Date.Date,
+                        IsCompleted = true,
+                        Notes = request.Notes
+                    });
+                }
             }
             else
             {
-                _context.HabitCompletions.Add(new HabitCompletion
+                // User is UNCHECKING the task - mark as not completed or delete
+                if (existing != null)
                 {
-                    HabitId = request.HabitId,
-                    Date = request.Date.Date,
-                    IsCompleted = true,
-                    Notes = request.Notes
-                });
+                    // Option 1: Set to false (keeps the record)
+                    existing.IsCompleted = false;
+                    existing.Notes = request.Notes;
+
+                    // Option 2: Delete the record entirely (cleaner approach)
+                    // _context.HabitCompletions.Remove(existing);
+                }
+                // If no existing record and user is unchecking, do nothing
             }
 
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        private DateTime GetWeekStart(DateTime date)
+        {
+            var diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
+            return date.AddDays(-1 * diff).Date;
         }
 
         public async Task<bool> UseGraceDayAsync(UseGraceRequest request)
@@ -481,11 +632,6 @@ namespace DisciplineApp.Api.Services
 
             return result;
         }
-
-        private DateTime GetWeekStart(DateTime date)
-        {
-            var diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
-            return date.AddDays(-1 * diff).Date;
-        }
     }
+
 }
