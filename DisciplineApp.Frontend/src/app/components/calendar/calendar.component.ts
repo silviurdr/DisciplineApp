@@ -16,6 +16,27 @@ interface DayStatus {
   recommendations: string[];
 }
 
+interface RequiredHabit {
+  habitId: string;
+  habitName: string;
+  name: string;
+  isCompleted: boolean;
+  isRequired: boolean;
+  urgencyLevel: string;
+}
+
+interface DayStatus {
+  date: string;
+  isCompleted: boolean;
+  isPartiallyCompleted: boolean;
+  isGraceUsed: boolean;
+  completedHabits: number;
+  totalHabits: number;
+  warnings: string[];
+  recommendations: string[];
+  requiredHabits: RequiredHabit[];
+}
+
 interface HabitStatus {
   habitId: string;
   habitName: string;
@@ -763,10 +784,15 @@ private calculateOverallProgress(habitProgress: any[]): number {
 
 // Fallback method for when API fails
 private loadHardcodedData(): void {
-  // Your existing generateCurrentWeekData() logic here
   this.currentWeekDays = this.generateCurrentWeekData();
   this.weeklyProgress = this.generateWeeklyProgressData();
+  
+  // ✅ FIX: Set todayData to show Today's Tasks section
+  this.todayData = this.getCurrentDayData();
+  
+  this.loading = false;
 }
+
 
 private mapApiDataToWeekDays(weekData: any): DayStatus[] {
   return weekData.dayStatuses.map((apiDay: any) => ({
@@ -937,10 +963,28 @@ private getWeekStart(date: Date): Date {
     };
   }
 
-  private getCurrentDayData(): DayStatus | null {
-    const today = new Date().toISOString().split('T')[0];
-    return this.currentWeekDays.find(day => day.date === today) || null;
-  }
+private getCurrentDayData(): DayStatus | null {
+  const today = new Date().toISOString().split('T')[0];
+  const todayData = this.currentWeekDays.find(day => day.date === today);
+  
+  console.log('Current day data:', todayData);
+  console.log('Required habits:', todayData?.requiredHabits);
+  
+  return todayData || null;
+}
+
+getHabitDescription(habitId: string): string {
+  const descriptions: { [key: string]: string } = {
+    'phone-lock': 'Lock iPhone in the lock box for the day',
+    'clean-dishes': 'Ensure sink is clean, no dishes left',
+    'gym-workout': 'Complete workout session at the gym',
+    'vacuum-sweep': 'Vacuum and sweep all floors',
+    'clean-bathroom': 'Complete bathroom cleaning',
+    'kitchen-deep-clean': 'Monthly deep clean of kitchen',
+    'clean-windows': 'Clean all windows (seasonal)'
+  };
+  return descriptions[habitId] || 'Complete this habit';
+}
 
   // Helper methods
   getDayName(dateStr: string): string {
