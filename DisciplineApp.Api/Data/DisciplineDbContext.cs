@@ -12,6 +12,9 @@ namespace DisciplineApp.Api.Data
         public DbSet<DisciplineEntry> DisciplineEntries { get; set; }
         public DbSet<Reward> Rewards { get; set; }
         public DbSet<HabitCompletion> HabitCompletions { get; set; }
+        public DbSet<Habit> Habits { get; set; }
+        public DbSet<GraceUsage> GraceUsages { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -80,6 +83,37 @@ namespace DisciplineApp.Api.Data
                     .WithMany(de => de.Rewards)
                     .HasForeignKey(r => r.DisciplineEntryId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<Habit>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).HasMaxLength(1000);
+                entity.Property(e => e.IsRequired).HasDefaultValue(true);
+
+                // Configure DateOnly for SQLite if needed
+                if (Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
+                {
+                    // Add any DateOnly conversions if needed
+                }
+            });
+
+            // Configure GraceUsage
+            modelBuilder.Entity<GraceUsage>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Reason).IsRequired().HasMaxLength(500);
+
+                // Configure DateOnly for SQLite
+                if (Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
+                {
+                    entity.Property(e => e.Date)
+                        .HasConversion(
+                            dateOnly => dateOnly.ToString("yyyy-MM-dd"),
+                            dateString => DateOnly.ParseExact(dateString, "yyyy-MM-dd")
+                        );
+                }
             });
 
             // Configure DateOnly conversion for SQLite

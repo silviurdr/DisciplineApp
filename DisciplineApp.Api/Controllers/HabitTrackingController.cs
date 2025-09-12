@@ -72,9 +72,6 @@ namespace DisciplineApp.Api.Controllers
             }
         }
 
-        /// <summary>
-        /// Complete a specific habit for a specific date
-        /// </summary>
         [HttpPost("complete")]
         public async Task<ActionResult<DayStatusDto>> CompleteHabit([FromBody] CompleteHabitRequest request)
         {
@@ -97,12 +94,13 @@ namespace DisciplineApp.Api.Controllers
                     date,
                     request.Notes);
 
-                if (!success)
-                {
-                    return BadRequest("Failed to complete habit - may already be completed");
-                }
+                // Remove this check since CompleteHabitAsync now handles toggling
+                // if (!success)
+                // {
+                //     return BadRequest("Failed to complete habit - may already be completed");
+                // }
 
-                // Return updated day status
+                // Always return updated day status regardless of toggle direction
                 var updatedDayStatus = await _habitCalculationService.CalculateDayStatusAsync(date);
                 return Ok(updatedDayStatus);
             }
@@ -113,7 +111,7 @@ namespace DisciplineApp.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error completing habit {HabitId} for {Date}",
+                _logger.LogError(ex, "Error toggling habit {HabitId} for {Date}",
                     request.HabitId, request.Date);
                 return StatusCode(500, "Internal server error");
             }
