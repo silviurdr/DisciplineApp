@@ -49,7 +49,7 @@ public class DataMigrationService
                 // Check if this date already has a completion for phone lock habit
                 var existingCompletion = await _context.HabitCompletions
                     .FirstOrDefaultAsync(hc => hc.HabitId == phoneLockHabit.Id &&
-                                              hc.Date.Date == entry.Date.Date);
+                                              hc.Date.Date == entry.Date.ToDateTime(TimeOnly.MinValue).Date);
 
                 if (existingCompletion == null)
                 {
@@ -57,9 +57,9 @@ public class DataMigrationService
                     var habitCompletion = new HabitCompletion
                     {
                         HabitId = phoneLockHabit.Id,
-                        Date = entry.Date,
+                        Date = entry.Date.ToDateTime(TimeOnly.MinValue),
                         IsCompleted = true,
-                        CompletedAt = entry.Date, // Use the original date as completion time
+                        CompletedAt = entry.Date.ToDateTime(TimeOnly.MinValue), // Use the original date as completion time
                         Notes = "Migrated from old discipline entry system"
                     };
 

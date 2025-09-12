@@ -23,18 +23,19 @@ namespace DisciplineApp.Api.Models
     // Reward tracking
     public class Reward
     {
-        [Key]
         public int Id { get; set; }
-
-        public int DisciplineEntryId { get; set; }
-        public string Type { get; set; } = string.Empty; // "Weekly", "Monthly", "Milestone"
+        public int? DisciplineEntryId { get; set; } // Optional foreign key to DisciplineEntry
+        public string Type { get; set; } = string.Empty; // "Weekly", "Monthly", etc.
+        public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public DateTime EarnedAt { get; set; } = DateTime.UtcNow;
+        public int StreakRequired { get; set; }
+        public DateTime EarnedAt { get; set; }
+        public bool IsActive { get; set; } = true;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation property
-        public virtual DisciplineEntry DisciplineEntry { get; set; } = null!;
+        public virtual DisciplineEntry? DisciplineEntry { get; set; }
     }
-
     public enum RewardType
     {
         Coffee = 1,    // Day 7

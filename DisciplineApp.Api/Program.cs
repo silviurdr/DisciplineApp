@@ -49,7 +49,7 @@ using (var scope = app.Services.CreateScope())
     try
     {
         context.Database.EnsureCreated();
-        await SeedHabitsIfEmpty(context);
+        await DisciplineApp.Api.Services.HabitSeedData.SeedHabitsAsync(context);
     }
     catch (Exception ex)
     {

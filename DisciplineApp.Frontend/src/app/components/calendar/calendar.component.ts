@@ -718,31 +718,7 @@ private loadCurrentWeekData(): void {
     });
 }
 
-// Map API data to your existing DayStatus interface structure
-private mapApiDataToDayStatus(weekData: any): DayStatus[] {
-  if (!weekData || !weekData.dayStatuses) {
-    return this.generateCurrentWeekData(); // Fallback to hardcoded
-  }
 
-  return weekData.dayStatuses.map((apiDay: any) => ({
-    date: apiDay.date,
-    isCompleted: apiDay.status === 'Complete',
-    isPartiallyCompleted: apiDay.status === 'Partial',
-    isGraceUsed: apiDay.status === 'GraceUsed',
-    canUseGrace: apiDay.canUseGrace || false,
-    requiredHabits: apiDay.habitStatuses.map((habit: any) => ({
-      habitId: this.mapNumericIdToString(habit.habitId),
-      habitName: habit.habitName,
-      isCompleted: habit.isCompleted,
-      isRequired: habit.isRequired,
-      description: this.getHabitDescription(this.mapNumericIdToString(habit.habitId)),
-      urgencyLevel: habit.urgencyLevel || 'Normal'
-    })) as HabitStatus[],
-    optionalHabits: [],
-    warnings: apiDay.reminders || [],
-    recommendations: []
-  }));
-}
 
 private mapWeekDataToDays(weekData: any): DayStatus[] {
   if (!weekData || !weekData.dayStatuses) {

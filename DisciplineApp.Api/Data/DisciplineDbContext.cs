@@ -13,6 +13,7 @@ public class DisciplineDbContext : DbContext
     public DbSet<Habit> Habits { get; set; }
     public DbSet<HabitCompletion> HabitCompletions { get; set; }
     public DbSet<GraceUsage> GraceUsages { get; set; }
+    public DbSet<Reward> Rewards { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -63,6 +64,24 @@ public class DisciplineDbContext : DbContext
 
             // One grace per day constraint
             entity.HasIndex(g => g.UsedDate).IsUnique();
+        });
+
+        // Reward configuration
+        modelBuilder.Entity<Reward>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.Type).IsRequired().HasMaxLength(50);
+            entity.Property(r => r.Name).HasMaxLength(100);
+            entity.Property(r => r.Description).IsRequired().HasMaxLength(500);
+            entity.Property(r => r.EarnedAt).IsRequired();
+            entity.Property(r => r.IsActive).HasDefaultValue(true);
+            entity.Property(r => r.CreatedAt).HasDefaultValue(DateTime.UtcNow);
+
+            // Configure relationship with DisciplineEntry
+            entity.HasOne(r => r.DisciplineEntry)
+                  .WithMany()
+                  .HasForeignKey(r => r.DisciplineEntryId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         base.OnModelCreating(modelBuilder);

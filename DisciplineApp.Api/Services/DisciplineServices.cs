@@ -356,12 +356,13 @@ namespace DisciplineApp.Api.Services
             {
                 var weeklyReward = new Reward
                 {
-                    DisciplineEntryId = entry.Id,
+                    DisciplineEntryId = entry.Id, // Fixed: was just Id before
                     Type = "Weekly",
+                    Name = $"{currentStreak}-Day Streak",
                     Description = $"{currentStreak}-day streak reward!",
+                    StreakRequired = currentStreak,
                     EarnedAt = DateTime.UtcNow
                 };
-
                 _context.Rewards.Add(weeklyReward);
                 entry.IsSpecial = true;
             }
@@ -373,10 +374,11 @@ namespace DisciplineApp.Api.Services
                 {
                     DisciplineEntryId = entry.Id,
                     Type = "Monthly",
+                    Name = $"{currentStreak}-Day Milestone",
                     Description = $"{currentStreak}-day milestone achieved!",
+                    StreakRequired = currentStreak,
                     EarnedAt = DateTime.UtcNow
                 };
-
                 _context.Rewards.Add(monthlyReward);
                 entry.IsSpecial = true;
             }
