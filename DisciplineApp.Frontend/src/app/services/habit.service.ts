@@ -48,9 +48,9 @@ export interface ApiHabitProgress {
 }
 
 export interface CompleteHabitRequest {
-  habitId: number; // Changed from string to number
+  habitId: number;
   date: string;
-  isCompleted: boolean;
+  notes?: string;
 }
 
 export interface StreakInfo {
@@ -74,29 +74,52 @@ export class HabitService {
 
   constructor(private http: HttpClient) {}
 
+
+
+  completeHabit(request: CompleteHabitRequest): Observable<any> {
+    return this.http.post(`${this.apiUrl}/complete`, request)
+      .pipe(catchError(this.handleError));
+  }
+
   /**
    * Get day status for a specific date
    */
- getDayStatus(date: string): Observable<ApiDayStatus> {
-  return this.http.get<ApiDayStatus>(`${this.apiUrl}/habittracking/day/${date}`)
-    .pipe(
-      catchError(error => {
-        console.error('Error fetching day status:', error);
-        // Return empty day status instead of mock data for cleaner testing
-        return of({
-          date,
-          isCompleted: false,
-          isPartiallyCompleted: false,
-          isGraceUsed: false,
-          canUseGrace: true,
-          requiredHabits: [],
-          optionalHabits: [],
-          warnings: [],
-          recommendations: []
-        });
-      })
-    );
-}
+ getDayStatus(date: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/day/${date}`)
+      .pipe(catchError(this.handleError));
+  }
+
+  getTodayStatus(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/today`)
+      .pipe(catchError(this.handleError));
+  }
+
+  getWeekStatus(date: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/week/${date}`)
+      .pipe(catchError(this.handleError));
+  }
+
+  healthCheck(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/health`)
+      .pipe(catchError(this.handleError));
+  }
+
+
+  private handleError = (error: HttpErrorResponse) => {
+    let errorMessage = 'An unknown error occurred';
+    
+    if (error.error instanceof ErrorEvent) {
+      errorMessage = `Client Error: ${error.error.message}`;
+    } else {
+      errorMessage = `Server Error: ${error.status} - ${error.message}`;
+      if (error.error && typeof error.error === 'string') {
+        errorMessage += ` - ${error.error}`;
+      }
+    }
+    
+    console.error('HabitService Error:', errorMessage, error);
+    return throwError(() => errorMessage);
+  };
 
   /**
    * Load data for the current week (September 11-17, 2025)
