@@ -44,7 +44,7 @@ namespace DisciplineApp.Api.Controllers
             try
             {
                 _logger.LogInformation("Setting up initial habits");
-                await _migrationService.SetupInitialHabitsAsync();
+                await _migrationService.SetupHabitsAsync();
                 return Ok(new { message = "Initial habits created successfully" });
             }
             catch (Exception ex)

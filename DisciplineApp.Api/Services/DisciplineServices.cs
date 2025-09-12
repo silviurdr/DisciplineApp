@@ -1,15 +1,16 @@
-﻿using DisciplineApp.Api.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using DisciplineApp.Api.Data;
 using DisciplineApp.Api.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace DisciplineApp.Api.Services
 {
     public interface IDisciplineService
     {
         Task<YearCalendarDto> GetYearCalendarAsync(int year);
-        Task<CalendarDayDto> ToggleDayAsync(DateTime date, string? notes = null);
-        Task<CalendarDayDto> UpdateNotesAsync(DateTime date, string? notes);
-        Task<StreakInfo> GetStreakInfoAsync();
+        Task<CalendarDayDto> ToggleDayAsync(string dateString);
+        Task<CalendarDayDto> UpdateDayAsync(string dateString, bool isCompleted, string? notes = null);
+        Task<StreakInfoDto> GetStreakInfoAsync();
+        Task<CalendarDayDto?> GetDayAsync(string dateString);
     }
 
     public class DisciplineService : IDisciplineService
@@ -23,8 +24,8 @@ namespace DisciplineApp.Api.Services
 
         public async Task<YearCalendarDto> GetYearCalendarAsync(int year)
         {
-            var startDate = new DateTime(year, 1, 1);
-            var endDate = new DateTime(year, 12, 31);
+            var startDate = new DateOnly(year, 1, 1);
+            var endDate = new DateOnly(year, 12, 31);
 
             // Get all entries for the year
             var entries = await _context.DisciplineEntries
@@ -49,53 +50,175 @@ namespace DisciplineApp.Api.Services
             return yearCalendar;
         }
 
+        public async Task<CalendarDayDto> ToggleDayAsync(string dateString)
+        {
+            var date = DateHelper.ParseDateString(dateString);
+
+            var entry = await _context.DisciplineEntries
+                .Include(e => e.Rewards)
+                .FirstOrDefaultAsync(e => e.Date == date);
+
+            if (entry == null)
+            {
+                // Create new entry as completed
+                entry = new DisciplineEntry
+                {
+                    Date = date,
+                    IsCompleted = true,
+                    CompletedAt = DateTime.UtcNow
+                };
+                _context.DisciplineEntries.Add(entry);
+            }
+            else
+            {
+                // Toggle existing entry
+                entry.IsCompleted = !entry.IsCompleted;
+                entry.CompletedAt = entry.IsCompleted ? DateTime.UtcNow : null;
+            }
+
+            // Check for rewards after toggling
+            if (entry.IsCompleted)
+            {
+                await CheckAndAddRewardsAsync(entry);
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Return updated day with proper streak info
+            return await ConvertToCalendarDayDtoAsync(entry);
+        }
+
+        public async Task<CalendarDayDto> UpdateDayAsync(string dateString, bool isCompleted, string? notes = null)
+        {
+            var date = DateHelper.ParseDateString(dateString);
+
+            var entry = await _context.DisciplineEntries
+                .Include(e => e.Rewards)
+                .FirstOrDefaultAsync(e => e.Date == date);
+
+            if (entry == null)
+            {
+                entry = new DisciplineEntry
+                {
+                    Date = date,
+                    IsCompleted = isCompleted,
+                    Notes = notes,
+                    CompletedAt = isCompleted ? DateTime.UtcNow : null
+                };
+                _context.DisciplineEntries.Add(entry);
+            }
+            else
+            {
+                entry.IsCompleted = isCompleted;
+                entry.Notes = notes;
+                entry.CompletedAt = isCompleted ? DateTime.UtcNow : null;
+            }
+
+            // Check for rewards if completed
+            if (entry.IsCompleted)
+            {
+                await CheckAndAddRewardsAsync(entry);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return await ConvertToCalendarDayDtoAsync(entry);
+        }
+
+        public async Task<StreakInfoDto> GetStreakInfoAsync()
+        {
+            var allEntries = await _context.DisciplineEntries
+                .OrderBy(e => e.Date)
+                .ToListAsync();
+
+            var currentStreak = CalculateCurrentStreak(allEntries);
+            var longestStreak = CalculateLongestStreak(allEntries);
+            var totalDays = allEntries.Count(e => e.IsCompleted);
+
+            var rewards = await _context.Rewards.ToListAsync();
+            var weeklyRewards = rewards.Count(r => r.Type == "Weekly");
+            var monthlyRewards = rewards.Count(r => r.Type == "Monthly");
+
+            var nextMilestone = CalculateNextMilestone(currentStreak);
+
+            return new StreakInfoDto
+            {
+                CurrentStreak = currentStreak,
+                LongestStreak = longestStreak,
+                TotalDays = totalDays,
+                WeeklyRewards = weeklyRewards,
+                MonthlyRewards = monthlyRewards,
+                NextMilestone = nextMilestone,
+                LastUpdate = DateTime.UtcNow
+            };
+        }
+
+        public async Task<CalendarDayDto?> GetDayAsync(string dateString)
+        {
+            var date = DateHelper.ParseDateString(dateString);
+
+            var entry = await _context.DisciplineEntries
+                .Include(e => e.Rewards)
+                .FirstOrDefaultAsync(e => e.Date == date);
+
+            if (entry == null)
+            {
+                // Return empty day
+                return new CalendarDayDto
+                {
+                    Date = DateHelper.ToDateString(date),
+                    DayOfMonth = date.Day,
+                    IsCompleted = false,
+                    IsSpecial = false,
+                    DayInStreak = 0,
+                    Color = StreakColor.None,
+                    Rewards = new List<RewardDto>()
+                };
+            }
+
+            return await ConvertToCalendarDayDtoAsync(entry);
+        }
+
         private async Task<MonthDataDto> GenerateMonthDataAsync(int year, int month, List<DisciplineEntry> entries)
         {
-            var monthData = new MonthDataDto
+            var monthNames = new[]
             {
-                Year = year,
-                Month = month,
-                MonthName = new DateTime(year, month, 1).ToString("MMMM").ToUpper(),
-                Days = new List<CalendarDayDto>()
+                "", "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
             };
 
             var daysInMonth = DateTime.DaysInMonth(year, month);
-            var streakPeriods = await CalculateStreakPeriodsAsync();
+            var monthData = new MonthDataDto
+            {
+                Month = month,
+                Year = year,
+                MonthName = monthNames[month],
+                Days = new List<CalendarDayDto>()
+            };
 
             for (int day = 1; day <= daysInMonth; day++)
             {
-                var date = new DateTime(year, month, day);
-                var entry = entries.FirstOrDefault(e => e.Date.Date == date.Date);
+                var date = new DateOnly(year, month, day);
+                var entry = entries.FirstOrDefault(e => e.Date == date);
 
-                var dayDto = new CalendarDayDto
+                CalendarDayDto dayDto;
+                if (entry != null)
                 {
-                    Date = date,
-                    IsCompleted = entry?.IsCompleted ?? false,
-                    Notes = entry?.Notes
-                };
-
-                // Calculate streak information
-                var streakInfo = GetStreakInfoForDate(date, streakPeriods);
-                dayDto.IsInStreak = streakInfo != null;
-                dayDto.DayInStreak = streakInfo?.DayInStreak ?? 0;
-                dayDto.StreakColor = streakInfo?.Color ?? StreakColor.None;
-
-                // Add rewards
-                if (entry?.Rewards != null)
-                {
-                    dayDto.Rewards = entry.Rewards.Select(r => r.Type).ToList();
+                    dayDto = await ConvertToCalendarDayDtoAsync(entry);
                 }
-
-                // Special days
-                if (date == new DateTime(2025, 1, 23))
+                else
                 {
-                    dayDto.IsSpecialDay = true;
-                    dayDto.SpecialDayType = "streak-break";
-                }
-                else if (date == new DateTime(2025, 3, 23))
-                {
-                    dayDto.IsSpecialDay = true;
-                    dayDto.SpecialDayType = "book-cover";
+                    // Create empty day
+                    dayDto = new CalendarDayDto
+                    {
+                        Date = DateHelper.ToDateString(date),
+                        DayOfMonth = day,
+                        IsCompleted = false,
+                        IsSpecial = false,
+                        DayInStreak = 0,
+                        Color = StreakColor.None,
+                        Rewards = new List<RewardDto>()
+                    };
                 }
 
                 monthData.Days.Add(dayDto);
@@ -104,240 +227,159 @@ namespace DisciplineApp.Api.Services
             return monthData;
         }
 
-        private async Task<List<StreakPeriod>> CalculateStreakPeriodsAsync()
+        private async Task<CalendarDayDto> ConvertToCalendarDayDtoAsync(DisciplineEntry entry)
         {
-            var completedEntries = await _context.DisciplineEntries
+            var streakInfo = GetStreakInfoForDate(entry.Date);
+
+            return new CalendarDayDto
+            {
+                Date = DateHelper.ToDateString(entry.Date),
+                DayOfMonth = entry.Date.Day,
+                IsCompleted = entry.IsCompleted,
+                IsSpecial = entry.IsSpecial,
+                DayInStreak = streakInfo?.DayInStreak ?? 0,
+                Color = streakInfo?.Color ?? StreakColor.None,
+                Rewards = entry.Rewards.Select(r => new RewardDto
+                {
+                    Id = r.Id,
+                    Type = r.Type,
+                    Description = r.Description,
+                    EarnedAt = r.EarnedAt
+                }).ToList()
+            };
+        }
+
+        private (int DayInStreak, StreakColor Color)? GetStreakInfoForDate(DateOnly date)
+        {
+            // Get all completed entries up to and including this date
+            var entries = _context.DisciplineEntries
+                .Where(e => e.Date <= date && e.IsCompleted)
+                .OrderByDescending(e => e.Date)
+                .ToList();
+
+            if (!entries.Any() || !entries.Any(e => e.Date == date))
+            {
+                return null; // This date is not completed
+            }
+
+            // Calculate streak from this date backwards
+            int dayInStreak = 1;
+            var currentDate = date.AddDays(-1);
+
+            while (entries.Any(e => e.Date == currentDate))
+            {
+                dayInStreak++;
+                currentDate = currentDate.AddDays(-1);
+            }
+
+            // Determine color based on streak length
+            var color = dayInStreak switch
+            {
+                1 => StreakColor.Blue,
+                >= 2 and <= 6 => StreakColor.Blue,
+                >= 7 and <= 29 => StreakColor.Green,
+                >= 30 and <= 89 => StreakColor.Orange,
+                >= 90 => StreakColor.Red,
+                _ => StreakColor.None
+            };
+
+            return (dayInStreak, color);
+        }
+
+        private int CalculateCurrentStreak(List<DisciplineEntry> allEntries)
+        {
+            if (!allEntries.Any()) return 0;
+
+            var today = DateHelper.GetToday();
+            var streak = 0;
+            var currentDate = today;
+
+            // Count backwards from today
+            while (true)
+            {
+                var entry = allEntries.FirstOrDefault(e => e.Date == currentDate && e.IsCompleted);
+                if (entry == null) break;
+
+                streak++;
+                currentDate = currentDate.AddDays(-1);
+            }
+
+            return streak;
+        }
+
+        private int CalculateLongestStreak(List<DisciplineEntry> allEntries)
+        {
+            if (!allEntries.Any()) return 0;
+
+            var completedEntries = allEntries
                 .Where(e => e.IsCompleted)
                 .OrderBy(e => e.Date)
-                .ToListAsync();
+                .ToList();
 
-            var streakPeriods = new List<StreakPeriod>();
-            if (!completedEntries.Any()) return streakPeriods;
+            if (!completedEntries.Any()) return 0;
 
-            var currentStart = completedEntries[0].Date;
-            var currentEnd = completedEntries[0].Date;
+            int longestStreak = 1;
+            int currentStreak = 1;
 
             for (int i = 1; i < completedEntries.Count; i++)
             {
-                var currentDate = completedEntries[i].Date;
                 var previousDate = completedEntries[i - 1].Date;
+                var currentDate = completedEntries[i].Date;
 
+                // Check if dates are consecutive
                 if (currentDate == previousDate.AddDays(1))
                 {
-                    // Continue current streak
-                    currentEnd = currentDate;
-                }
-                else
-                {
-                    // End current streak and start a new one
-                    var streakLength = (currentEnd - currentStart).Days + 1;
-                    streakPeriods.Add(new StreakPeriod
-                    {
-                        StartDate = currentStart,
-                        EndDate = currentEnd,
-                        Length = streakLength,
-                        Color = GetStreakColor(streakLength)
-                    });
-
-                    currentStart = currentDate;
-                    currentEnd = currentDate;
-                }
-            }
-
-            // Add the last streak
-            var lastStreakLength = (currentEnd - currentStart).Days + 1;
-            streakPeriods.Add(new StreakPeriod
-            {
-                StartDate = currentStart,
-                EndDate = currentEnd,
-                Length = lastStreakLength,
-                Color = GetStreakColor(lastStreakLength)
-            });
-
-            return streakPeriods;
-        }
-
-        private StreakColor GetStreakColor(int dayInStreak)
-        {
-            if (dayInStreak >= 1 && dayInStreak <= 7) return StreakColor.Salmon;
-            if (dayInStreak >= 8 && dayInStreak <= 30) return StreakColor.Orange;
-            if (dayInStreak >= 31 && dayInStreak <= 90) return StreakColor.Yellow;
-            return StreakColor.White;
-        }
-
-        private (int DayInStreak, StreakColor Color)? GetStreakInfoForDate(DateTime date, List<StreakPeriod> streakPeriods)
-        {
-            foreach (var period in streakPeriods)
-            {
-                if (date >= period.StartDate && date <= period.EndDate)
-                {
-                    var dayInStreak = (date - period.StartDate).Days + 1;
-                    return (dayInStreak, GetStreakColor(dayInStreak));
-                }
-            }
-            return null;
-        }
-
-        public async Task<CalendarDayDto> ToggleDayAsync(DateTime date, string? notes = null)
-        {
-            var entry = await _context.DisciplineEntries
-                .Include(e => e.Rewards)
-                .FirstOrDefaultAsync(e => e.Date.Date == date.Date);
-
-            if (entry == null)
-            {
-                // Create new entry
-                entry = new DisciplineEntry
-                {
-                    Date = date.Date,
-                    IsCompleted = true,
-                    Notes = notes,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                _context.DisciplineEntries.Add(entry);
-            }
-            else
-            {
-                // Toggle existing entry
-                entry.IsCompleted = !entry.IsCompleted;
-                entry.Notes = notes ?? entry.Notes;
-                entry.UpdatedAt = DateTime.UtcNow;
-            }
-
-            await _context.SaveChangesAsync();
-
-            // Calculate and add rewards if needed
-            if (entry.IsCompleted)
-            {
-                await UpdateRewardsAsync(entry);
-            }
-            else
-            {
-                // Remove rewards if day is unmarked
-                _context.Rewards.RemoveRange(entry.Rewards);
-                await _context.SaveChangesAsync();
-            }
-
-            // Return updated day info
-            var streakPeriods = await CalculateStreakPeriodsAsync();
-            var streakInfo = GetStreakInfoForDate(date, streakPeriods);
-
-            return new CalendarDayDto
-            {
-                Date = date,
-                IsCompleted = entry.IsCompleted,
-                IsInStreak = streakInfo != null,
-                DayInStreak = streakInfo?.DayInStreak ?? 0,
-                StreakColor = streakInfo?.Color ?? StreakColor.None,
-                Rewards = entry.Rewards?.Select(r => r.Type).ToList() ?? new List<RewardType>(),
-                Notes = entry.Notes
-            };
-        }
-
-        private async Task UpdateRewardsAsync(DisciplineEntry entry)
-        {
-            var streakPeriods = await CalculateStreakPeriodsAsync();
-            var streakInfo = GetStreakInfoForDate(entry.Date, streakPeriods);
-
-            if (streakInfo == null) return;
-
-            var dayInStreak = streakInfo.Value.DayInStreak;
-            var rewardsToAdd = new List<RewardType>();
-
-            if (dayInStreak == 7) rewardsToAdd.Add(RewardType.Coffee);
-            if (dayInStreak == 14) rewardsToAdd.Add(RewardType.Book);
-            if (dayInStreak == 30) rewardsToAdd.Add(RewardType.Clothing);
-            if (dayInStreak == 90) rewardsToAdd.Add(RewardType.Tennis);
-
-            foreach (var rewardType in rewardsToAdd)
-            {
-                if (!entry.Rewards.Any(r => r.Type == rewardType))
-                {
-                    entry.Rewards.Add(new Reward
-                    {
-                        Type = rewardType,
-                        DisciplineEntryId = entry.Id,
-                        EarnedAt = DateTime.UtcNow
-                    });
-                }
-            }
-
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task<CalendarDayDto> UpdateNotesAsync(DateTime date, string? notes)
-        {
-            var entry = await _context.DisciplineEntries
-                .Include(e => e.Rewards)
-                .FirstOrDefaultAsync(e => e.Date.Date == date.Date);
-
-            if (entry == null)
-            {
-                entry = new DisciplineEntry
-                {
-                    Date = date.Date,
-                    IsCompleted = false,
-                    Notes = notes,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                _context.DisciplineEntries.Add(entry);
-            }
-            else
-            {
-                entry.Notes = notes;
-                entry.UpdatedAt = DateTime.UtcNow;
-            }
-
-            await _context.SaveChangesAsync();
-
-            var streakPeriods = await CalculateStreakPeriodsAsync();
-            var streakInfo = GetStreakInfoForDate(date, streakPeriods);
-
-            return new CalendarDayDto
-            {
-                Date = date,
-                IsCompleted = entry.IsCompleted,
-                IsInStreak = streakInfo != null,
-                DayInStreak = streakInfo?.DayInStreak ?? 0,
-                StreakColor = streakInfo?.Color ?? StreakColor.None,
-                Rewards = entry.Rewards?.Select(r => r.Type).ToList() ?? new List<RewardType>(),
-                Notes = entry.Notes
-            };
-        }
-
-        public async Task<StreakInfo> GetStreakInfoAsync()
-        {
-            var streakPeriods = await CalculateStreakPeriodsAsync();
-            var completedEntries = await _context.DisciplineEntries
-                .Where(e => e.IsCompleted)
-                .OrderByDescending(e => e.Date)
-                .ToListAsync();
-
-            var streakInfo = new StreakInfo
-            {
-                TotalDays = completedEntries.Count,
-                LastCompletedDate = completedEntries.FirstOrDefault()?.Date,
-                StreakPeriods = streakPeriods
-            };
-
-            // Calculate current streak
-            var today = DateTime.Today;
-            var currentStreak = 0;
-
-            for (var date = today; date >= new DateTime(2025, 1, 1); date = date.AddDays(-1))
-            {
-                if (completedEntries.Any(e => e.Date.Date == date.Date))
                     currentStreak++;
+                    longestStreak = Math.Max(longestStreak, currentStreak);
+                }
                 else
-                    break;
+                {
+                    currentStreak = 1;
+                }
             }
 
-            streakInfo.CurrentStreak = currentStreak;
-            streakInfo.LongestStreak = streakPeriods.Any() ? streakPeriods.Max(s => s.Length) : 0;
+            return longestStreak;
+        }
 
-            return streakInfo;
+        private int? CalculateNextMilestone(int currentStreak)
+        {
+            var milestones = new[] { 7, 14, 30, 60, 90, 180, 365 };
+            return milestones.FirstOrDefault(m => m > currentStreak);
+        }
+
+        private async Task CheckAndAddRewardsAsync(DisciplineEntry entry)
+        {
+            var currentStreak = CalculateCurrentStreak(await _context.DisciplineEntries.ToListAsync());
+
+            // Weekly rewards (every 7 days)
+            if (currentStreak % 7 == 0 && currentStreak > 0)
+            {
+                var weeklyReward = new Reward
+                {
+                    DisciplineEntryId = entry.Id,
+                    Type = "Weekly",
+                    Description = $"{currentStreak}-day streak reward!",
+                    EarnedAt = DateTime.UtcNow
+                };
+
+                _context.Rewards.Add(weeklyReward);
+                entry.IsSpecial = true;
+            }
+
+            // Monthly rewards (every 30 days)
+            if (currentStreak % 30 == 0 && currentStreak > 0)
+            {
+                var monthlyReward = new Reward
+                {
+                    DisciplineEntryId = entry.Id,
+                    Type = "Monthly",
+                    Description = $"{currentStreak}-day milestone achieved!",
+                    EarnedAt = DateTime.UtcNow
+                };
+
+                _context.Rewards.Add(monthlyReward);
+                entry.IsSpecial = true;
+            }
         }
     }
 }

@@ -1,5 +1,5 @@
-﻿using DisciplineApp.Api.Models;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using DisciplineApp.Api.Models;
 
 namespace DisciplineApp.Api.Data
 {
@@ -12,10 +12,6 @@ namespace DisciplineApp.Api.Data
         public DbSet<DisciplineEntry> DisciplineEntries { get; set; }
         public DbSet<Reward> Rewards { get; set; }
 
-        // New habit tracking tables
-        public DbSet<Habit> Habits { get; set; }
-        public DbSet<HabitCompletion> HabitCompletions { get; set; }
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -24,55 +20,83 @@ namespace DisciplineApp.Api.Data
             modelBuilder.Entity<DisciplineEntry>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.HasIndex(e => e.Date).IsUnique();
-                entity.Property(e => e.Date).IsRequired();
-                entity.Property(e => e.Notes).HasMaxLength(500);
-                entity.Property(e => e.IsGraceUsed).HasDefaultValue(false);
 
-                // Configure relationship with Rewards
-                entity.HasMany(e => e.Rewards)
-                      .WithOne(r => r.DisciplineEntry)
-                      .HasForeignKey(r => r.DisciplineEntryId)
-                      .OnDelete(DeleteBehavior.Cascade);
+                // Use DateOnly for date storage to avoid timezone issues
+                entity.Property(e => e.Date)
+                    .IsRequired()
+                    .HasColumnType("DATE"); // Store as DATE type in database
+
+                // Create unique index on Date to prevent duplicates
+                entity.HasIndex(e => e.Date)
+                    .IsUnique()
+                    .HasDatabaseName("IX_DisciplineEntry_Date");
+
+                entity.Property(e => e.IsCompleted)
+                    .IsRequired()
+                    .HasDefaultValue(false);
+
+                entity.Property(e => e.IsSpecial)
+                    .IsRequired()
+                    .HasDefaultValue(false);
+
+                entity.Property(e => e.Notes)
+                    .HasMaxLength(1000)
+                    .IsRequired(false);
+
+                entity.Property(e => e.CreatedAt)
+                    .IsRequired()
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(e => e.CompletedAt)
+                    .IsRequired(false);
             });
 
             // Configure Reward
             modelBuilder.Entity<Reward>(entity =>
             {
-                entity.HasKey(r => r.Id);
-                entity.Property(r => r.Type).IsRequired();
-                entity.Property(r => r.DisciplineEntryId).IsRequired();
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Type)
+                    .IsRequired()
+                    .HasMaxLength(50);
+
+                entity.Property(e => e.Description)
+                    .IsRequired()
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.EarnedAt)
+                    .IsRequired()
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                // Configure relationship
+                entity.HasOne(r => r.DisciplineEntry)
+                    .WithMany(de => de.Rewards)
+                    .HasForeignKey(r => r.DisciplineEntryId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // Configure Habit
-            modelBuilder.Entity<Habit>(entity =>
+            // Configure DateOnly conversion for SQLite
+            if (Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
             {
-                entity.HasKey(h => h.Id);
-                entity.Property(h => h.Name).IsRequired().HasMaxLength(200);
-                entity.Property(h => h.Frequency).IsRequired();
-                entity.Property(h => h.RequiredCount).HasDefaultValue(1);
-                entity.Property(h => h.WindowDays).HasDefaultValue(1);
-                entity.Property(h => h.IsActive).HasDefaultValue(true);
-
-                // Configure relationship with HabitCompletions
-                entity.HasMany(h => h.Completions)
-                      .WithOne(c => c.Habit)
-                      .HasForeignKey(c => c.HabitId)
-                      .OnDelete(DeleteBehavior.Cascade);
-            });
-
-            // Configure HabitCompletion
-            modelBuilder.Entity<HabitCompletion>(entity =>
-            {
-                entity.HasKey(c => c.Id);
-                entity.Property(c => c.HabitId).IsRequired();
-                entity.Property(c => c.Date).IsRequired();
-                entity.Property(c => c.IsCompleted).HasDefaultValue(false);
-                entity.Property(c => c.Notes).HasMaxLength(500);
-
-                // Create unique index on HabitId + Date to prevent duplicate entries
-                entity.HasIndex(c => new { c.HabitId, c.Date }).IsUnique();
-            });
+                modelBuilder.Entity<DisciplineEntry>()
+                    .Property(e => e.Date)
+                    .HasConversion(
+                        dateOnly => dateOnly.ToString("yyyy-MM-dd"),
+                        dateString => DateOnly.ParseExact(dateString, "yyyy-MM-dd")
+                    );
+            }
         }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+                // This should only be used in development
+                optionsBuilder.UseSqlite("Data Source=discipline.db");
+            }
+        }
+
+        // Remove the seed data method to avoid UNIQUE constraint violations
+        // Data will be created through user interactions instead
     }
 }

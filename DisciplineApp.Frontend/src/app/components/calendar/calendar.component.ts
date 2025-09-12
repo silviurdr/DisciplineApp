@@ -97,7 +97,7 @@ interface WeeklyProgress {
                 <span *ngIf="day.isCompleted" class="status-icon completed">✓</span>
                 <span *ngIf="day.isPartiallyCompleted && !day.isCompleted" class="status-icon partial">◐</span>
                 <span *ngIf="day.isGraceUsed" class="status-icon grace">G</span>
-                <span *ngIf="!day.isCompleted && !day.isPartiallyCompleted && !day.isGraceUsed && !isFuture(day.date)" class="status-icon missed">✗</span>
+                <span *ngIf="!day.isCompleted && !day.isPartiallyCompleted && !day.isGraceUsed && !isFuture(day.date) && !isToday(day.date)" class="status-icon missed">✗</span>
               </div>
             </div>
 

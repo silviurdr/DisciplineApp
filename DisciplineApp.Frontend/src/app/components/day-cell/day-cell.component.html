@@ -1,0 +1,20 @@
+<div
+  class="day-cell"
+  [class.completed]="day.isCompleted"
+  [class.in-streak]="day.dayInStreak > 0"
+  [class.special-day]="day.isSpecial"
+  [class.streak-blue]="day.color === 'Blue'"
+  [class.streak-green]="day.color === 'Green'"
+  [class.streak-orange]="day.color === 'Orange'"
+  [class.streak-red]="day.color === 'Red'"
+  [class.streak-special]="day.color === 'Special'"
+  (click)="onDayClick()"
+  [title]="getDayTitle()">
+  
+  <!-- Display Reward Icon or Day Number -->
+  <i *ngIf="day.rewards && day.rewards.length > 0" 
+     [class]="getRewardIcon()" 
+     class="reward-icon"></i>
+  <span *ngIf="!day.rewards || day.rewards.length === 0" 
+        class="day-number">{{ getDayNumber() }}</span>
+</div>

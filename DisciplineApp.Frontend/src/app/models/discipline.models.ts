@@ -1,18 +1,18 @@
+// src/app/models/discipline.models.ts - Fixed date handling for timezone issues
+
 export interface CalendarDay {
-  date: string; // API returns DateTime, but JSON serializes to string
+  date: string; // Always in YYYY-MM-DD format to avoid timezone issues
+  dayOfMonth: number;
   isCompleted: boolean;
-  isInStreak: boolean;
+  isSpecial: boolean;
   dayInStreak: number;
-  streakColor: StreakColor;
-  rewards: RewardType[];
-  isSpecialDay: boolean;
-  specialDayType?: string;
-  notes?: string;
+  color: StreakColor;
+  rewards: Reward[];
 }
 
 export interface MonthData {
-  year: number;
   month: number;
+  year: number;
   monthName: string;
   days: CalendarDay[];
 }
@@ -27,45 +27,105 @@ export interface StreakInfo {
   currentStreak: number;
   longestStreak: number;
   totalDays: number;
-  lastCompletedDate?: string; // API returns DateTime?, JSON serializes to string
-  streakPeriods: StreakPeriod[];
+  weeklyRewards: number;
+  monthlyRewards: number;
+  nextMilestone?: number;
+  lastUpdate?: string;
 }
 
-export interface StreakPeriod {
-  startDate: string; // API returns DateTime, JSON serializes to string
-  endDate: string;   // API returns DateTime, JSON serializes to string
-  length: number;
-  color: StreakColor;
-}
-
-export enum StreakColor {
-  None = 0,
-  Salmon = 1,
-  Orange = 2,
-  Yellow = 3,
-  White = 4
-}
-
-export enum RewardType {
-  Coffee = 1,
-  Book = 2,
-  Clothing = 3,
-  Tennis = 4
+export interface Reward {
+  id: number;
+  type: string;
+  description: string;
+  earnedAt: string;
 }
 
 export interface ToggleDayRequest {
-  date: string;
+  date: string; // YYYY-MM-DD format
+}
+
+export interface UpdateDayRequest {
+  date: string; // YYYY-MM-DD format
+  isCompleted: boolean;
   notes?: string;
 }
 
-export interface UpdateNotesRequest {
-  date: string;
-  notes?: string;
+export enum StreakColor {
+  None = 'None',
+  Blue = 'Blue',
+  Green = 'Green',
+  Orange = 'Orange',
+  Red = 'Red',
+  Special = 'Special'
 }
 
-// Utility type for API responses
-export interface ApiResponse<T> {
-  data: T;
-  success: boolean;
-  message?: string;
+// Helper class for consistent date handling in Angular
+export class DateUtils {
+  /**
+   * Converts a Date object to YYYY-MM-DD string format
+   * This eliminates timezone issues by working with local date only
+   */
+  static toDateString(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  /**
+   * Converts YYYY-MM-DD string to Date object in local timezone
+   */
+  static fromDateString(dateString: string): Date {
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  /**
+   * Gets today's date in YYYY-MM-DD format (local timezone)
+   */
+  static getTodayString(): string {
+    return this.toDateString(new Date());
+  }
+
+  /**
+   * Creates a date string for a specific year, month, day
+   */
+  static createDateString(year: number, month: number, day: number): string {
+    const monthStr = String(month).padStart(2, '0');
+    const dayStr = String(day).padStart(2, '0');
+    return `${year}-${monthStr}-${dayStr}`;
+  }
+
+  /**
+   * Validates if a string is in YYYY-MM-DD format
+   */
+  static isValidDateString(dateString: string): boolean {
+    const regex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!regex.test(dateString)) return false;
+    
+    const date = this.fromDateString(dateString);
+    return !isNaN(date.getTime());
+  }
+
+  /**
+   * Gets the date string for yesterday
+   */
+  static getYesterdayString(): string {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return this.toDateString(yesterday);
+  }
+
+  /**
+   * Gets the date string for tomorrow
+   */
+  static getTomorrowString(): string {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return this.toDateString(tomorrow);
+  }
+
+  /**
+   * Adds days to a date string and returns new date string
+   */
 }

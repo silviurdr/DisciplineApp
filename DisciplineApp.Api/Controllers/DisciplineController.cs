@@ -1,6 +1,6 @@
-﻿using DisciplineApp.Api.Models;
+﻿using Microsoft.AspNetCore.Mvc;
 using DisciplineApp.Api.Services;
-using Microsoft.AspNetCore.Mvc;
+using DisciplineApp.Api.Models;
 
 namespace DisciplineApp.Api.Controllers
 {
@@ -15,6 +15,15 @@ namespace DisciplineApp.Api.Controllers
         {
             _disciplineService = disciplineService;
             _logger = logger;
+        }
+
+        /// <summary>
+        /// Health check endpoint
+        /// </summary>
+        [HttpGet("health")]
+        public IActionResult Health()
+        {
+            return Ok(new { status = "healthy", timestamp = DateTime.UtcNow });
         }
 
         /// <summary>
@@ -35,7 +44,7 @@ namespace DisciplineApp.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving calendar for year {Year}", year);
+                _logger.LogError(ex, "Error getting calendar for year {Year}", year);
                 return StatusCode(500, "Internal server error");
             }
         }
@@ -48,13 +57,20 @@ namespace DisciplineApp.Api.Controllers
         {
             try
             {
-                if (!ModelState.IsValid)
+                if (string.IsNullOrEmpty(request.Date))
                 {
-                    return BadRequest(ModelState);
+                    return BadRequest("Date is required in format YYYY-MM-DD");
                 }
 
-                var day = await _disciplineService.ToggleDayAsync(request.Date, request.Notes);
-                return Ok(day);
+                _logger.LogInformation("Toggling day: {Date}", request.Date);
+
+                var updatedDay = await _disciplineService.ToggleDayAsync(request.Date);
+                return Ok(updatedDay);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid date format: {Date}", request.Date);
+                return BadRequest($"Invalid date format: {ex.Message}");
             }
             catch (Exception ex)
             {
@@ -64,33 +80,40 @@ namespace DisciplineApp.Api.Controllers
         }
 
         /// <summary>
-        /// Update notes for a specific day
+        /// Update a specific day's completion status and notes
         /// </summary>
-        [HttpPut("notes")]
-        public async Task<ActionResult<CalendarDayDto>> UpdateNotes([FromBody] UpdateNotesRequest request)
+        [HttpPut("day")]
+        public async Task<ActionResult<CalendarDayDto>> UpdateDay([FromBody] UpdateDayRequest request)
         {
             try
             {
-                if (!ModelState.IsValid)
+                if (string.IsNullOrEmpty(request.Date))
                 {
-                    return BadRequest(ModelState);
+                    return BadRequest("Date is required in format YYYY-MM-DD");
                 }
 
-                var day = await _disciplineService.UpdateNotesAsync(request.Date, request.Notes);
-                return Ok(day);
+                _logger.LogInformation("Updating day: {Date}, Completed: {IsCompleted}", request.Date, request.IsCompleted);
+
+                var updatedDay = await _disciplineService.UpdateDayAsync(request.Date, request.IsCompleted, request.Notes);
+                return Ok(updatedDay);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid date format: {Date}", request.Date);
+                return BadRequest($"Invalid date format: {ex.Message}");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating notes for {Date}", request.Date);
+                _logger.LogError(ex, "Error updating day {Date}", request.Date);
                 return StatusCode(500, "Internal server error");
             }
         }
 
         /// <summary>
-        /// Get streak statistics
+        /// Get current streak information
         /// </summary>
-        [HttpGet("streaks")]
-        public async Task<ActionResult<StreakInfo>> GetStreakInfo()
+        [HttpGet("streak")]
+        public async Task<ActionResult<StreakInfoDto>> GetStreakInfo()
         {
             try
             {
@@ -99,23 +122,86 @@ namespace DisciplineApp.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving streak information");
+                _logger.LogError(ex, "Error getting streak info");
                 return StatusCode(500, "Internal server error");
             }
         }
 
         /// <summary>
-        /// Health check endpoint
+        /// Get details for a specific day
         /// </summary>
-        [HttpGet("health")]
-        public ActionResult<object> HealthCheck()
+        [HttpGet("day/{date}")]
+        public async Task<ActionResult<CalendarDayDto>> GetDay(string date)
         {
-            return Ok(new
+            try
             {
-                status = "healthy",
-                timestamp = DateTime.UtcNow,
-                version = "1.0.0"
-            });
+                if (string.IsNullOrEmpty(date))
+                {
+                    return BadRequest("Date is required in format YYYY-MM-DD");
+                }
+
+                var day = await _disciplineService.GetDayAsync(date);
+                if (day == null)
+                {
+                    return NotFound($"No data found for date {date}");
+                }
+
+                return Ok(day);
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex, "Invalid date format: {Date}", date);
+                return BadRequest($"Invalid date format: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting day {Date}", date);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Get today's completion status
+        /// </summary>
+        [HttpGet("today")]
+        public async Task<ActionResult<CalendarDayDto>> GetToday()
+        {
+            try
+            {
+                var today = DateHelper.GetToday();
+                var todayString = DateHelper.ToDateString(today);
+
+                var day = await _disciplineService.GetDayAsync(todayString);
+                return Ok(day);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting today's data");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Mark today as completed (quick action endpoint)
+        /// </summary>
+        [HttpPost("complete-today")]
+        public async Task<ActionResult<CalendarDayDto>> CompleteToday()
+        {
+            try
+            {
+                var today = DateHelper.GetToday();
+                var todayString = DateHelper.ToDateString(today);
+
+                _logger.LogInformation("Marking today as completed: {Date}", todayString);
+
+                var updatedDay = await _disciplineService.UpdateDayAsync(todayString, true);
+                return Ok(updatedDay);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error completing today");
+                return StatusCode(500, "Internal server error");
+            }
         }
     }
 }

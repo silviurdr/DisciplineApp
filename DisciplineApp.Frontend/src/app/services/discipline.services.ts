@@ -1,63 +1,23 @@
+// src/app/services/discipline.service.ts - Fixed timezone handling
+
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import { 
   YearCalendar, 
   CalendarDay, 
   StreakInfo, 
   ToggleDayRequest, 
-  UpdateNotesRequest 
+  UpdateDayRequest,
+  DateUtils 
 } from '../models/discipline.models';
-
-// Define the DayStatus interface
-export interface DayStatus {
-  date: string;
-  isCompleted: boolean;
-  isGraceUsed: boolean;
-  habitStatuses: HabitStatus[];
-  warnings: string[];
-  recommendations: string[];
-  canUseGrace: boolean;
-}
-
-// Define the HabitStatus interface
-export interface HabitStatus {
-  habitId: number;
-  habitName: string;
-  isRequired: boolean;
-  isCompleted: boolean;
-  currentWindowCount: number;
-  requiredWindowCount: number;
-  lastCompletedDate?: string;
-  status: string;
-}
-
-// Define the WeeklyProgress interface
-export interface WeeklyProgress {
-  weekStart: string;
-  weekEnd: string;
-  graceUsed: number;
-  graceRemaining: number;
-  habitProgress: HabitWeeklyStatus[];
-}
-
-// Define the HabitWeeklyStatus interface
-export interface HabitWeeklyStatus {
-  habitId: number;
-  habitName: string;
-  completedCount: number;
-  requiredCount: number;
-  remainingDays: number;
-  isAchievable: boolean;
-  urgency: string; // "Normal", "Urgent", "Critical"
-}
 
 @Injectable({
   providedIn: 'root'
 })
 export class DisciplineService {
-  private readonly apiUrl = 'https://localhost:7025/api/discipline'; // Update with your API URL
+  private readonly apiUrl = 'https://localhost:7001/api/discipline';
 
   constructor(private http: HttpClient) {}
 
@@ -67,78 +27,165 @@ export class DisciplineService {
   getCalendar(year: number): Observable<YearCalendar> {
     return this.http.get<YearCalendar>(`${this.apiUrl}/calendar/${year}`)
       .pipe(
-        tap(data => console.log('Calendar data loaded:', data)),
+        map(calendar => this.normalizeCalendarDates(calendar)),
         catchError(this.handleError)
       );
   }
 
   /**
-   * Get day status for a specific date
+   * Toggle completion status for a specific day
+   * Uses proper date string format to avoid timezone issues
    */
-  getDayStatus(date: string): Observable<DayStatus> {
-    return this.http.get<DayStatus>(`${this.apiUrl}/day/${date}`)
+  toggleDay(request: ToggleDayRequest): Observable<CalendarDay> {
+    // Ensure date is in correct format
+    const normalizedRequest = {
+      date: this.normalizeDateString(request.date)
+    };
+
+    return this.http.post<CalendarDay>(`${this.apiUrl}/toggle`, normalizedRequest)
       .pipe(
-        tap(data => console.log('Day status loaded:', data)),
+        map(day => this.normalizeCalendarDay(day)),
         catchError(this.handleError)
       );
   }
 
   /**
-   * Get weekly progress for a specific date
+   * Update a specific day's completion status and notes
    */
-  getWeeklyProgress(date: string): Observable<WeeklyProgress> {
-    return this.http.get<WeeklyProgress>(`${this.apiUrl}/week/${date}`)
+  updateDay(request: UpdateDayRequest): Observable<CalendarDay> {
+    // Ensure date is in correct format
+    const normalizedRequest = {
+      ...request,
+      date: this.normalizeDateString(request.date)
+    };
+
+    return this.http.put<CalendarDay>(`${this.apiUrl}/day`, normalizedRequest)
       .pipe(
-        tap(data => console.log('Weekly progress loaded:', data)),
+        map(day => this.normalizeCalendarDay(day)),
         catchError(this.handleError)
       );
   }
 
   /**
-   * Get streak statistics
+   * Get current streak information
    */
   getStreakInfo(): Observable<StreakInfo> {
-    return this.http.get<StreakInfo>(`${this.apiUrl}/streaks`)
+    return this.http.get<StreakInfo>(`${this.apiUrl}/streak`)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Get details for a specific day
+   */
+  getDay(dateString: string): Observable<CalendarDay> {
+    const normalizedDate = this.normalizeDateString(dateString);
+    
+    return this.http.get<CalendarDay>(`${this.apiUrl}/day/${normalizedDate}`)
       .pipe(
-        tap(data => console.log('Streak info loaded:', data)),
+        map(day => this.normalizeCalendarDay(day)),
         catchError(this.handleError)
       );
   }
 
   /**
-   * Get smart reminders
+   * Get today's completion status
    */
-  getSmartReminders(): Observable<string[]> {
-    return this.http.get<string[]>(`${this.apiUrl}/reminders`)
+  getToday(): Observable<CalendarDay> {
+    return this.http.get<CalendarDay>(`${this.apiUrl}/today`)
       .pipe(
-        tap(data => console.log('Smart reminders loaded:', data)),
+        map(day => this.normalizeCalendarDay(day)),
         catchError(this.handleError)
       );
   }
 
   /**
-   * Complete a habit for a specific date
+   * Mark today as completed (quick action)
    */
-  completeHabit(request: ToggleDayRequest): Observable<DayStatus> {
-    return this.http.post<DayStatus>(`${this.apiUrl}/complete`, request)
+  completeToday(): Observable<CalendarDay> {
+    return this.http.post<CalendarDay>(`${this.apiUrl}/complete-today`, {})
       .pipe(
-        tap(data => console.log('Habit completed:', data)),
+        map(day => this.normalizeCalendarDay(day)),
         catchError(this.handleError)
       );
   }
 
   /**
-   * Use a grace day for a specific date
+   * Toggle day by Date object (convenience method)
    */
-  useGraceDay(request: UpdateNotesRequest): Observable<DayStatus> {
-    return this.http.post<DayStatus>(`${this.apiUrl}/grace`, request)
-      .pipe(
-        tap(data => console.log('Grace day used:', data)),
-        catchError(this.handleError)
-      );
+  toggleDayByDate(date: Date): Observable<CalendarDay> {
+    const dateString = DateUtils.toDateString(date);
+    return this.toggleDay({ date: dateString });
   }
 
-  private handleError(error: HttpErrorResponse) {
+  /**
+   * Update day by Date object (convenience method)
+   */
+  updateDayByDate(date: Date, isCompleted: boolean, notes?: string): Observable<CalendarDay> {
+    const dateString = DateUtils.toDateString(date);
+    return this.updateDay({ date: dateString, isCompleted, notes });
+  }
+
+  /**
+   * Health check endpoint
+   */
+  healthCheck(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/health`)
+      .pipe(catchError(this.handleError));
+  }
+
+  // Private helper methods
+
+  /**
+   * Normalizes a date string to ensure it's in YYYY-MM-DD format
+   * This prevents timezone conversion issues
+   */
+  private normalizeDateString(dateInput: string | Date): string {
+    if (typeof dateInput === 'string') {
+      // If it's already a string, validate and return
+      if (DateUtils.isValidDateString(dateInput)) {
+        return dateInput;
+      }
+      
+      // Try to parse as Date and convert
+      const date = new Date(dateInput);
+      if (!isNaN(date.getTime())) {
+        return DateUtils.toDateString(date);
+      }
+      
+      throw new Error(`Invalid date format: ${dateInput}`);
+    }
+    
+    // If it's a Date object
+    return DateUtils.toDateString(dateInput);
+  }
+
+  /**
+   * Normalizes calendar day dates to ensure consistency
+   */
+  private normalizeCalendarDay(day: CalendarDay): CalendarDay {
+    return {
+      ...day,
+      date: this.normalizeDateString(day.date)
+    };
+  }
+
+  /**
+   * Normalizes all dates in a calendar response
+   */
+  private normalizeCalendarDates(calendar: YearCalendar): YearCalendar {
+    return {
+      ...calendar,
+      months: calendar.months.map(month => ({
+        ...month,
+        days: month.days.map(day => this.normalizeCalendarDay(day))
+      }))
+    };
+  }
+
+  /**
+   * Handle HTTP errors
+   */
+  private handleError = (error: HttpErrorResponse) => {
     let errorMessage = 'An unknown error occurred';
     
     if (error.error instanceof ErrorEvent) {
@@ -146,10 +193,14 @@ export class DisciplineService {
       errorMessage = `Client Error: ${error.error.message}`;
     } else {
       // Server-side error
-      errorMessage = `Server Error: ${error.status} - ${error.error?.message || error.message}`;
+      errorMessage = `Server Error: ${error.status} - ${error.message}`;
+      
+      if (error.error && typeof error.error === 'string') {
+        errorMessage += ` - ${error.error}`;
+      }
     }
     
-    console.error('API Error:', errorMessage);
+    console.error('DisciplineService Error:', errorMessage, error);
     return throwError(() => errorMessage);
-  }
+  };
 }
