@@ -25,18 +25,6 @@ interface RequiredHabit {
   urgencyLevel: string;
 }
 
-interface DayStatus {
-  date: string;
-  isCompleted: boolean;
-  isPartiallyCompleted: boolean;
-  isGraceUsed: boolean;
-  completedHabits: number;
-  totalHabits: number;
-  warnings: string[];
-  recommendations: string[];
-  requiredHabits: RequiredHabit[];
-}
-
 interface HabitStatus {
   habitId: string;
   habitName: string;
@@ -704,30 +692,56 @@ export class CalendarComponent implements OnInit {
   }
 
 private loadCurrentWeekData(): void {
-
- console.log('Loading hardcoded data temporarily...');
-  this.loadHardcodedData();
-  return;
-
   const today = new Date();
   const currentWeekStart = this.getWeekStart(today);
   
+  this.loading = true;
+  this.error = null;
+
   // Use your habit tracking API to get real week data
   this.habitService.getWeekStatus(this.formatDateForAPI(currentWeekStart))
     .subscribe({
       next: (weekData) => {
-        // ✅ FIX: Use the correct method names that exist in your component
-        this.currentWeekDays = this.mapWeekDataToDays(weekData);
+        console.log('API Week Data:', weekData);
+        
+        // Map API data to your existing DayStatus format
+        this.currentWeekDays = this.mapApiDataToDayStatus(weekData);
         this.weeklyProgress = this.mapWeekDataToProgress(weekData);
+        this.todayData = this.getCurrentDayData();
         this.loading = false;
       },
       error: (error) => {
         console.error('Error loading week data:', error);
-        // Fallback to hardcoded data if API fails
+        // Only fallback to hardcoded data if API completely fails
         this.loadHardcodedData();
-        this.loading = false;
       }
     });
+}
+
+// Map API data to your existing DayStatus interface structure
+private mapApiDataToDayStatus(weekData: any): DayStatus[] {
+  if (!weekData || !weekData.dayStatuses) {
+    return this.generateCurrentWeekData(); // Fallback to hardcoded
+  }
+
+  return weekData.dayStatuses.map((apiDay: any) => ({
+    date: apiDay.date,
+    isCompleted: apiDay.status === 'Complete',
+    isPartiallyCompleted: apiDay.status === 'Partial',
+    isGraceUsed: apiDay.status === 'GraceUsed',
+    canUseGrace: apiDay.canUseGrace || false,
+    requiredHabits: apiDay.habitStatuses.map((habit: any) => ({
+      habitId: this.mapNumericIdToString(habit.habitId),
+      habitName: habit.habitName,
+      isCompleted: habit.isCompleted,
+      isRequired: habit.isRequired,
+      description: this.getHabitDescription(this.mapNumericIdToString(habit.habitId)),
+      urgencyLevel: habit.urgencyLevel || 'Normal'
+    })) as HabitStatus[],
+    optionalHabits: [],
+    warnings: apiDay.reminders || [],
+    recommendations: []
+  }));
 }
 
 private mapWeekDataToDays(weekData: any): DayStatus[] {
