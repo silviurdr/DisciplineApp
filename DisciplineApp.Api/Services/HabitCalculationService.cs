@@ -97,34 +97,36 @@ namespace DisciplineApp.Api.Services
         {
             try
             {
-                // Check if already completed
                 var existingCompletion = await _context.Set<HabitCompletion>()
                     .FirstOrDefaultAsync(hc => hc.HabitId == habitId && hc.Date == date);
 
                 if (existingCompletion != null)
                 {
-                    _logger.LogWarning("Habit {HabitId} already completed for date {Date}", habitId, date);
-                    return false;
+                    // Instead of returning false, remove the completion (toggle off)
+                    _context.Set<HabitCompletion>().Remove(existingCompletion);
+                    _logger.LogInformation("Uncompleted habit {HabitId} for date {Date}", habitId, date);
+                }
+                else
+                {
+                    // Add new completion (toggle on)
+                    var completion = new HabitCompletion
+                    {
+                        HabitId = habitId,
+                        Date = date,
+                        CompletedAt = DateTime.UtcNow,
+                        Notes = notes,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _context.Set<HabitCompletion>().Add(completion);
+                    _logger.LogInformation("Completed habit {HabitId} for date {Date}", habitId, date);
                 }
 
-                var completion = new HabitCompletion
-                {
-                    HabitId = habitId,
-                    Date = date,
-                    CompletedAt = DateTime.UtcNow,
-                    Notes = notes,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                _context.Set<HabitCompletion>().Add(completion);
                 await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Completed habit {HabitId} for date {Date}", habitId, date);
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error completing habit {HabitId} for date {Date}", habitId, date);
+                _logger.LogError(ex, "Error toggling habit {HabitId} for date {Date}", habitId, date);
                 return false;
             }
         }

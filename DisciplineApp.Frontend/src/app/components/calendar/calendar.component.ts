@@ -852,20 +852,77 @@ export class CalendarComponent implements OnInit {
   }
 
   toggleHabit(habitId: string, date: string): void {
-    // TODO: Call API to toggle habit completion
-    console.log(`Toggle habit ${habitId} for ${date}`);
-    
-    // Update local state for now
-    const day = this.currentWeekDays.find(d => d.date === date);
-    if (day) {
-      const habit = [...day.requiredHabits, ...day.optionalHabits]
-        .find(h => h.habitId === habitId);
-      if (habit) {
-        habit.isCompleted = !habit.isCompleted;
-        this.updateDayStatus(day);
-      }
-    }
+  console.log(`Toggling habit ${habitId} for ${date}`);
+  
+  const day = this.currentWeekDays.find(d => d.date === date);
+  if (!day) {
+    console.error(`Day not found for date: ${date}`);
+    return;
   }
+
+  const habit = day.requiredHabits.find(h => h.habitId === habitId);
+  if (!habit) {
+    console.error(`Habit not found with ID: ${habitId}`);
+    return;
+  }
+
+  const newCompletionState = !habit.isCompleted;
+  
+  // Optimistically update UI for better UX
+  habit.isCompleted = newCompletionState;
+  
+  // Update day completion status
+  const allHabitsCompleted = day.requiredHabits.every(h => h.isCompleted);
+  day.isCompleted = allHabitsCompleted;
+  
+  // Map habitId to numeric ID for API
+  const habitIdMap: { [key: string]: number } = {
+    'phone-lock': 1,
+    'clean-dishes': 2, 
+    'gym-workout': 3,
+    'vacuum-sweep': 4,
+    'clean-bathroom': 5,
+    'kitchen-deep-clean': 6,
+    'clean-windows': 7
+  };
+
+  const numericHabitId = habitIdMap[habitId];
+  if (!numericHabitId) {
+    console.error(`No numeric habit ID mapping found for: ${habitId}`);
+    return;
+  }
+
+  // Save to backend
+  if (newCompletionState) {
+    // Complete the habit
+    this.habitService.completeHabit({
+      habitId: numericHabitId,
+      date: date,
+      notes: `Completed via weekly calendar`
+    }).subscribe({
+      next: (response) => {
+        console.log(`Successfully saved habit ${habitId} for ${date}`);
+        // Update progress counters
+        this.updateWeeklyProgress();
+      },
+      error: (error) => {
+        console.error(`Error saving habit ${habitId} for ${date}:`, error);
+        // Revert optimistic update on error
+        habit.isCompleted = !newCompletionState;
+        day.isCompleted = day.requiredHabits.every(h => h.isCompleted);
+        alert('Failed to save habit completion. Please try again.');
+      }
+    });
+  } else {
+    // Handle uncompleting - since API doesn't support this, inform user
+    console.log(`Cannot uncomplete habit ${habitId} - API doesn't support uncompleting`);
+    // Revert the optimistic update
+    habit.isCompleted = !newCompletionState;
+    day.isCompleted = day.requiredHabits.every(h => h.isCompleted);
+    alert('Habit completion cannot be undone through this interface');
+  }
+}
+
 
   useGraceDay(date: string): void {
     // TODO: Call API to use grace day
@@ -894,29 +951,9 @@ export class CalendarComponent implements OnInit {
   }
 
   private updateWeeklyProgress(): void {
-    if (!this.weeklyProgress) return;
-    
-    // Calculate overall progress
-    const totalDays = this.currentWeekDays.length;
-    const completedDays = this.currentWeekDays.filter(d => d.isCompleted || d.isGraceUsed).length;
-    this.weeklyProgress.overallProgress = Math.round((completedDays / totalDays) * 100);
-    
-    // Update habit progress
-    this.weeklyProgress.habitProgress.forEach(habitProgress => {
-      const habitId = this.getHabitIdFromName(habitProgress.habitName);
-      let completedCount = 0;
-      
-      this.currentWeekDays.forEach(day => {
-        const habit = day.requiredHabits.find(h => h.habitId === habitId);
-        if (habit && habit.isCompleted) {
-          completedCount++;
-        }
-      });
-      
-      habitProgress.completedCount = completedCount;
-      habitProgress.isOnTrack = completedCount >= Math.floor(habitProgress.requiredCount * 0.7); // 70% threshold
-    });
-  }
+  // Recalculate weekly progress based on current completion states
+  this.weeklyProgress = this.generateWeeklyProgressData();
+}
 
   private getHabitIdFromName(habitName: string): string {
     const mapping: { [key: string]: string } = {

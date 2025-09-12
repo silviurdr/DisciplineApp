@@ -11,6 +11,7 @@ namespace DisciplineApp.Api.Data
 
         public DbSet<DisciplineEntry> DisciplineEntries { get; set; }
         public DbSet<Reward> Rewards { get; set; }
+        public DbSet<HabitCompletion> HabitCompletions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -50,6 +51,12 @@ namespace DisciplineApp.Api.Data
                 entity.Property(e => e.CompletedAt)
                     .IsRequired(false);
             });
+
+            modelBuilder.Entity<HabitCompletion>()
+            .HasOne(hc => hc.Habit)
+            .WithMany(h => h.Completions)
+            .HasForeignKey(hc => hc.HabitId)
+            .OnDelete(DeleteBehavior.Cascade); // Or use DeleteBehavior.Restrict based on your requirements
 
             // Configure Reward
             modelBuilder.Entity<Reward>(entity =>

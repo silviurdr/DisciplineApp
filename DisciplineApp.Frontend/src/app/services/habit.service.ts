@@ -1,7 +1,7 @@
 // src/app/services/habit.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, BehaviorSubject, of } from 'rxjs';
+import { Observable, BehaviorSubject, of, throwError  } from 'rxjs';
 import { map, tap, catchError } from 'rxjs/operators';
 
 // API Models (matching your backend)
@@ -63,7 +63,7 @@ export interface StreakInfo {
   providedIn: 'root'
 })
 export class HabitService {
-  private readonly apiUrl = 'https://localhost:7025/api'; // Update with your API URL
+  private readonly apiUrl = 'https://localhost:7025/api/habittracking'; // Update with your API URL
   
   // State management
   private weeklyProgressSubject = new BehaviorSubject<ApiWeeklyProgress | null>(null);
@@ -105,7 +105,7 @@ export class HabitService {
   }
 
 
-  private handleError = (error: HttpErrorResponse) => {
+  private handleError = (error: HttpErrorResponse): Observable<never> => {
     let errorMessage = 'An unknown error occurred';
     
     if (error.error instanceof ErrorEvent) {
@@ -118,9 +118,10 @@ export class HabitService {
     }
     
     console.error('HabitService Error:', errorMessage, error);
-    return throwError(() => errorMessage);
+    
+    // ✅ FIX: Use the factory function syntax for throwError
+    return throwError(() => new Error(errorMessage));
   };
-
   /**
    * Load data for the current week (September 11-17, 2025)
    */

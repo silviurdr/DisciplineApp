@@ -1,11 +1,10 @@
 // src/app/components/monthly-view/monthly-view.ts
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HabitService } from '../../services/habit.service';
 import { forkJoin, Subject, of } from 'rxjs';
 import { takeUntil, map, catchError } from 'rxjs/operators';
 import { DisciplineService } from '../../services/discipline.services';
-import { CalendarDay, StreakColor } from '../../models/discipline.models';
+import { HabitService } from '../../services/habit.service';
 
 interface MonthlyDayData {
   date: string;
@@ -90,35 +89,45 @@ interface MonthlyStats {
 
         <!-- Calendar Grid -->
         <div class="calendar-grid">
-          <div *ngFor="let day of calendarDays" 
-               class="calendar-day"
-               [class.other-month]="!day.isCurrentMonth"
-               [class.today]="day.isToday"
-               [class.completed]="day.isCompleted"
-               [class.partial]="day.isPartiallyCompleted"
-               [class.grace-used]="day.isGraceUsed"
-               [class.future]="isFutureDate(day.date)"
-               (click)="selectDay(day)">
+          <div 
+            *ngFor="let day of getCalendarGrid()" 
+            class="calendar-day"
+            [class.other-month]="!day.isCurrentMonth"
+            [class.today]="day.isToday"
+            [class.completed]="day.isCompleted"
+            [class.partial]="day.isPartiallyCompleted"
+            [class.grace-used]="day.isGraceUsed"
+            [class.future]="isFutureDate(day.date)"
+            (click)="selectDay(day)">
             
             <!-- Day Number -->
             <div class="day-number">{{ day.dayNumber }}</div>
             
-            <!-- Completion Status -->
-            <div class="day-status" *ngIf="!isFutureDate(day.date)">
-              <span *ngIf="day.isCompleted" class="status-icon completed">✓</span>
-              <span *ngIf="day.isPartiallyCompleted && !day.isCompleted" class="status-icon partial">◐</span>
-              <span *ngIf="day.isGraceUsed" class="status-icon grace">G</span>
+            <!-- Day Status -->
+            <div class="day-status">
+              <div class="status-indicator">
+                <span *ngIf="day.isCompleted" class="status-icon completed">✓</span>
+                <span *ngIf="day.isPartiallyCompleted && !day.isCompleted" class="status-icon partial">◐</span>
+                <span *ngIf="day.isGraceUsed" class="status-icon grace">G</span>
+                <span *ngIf="!day.isCompleted && !day.isPartiallyCompleted && !day.isGraceUsed && isPast(day.date)" class="status-icon missed">✗</span>
+              </div>
             </div>
 
-            <!-- Tasks -->
-            <div class="task-list" *ngIf="day.tasks.length > 0">
-              <div class="task-count">{{ day.completedHabits }}/{{ day.totalHabits }}</div>
+            <!-- Task List -->
+            <div class="task-list" *ngIf="day.isCurrentMonth">
+              <!-- Task Count -->
+              <div class="task-count" *ngIf="day.tasks.length > 0">
+                {{ day.completedHabits }}/{{ day.totalHabits }}
+              </div>
+              
+              <!-- Individual Tasks -->
               <div class="task-items">
-                <div *ngFor="let task of day.tasks" 
-                     class="task-item" 
-                     [class.completed]="day.completedTasks.includes(task)"
-                     [title]="task + (day.completedTasks.includes(task) ? ' ✓' : '')"
-                     (click)="toggleTask(task, day.date, $event)">
+                <div 
+                  *ngFor="let task of day.tasks" 
+                  class="task-item"
+                  [class.completed]="day.completedTasks.includes(task)"
+                  [title]="task + (day.completedTasks.includes(task) ? ' ✓' : '')"
+                  (click)="toggleTask(task, day.date, $event)">
                   {{ getTaskInitial(task) }}
                 </div>
               </div>
@@ -203,9 +212,12 @@ interface MonthlyStats {
     }
 
     .loading-state, .error-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 50px;
       text-align: center;
-      padding: 40px;
-      color: #90caf9;
     }
 
     .loading-spinner {
@@ -215,7 +227,7 @@ interface MonthlyStats {
       border-top: 3px solid #64b5f6;
       border-radius: 50%;
       animation: spin 1s linear infinite;
-      margin: 0 auto 20px;
+      margin-bottom: 20px;
     }
 
     @keyframes spin {
@@ -224,9 +236,9 @@ interface MonthlyStats {
     }
 
     .retry-btn {
-      background: rgba(100, 181, 246, 0.2);
-      border: 1px solid rgba(100, 181, 246, 0.4);
-      color: #64b5f6;
+      background: rgba(244, 67, 54, 0.2);
+      border: 1px solid rgba(244, 67, 54, 0.4);
+      color: #f44336;
       padding: 8px 16px;
       border-radius: 6px;
       cursor: pointer;
@@ -241,48 +253,43 @@ interface MonthlyStats {
     }
 
     .stat-card {
-      background: rgba(20, 20, 40, 0.6);
-      border-radius: 12px;
+      background: rgba(30, 30, 60, 0.4);
+      border: 1px solid rgba(100, 181, 246, 0.3);
+      border-radius: 10px;
       padding: 20px;
       text-align: center;
-      border: 1px solid rgba(255, 255, 255, 0.1);
     }
-
-    .stat-card.completion { border-left: 4px solid #4caf50; }
-    .stat-card.streak { border-left: 4px solid #2196f3; }
-    .stat-card.completed { border-left: 4px solid #ff9800; }
 
     .stat-value {
       font-size: 2rem;
-      font-weight: 700;
+      font-weight: bold;
       color: #64b5f6;
       margin-bottom: 5px;
     }
 
     .stat-label {
+      color: rgba(255, 255, 255, 0.7);
       font-size: 0.9rem;
-      color: #90caf9;
-      font-weight: 600;
     }
 
     .calendar-container {
-      background: rgba(20, 20, 40, 0.6);
-      border-radius: 15px;
+      background: rgba(30, 30, 60, 0.2);
+      border-radius: 12px;
       padding: 20px;
-      border: 1px solid rgba(100, 181, 246, 0.3);
+      border: 1px solid rgba(100, 181, 246, 0.2);
     }
 
     .calendar-header {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 10px;
+      gap: 8px;
       margin-bottom: 15px;
     }
 
     .day-header {
       text-align: center;
-      font-weight: 700;
-      color: #90caf9;
+      font-weight: 600;
+      color: #64b5f6;
       padding: 10px;
       font-size: 0.9rem;
     }
@@ -365,6 +372,7 @@ interface MonthlyStats {
     .status-icon.completed { color: #4caf50; }
     .status-icon.partial { color: #ffc107; }
     .status-icon.grace { color: #2196f3; }
+    .status-icon.missed { color: #f44336; }
 
     .task-list {
       display: flex;
@@ -454,11 +462,15 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-constructor(private disciplineService: DisciplineService) { // ✅ Add this line
-  const today = new Date();
-  this.currentMonth = today.getMonth();
-  this.currentYear = today.getFullYear();
-}
+  constructor(
+    private disciplineService: DisciplineService,
+    private habitService: HabitService
+  ) {
+    const today = new Date();
+    this.currentMonth = today.getMonth();
+    this.currentYear = today.getFullYear();
+  }
+
   ngOnInit(): void {
     this.loadMonthData();
   }
@@ -468,319 +480,192 @@ constructor(private disciplineService: DisciplineService) { // ✅ Add this line
     this.destroy$.complete();
   }
 
-loadMonthData(): void {
-  this.loading = true;
-  this.error = null;
-  
-  const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-  const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
-  
-  const monthDays: Date[] = [];
-  for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
-    monthDays.push(new Date(d));
-  }
-
-  console.log('Month days being requested:', monthDays.map(d => d.toISOString().split('T')[0]));
-
-  const dayRequests = monthDays.map(date => {
-    const dateStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+  loadMonthData(): void {
+    this.loading = true;
+    this.error = null;
     
-    console.log(`Requesting data for: ${dateStr}`);
+    const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+    const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
     
-    return this.disciplineService.getDay(dateStr)
-      .pipe(
-        map((disciplineDay: any) => this.mapToMonthlyDayData(disciplineDay, date)), // ✅ Add type annotation
-        catchError(error => {
-          console.error(`Error fetching data for ${dateStr}:`, error);
-          return of(this.createEmptyDayData(date));
-        }),
-        takeUntil(this.destroy$)
-      );
-  });
-
-  forkJoin(dayRequests).subscribe({
-    next: (days) => {
-      this.calendarDays = days;
-      this.calculateStats(); // ✅ Fix method name
-      this.loading = false;
-    },
-    error: (error) => {
-      console.error('Error loading month data:', error);
-      this.error = 'Failed to load calendar data';
-      this.loading = false;
-    }
-  });
-}
-
-private mapToMonthlyDayData(disciplineDay: any, date: Date): MonthlyDayData {
-  const dateStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
-  
-  return {
-    date: dateStr, // ✅ Now returns string, not Date
-    dayNumber: date.getDate(),
-    isCurrentMonth: true,
-    isToday: this.isToday(date),
-    isCompleted: disciplineDay.isCompleted || false,
-    isPartiallyCompleted: false,
-    isGraceUsed: false,
-    completedHabits: disciplineDay.isCompleted ? 1 : 0,
-    totalHabits: 1,
-    tasks: ['Phone Lock Box'],
-    completedTasks: disciplineDay.isCompleted ? ['Phone Lock Box'] : [],
-    hasWarnings: false,
-    rewards: disciplineDay.rewards?.map((r: any) => r.description) || [] // ✅ Fix rewards mapping
-  };
-}
-
-// Helper method to create empty day data when API fails
-private createEmptyDayData(date: Date): MonthlyDayData {
-  const dateStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
-  
-  return {
-    date: dateStr, // ✅ Now returns string, not Date
-    dayNumber: date.getDate(),
-    isCurrentMonth: true,
-    isToday: this.isToday(date),
-    isCompleted: false,
-    isPartiallyCompleted: false,
-    isGraceUsed: false,
-    completedHabits: 0,
-    totalHabits: 1,
-    tasks: ['Phone Lock Box'],
-    completedTasks: [],
-    hasWarnings: false,
-    rewards: []
-  };
-}
-
-private isToday(date: Date): boolean {
-  const today = new Date();
-  return date.getFullYear() === today.getFullYear() &&
-         date.getMonth() === today.getMonth() &&
-         date.getDate() === today.getDate();
-}
-private generateCalendar(apiData: any[]): MonthlyDayData[] {
-  const days: MonthlyDayData[] = [];
-  const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-  const startDate = new Date(firstDay);
-  startDate.setDate(startDate.getDate() - firstDay.getDay());
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  for (let i = 0; i < 42; i++) {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + i);
-    
-    const isCurrentMonth = date.getMonth() === this.currentMonth;
-    
-    // ✅ Use the SAME date formatting as in loadMonthData
-    const dateStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
-    
-    const dayApiData = apiData.find(d => 
-      d.date.toISOString().split('T')[0] === dateStr
-    );
-
-    // Rest of your existing generateCalendar logic...
-    let dayData: MonthlyDayData;
-
-    if (dayApiData && dayApiData.data) {
-      const apiDay = dayApiData.data;
-      const allHabits = apiDay.habitStatuses || apiDay.HabitStatuses || [];
-      const requiredHabits = allHabits.filter((h: any) => h.isRequired || h.IsRequired);
-      const completedRequiredHabits = requiredHabits.filter((h: any) => h.isCompleted || h.IsCompleted);
-
-      dayData = {
-        date: dateStr, // ✅ Use consistent dateStr format
-        dayNumber: date.getDate(),
-        isCurrentMonth,
-        isToday: date.getTime() === today.getTime(),
-        isCompleted: apiDay.isCompleted || apiDay.IsCompleted || false,
-        isGraceUsed: apiDay.isGraceUsed || apiDay.IsGraceUsed || false,
-        completedHabits: completedRequiredHabits.length,
-        totalHabits: requiredHabits.length,
-        tasks: requiredHabits.map((h: any) => 
-          this.mapHabitNameToTaskName(h.habitName || h.HabitName)
-        ),
-        completedTasks: completedRequiredHabits.map((h: any) => 
-          this.mapHabitNameToTaskName(h.habitName || h.HabitName)
-        ),
-        hasWarnings: (apiDay.warnings && apiDay.warnings.length > 0) || 
-                    (apiDay.Warnings && apiDay.Warnings.length > 0),
-        rewards: apiDay.rewards || apiDay.Rewards || [],
-        isPartiallyCompleted: false
-      };
-    } else {
-      dayData = {
-        date: dateStr, // ✅ Use consistent dateStr format
-        dayNumber: date.getDate(),
-        isCurrentMonth,
-        isToday: date.getTime() === today.getTime(),
-        isCompleted: false,
-        isGraceUsed: false,
-        completedHabits: 0,
-        totalHabits: 0,
-        tasks: [],
-        completedTasks: [],
-        hasWarnings: false,
-        rewards: [],
-        isPartiallyCompleted: false
-      };
+    const monthDays: Date[] = [];
+    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      monthDays.push(new Date(d));
     }
 
-    days.push(dayData);
-  }
+    console.log('Month days being requested:', monthDays.map(d => d.toISOString().split('T')[0]));
 
-  return days;
-}
+    const dayRequests = monthDays.map(date => {
+      const dateStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+      
+      console.log(`Requesting data for: ${dateStr}`);
+      
+      return this.disciplineService.getDay(dateStr)
+        .pipe(
+          map((disciplineDay: any) => this.mapToMonthlyDayData(disciplineDay, date)),
+          catchError(error => {
+            console.error(`Error fetching data for ${dateStr}:`, error);
+            return of(this.createEmptyDayData(date));
+          }),
+          takeUntil(this.destroy$)
+        );
+    });
 
- private calculateStats(): MonthlyStats {
-  const completedDays = this.calendarDays.filter(day => day.isCompleted).length;
-  const totalDays = this.calendarDays.length;
-  const completionRate = totalDays > 0 ? Math.round((completedDays / totalDays) * 100) : 0;
-
-  // Calculate current streak
-  let currentStreak = 0;
-  const today = new Date();
-  const sortedDays = this.calendarDays
-    .filter(day => new Date(day.date) <= today)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-  for (const day of sortedDays) {
-    if (day.isCompleted) {
-      currentStreak++;
-    } else {
-      break;
-    }
-  }
-
-  // Calculate longest streak (simple version)
-  let longestStreak = 0;
-  let tempStreak = 0;
-  
-  for (const day of this.calendarDays.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())) {
-    if (day.isCompleted) {
-      tempStreak++;
-      longestStreak = Math.max(longestStreak, tempStreak);
-    } else {
-      tempStreak = 0;
-    }
-  }
-
-  return {
-    completedDays,
-    totalDays,
-    completionRate,
-    currentStreak,
-    longestStreak
-    // ✅ Remove partialDays if it doesn't exist in your interface
-  };
-}
-
- toggleTask(taskName: string, date: string, event: Event): void {
-  event.stopPropagation();
-  
-  const day = this.calendarDays.find(d => d.date === date);
-  if (!day) return;
-
-  const isCurrentlyCompleted = day.completedTasks.includes(taskName);
-  
-  // Update local state immediately for better UX
-  if (isCurrentlyCompleted) {
-    day.completedTasks = day.completedTasks.filter(t => t !== taskName);
-  } else {
-    day.completedTasks.push(taskName);
-  }
-  
-  day.completedHabits = day.completedTasks.length;
-  day.isCompleted = day.completedHabits >= day.totalHabits && day.totalHabits > 0;
-
-  // Update stats
-  this.monthlyStats = this.calculateStats();
-
-  // ✅ FIX: Ensure consistent date formatting for save
-  // The 'date' parameter is in 'YYYY-MM-DD' format, use it exactly as-is
-  console.log(`Toggling task ${taskName} for date ${date} to ${!isCurrentlyCompleted}`);
-  
-  // Save to backend using the exact date string
-  this.saveTaskCompletion(taskName, date, !isCurrentlyCompleted);
-}
-
- 
-// The issue is likely that toggleHabitCompletion method doesn't exist in your habit service
-// Based on the APIs we created, the correct method should be calling the habit tracking API
-
-// ✅ FIX 1: Make sure your constructor has habitService injected
-constructor(private habitService: HabitService, private disciplineService: DisciplineService) {
-  const today = new Date();
-  this.currentMonth = today.getMonth();
-  this.currentYear = today.getFullYear();
-}
-
-// ✅ FIX 2: Update the saveTaskCompletion method to use the correct API call
-private saveTaskCompletion(taskName: string, date: string, isCompleted: boolean): void {
-  const taskToHabitId: { [key: string]: number } = {
-    'Phone Lock Box': 1,
-    'Clean Dishes': 2,
-    'Vacuum & Sweep': 4, // ✅ Note: this should be 4 based on our habit setup
-    'Gym Workout': 3,    // ✅ Note: this should be 3 based on our habit setup  
-    'Clean Bathroom': 5,
-    'Kitchen Deep Clean': 6,
-    'Clean Windows': 7
-  };
-
-  const habitId = taskToHabitId[taskName];
-  if (!habitId) {
-    console.warn(`No habit ID found for task: ${taskName}`);
-    return;
-  }
-
-  console.log(`Saving ${taskName} (ID: ${habitId}) for ${date} as ${isCompleted}`);
-
-  // ✅ FIX 3: Use the correct method that exists in your habit tracking API
-  if (isCompleted) {
-    // Complete the habit
-    this.habitService.completeHabit({
-      habitId: habitId,
-      date: date,
-      notes: `Completed via monthly calendar`
-    })
-    .pipe(takeUntil(this.destroy$))
-    .subscribe({
-      next: (response) => {
-        console.log(`Successfully saved ${taskName} for ${date}`);
-        this.updateLocalTaskCompletion(taskName, date, true);
+    forkJoin(dayRequests).subscribe({
+      next: (days) => {
+        this.calendarDays = days;
+        this.monthlyStats = this.calculateStats();
+        this.loading = false;
       },
       error: (error) => {
-        console.error(`Error saving ${taskName} for ${date}:`, error);
-        this.revertTaskCompletion(taskName, date);
-        alert('Failed to save. Please try again.');
+        console.error('Error loading month data:', error);
+        this.error = 'Failed to load calendar data';
+        this.loading = false;
       }
     });
-  } else {
-    // For uncompleting a habit, you might need a different approach
-    // Since our API doesn't have an "uncomplete" method, we could:
-    console.log(`Cannot uncomplete habit ${taskName} - API doesn't support uncompleting`);
-    alert('Habit completion cannot be undone through this interface');
   }
-}
- private revertTaskCompletion(taskName: string, date: string): void {
-  const day = this.calendarDays.find(d => d.date === date);
-  if (day) {
-    // Revert the local state back to what it was
-    const taskIndex = day.completedTasks.indexOf(taskName);
-    if (taskIndex > -1) {
-      day.completedTasks.splice(taskIndex, 1);
-    }
-    day.completedHabits = day.completedTasks.length;
-    day.isCompleted = day.completedHabits === day.totalHabits;
-  }
-}
 
-  private updateLocalTaskCompletion(taskName: string, date: string, isCompleted: boolean): void {
-  const day = this.calendarDays.find(d => d.date === date);
-  if (day) {
-    if (isCompleted) {
+  private mapToMonthlyDayData(disciplineDay: any, date: Date): MonthlyDayData {
+    const dateStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+    
+    return {
+      date: dateStr,
+      dayNumber: date.getDate(),
+      isCurrentMonth: true,
+      isToday: this.isToday(date),
+      isCompleted: disciplineDay.isCompleted || false,
+      isPartiallyCompleted: false,
+      isGraceUsed: false,
+      completedHabits: disciplineDay.isCompleted ? 1 : 0,
+      totalHabits: 1,
+      tasks: ['Phone Lock Box'],
+      completedTasks: disciplineDay.isCompleted ? ['Phone Lock Box'] : [],
+      hasWarnings: false,
+      rewards: disciplineDay.rewards?.map((r: any) => r.description) || []
+    };
+  }
+
+  private createEmptyDayData(date: Date): MonthlyDayData {
+    const dateStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+    
+    return {
+      date: dateStr,
+      dayNumber: date.getDate(),
+      isCurrentMonth: true,
+      isToday: this.isToday(date),
+      isCompleted: false,
+      isPartiallyCompleted: false,
+      isGraceUsed: false,
+      completedHabits: 0,
+      totalHabits: 1,
+      tasks: ['Phone Lock Box'],
+      completedTasks: [],
+      hasWarnings: false,
+      rewards: []
+    };
+  }
+
+  private isToday(date: Date): boolean {
+    const today = new Date();
+    return date.getFullYear() === today.getFullYear() &&
+           date.getMonth() === today.getMonth() &&
+           date.getDate() === today.getDate();
+  }
+
+  private calculateStats(): MonthlyStats {
+    const completedDays = this.calendarDays.filter(day => day.isCompleted).length;
+    const totalDays = this.calendarDays.length;
+    const completionRate = totalDays > 0 ? Math.round((completedDays / totalDays) * 100) : 0;
+
+    // Calculate current streak
+    let currentStreak = 0;
+    const today = new Date();
+    const sortedDays = this.calendarDays
+      .filter(day => new Date(day.date) <= today)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    for (const day of sortedDays) {
+      if (day.isCompleted) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+
+    // Calculate longest streak
+    let longestStreak = 0;
+    let tempStreak = 0;
+    
+    for (const day of this.calendarDays.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())) {
+      if (day.isCompleted) {
+        tempStreak++;
+        longestStreak = Math.max(longestStreak, tempStreak);
+      } else {
+        tempStreak = 0;
+      }
+    }
+
+    return {
+      completedDays,
+      totalDays,
+      completionRate,
+      currentStreak,
+      longestStreak
+    };
+  }
+
+  getCalendarGrid(): MonthlyDayData[] {
+    const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+    const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    const grid: MonthlyDayData[] = [];
+    const current = new Date(startDate);
+    
+    for (let i = 0; i < 42; i++) { // 6 weeks * 7 days
+      const dateStr = `${current.getFullYear()}-${(current.getMonth() + 1).toString().padStart(2, '0')}-${current.getDate().toString().padStart(2, '0')}`;
+      
+      const existingDay = this.calendarDays.find(d => d.date === dateStr);
+      if (existingDay) {
+        existingDay.isCurrentMonth = current.getMonth() === this.currentMonth;
+        grid.push(existingDay);
+      } else {
+        grid.push({
+          date: dateStr,
+          dayNumber: current.getDate(),
+          isCurrentMonth: current.getMonth() === this.currentMonth,
+          isToday: this.isToday(current),
+          isCompleted: false,
+          isPartiallyCompleted: false,
+          isGraceUsed: false,
+          completedHabits: 0,
+          totalHabits: 0,
+          tasks: [],
+          completedTasks: [],
+          hasWarnings: false,
+          rewards: []
+        });
+      }
+      
+      current.setDate(current.getDate() + 1);
+    }
+    
+    return grid;
+  }
+
+  toggleTask(taskName: string, date: string, event: Event): void {
+    event.stopPropagation();
+    
+    const day = this.calendarDays.find(d => d.date === date);
+    if (!day || this.isFutureDate(date)) {
+      return;
+    }
+
+    const isCurrentlyCompleted = day.completedTasks.includes(taskName);
+    const newCompletionState = !isCurrentlyCompleted;
+    
+    // Optimistically update UI
+    if (newCompletionState) {
       if (!day.completedTasks.includes(taskName)) {
         day.completedTasks.push(taskName);
       }
@@ -791,39 +676,70 @@ private saveTaskCompletion(taskName: string, date: string, isCompleted: boolean)
     day.completedHabits = day.completedTasks.length;
     day.isCompleted = day.completedHabits === day.totalHabits;
     
-    // Recalculate monthly stats
-    this.monthlyStats = this.calculateStats();
+    // Save to server
+    this.saveTaskCompletion(taskName, date, newCompletionState);
   }
-}
 
-  private mapHabitNameToTaskName(habitName: string): string {
-    if (!habitName) return '';
-    
-    const mapping: { [key: string]: string } = {
-      'Lock Phone in Box': 'Phone Lock Box',
-      'Clean Dishes/Sink': 'Clean Dishes', 
-      'Vacuum/Sweep Floors': 'Vacuum & Sweep',
-      'Gym Workout': 'Gym Workout',
-      'Clean Bathroom': 'Clean Bathroom',
-      'Kitchen Deep Clean': 'Kitchen Deep Clean',
-      'Clean Windows': 'Clean Windows'
+  private saveTaskCompletion(taskName: string, date: string, isCompleted: boolean): void {
+    const taskToHabitId: { [key: string]: number } = {
+      'Phone Lock Box': 1,
+      'Clean Dishes': 2,
+      'Gym Workout': 3,
+      'Vacuum & Sweep': 4,
+      'Clean Bathroom': 5,
+      'Kitchen Deep Clean': 6,
+      'Clean Windows': 7
     };
-    
-    return mapping[habitName] || habitName;
+
+    const habitId = taskToHabitId[taskName];
+    if (!habitId) {
+      console.warn(`No habit ID found for task: ${taskName}`);
+      return;
+    }
+
+    console.log(`Saving ${taskName} (ID: ${habitId}) for ${date} as ${isCompleted}`);
+
+    if (isCompleted) {
+      this.habitService.completeHabit({
+        habitId: habitId,
+        date: date,
+        notes: `Completed via monthly calendar`
+      })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          console.log(`Successfully saved ${taskName} for ${date}`);
+        },
+        error: (error) => {
+          console.error(`Error saving ${taskName} for ${date}:`, error);
+          this.revertTaskCompletion(taskName, date);
+          alert('Failed to save. Please try again.');
+        }
+      });
+    } else {
+      console.log(`Cannot uncomplete habit ${taskName} - API doesn't support uncompleting`);
+      alert('Habit completion cannot be undone through this interface');
+      // Revert the UI change
+      this.revertTaskCompletion(taskName, date);
+    }
+  }
+
+  private revertTaskCompletion(taskName: string, date: string): void {
+    const day = this.calendarDays.find(d => d.date === date);
+    if (day) {
+      const taskIndex = day.completedTasks.indexOf(taskName);
+      if (taskIndex > -1) {
+        day.completedTasks.splice(taskIndex, 1);
+      } else {
+        day.completedTasks.push(taskName);
+      }
+      day.completedHabits = day.completedTasks.length;
+      day.isCompleted = day.completedHabits === day.totalHabits;
+    }
   }
 
   getTaskInitial(taskName: string): string {
-    const mapping: { [key: string]: string } = {
-      'Phone Lock Box': 'P',
-      'Clean Dishes': 'C',
-      'Vacuum & Sweep': 'V',
-      'Gym Workout': 'G',
-      'Clean Bathroom': 'B',
-      'Kitchen Deep Clean': 'K',
-      'Clean Windows': 'W'
-    };
-    
-    return mapping[taskName] || taskName.charAt(0);
+    return taskName.charAt(0);
   }
 
   isFutureDate(dateStr: string): boolean {
@@ -831,6 +747,14 @@ private saveTaskCompletion(taskName: string, date: string, isCompleted: boolean)
     const today = new Date();
     today.setHours(23, 59, 59, 999);
     return date > today;
+  }
+
+  isPast(dateStr: string): boolean {
+    const date = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    date.setHours(0, 0, 0, 0);
+    return date < today;
   }
 
   getMonthName(monthIndex: number): string {
