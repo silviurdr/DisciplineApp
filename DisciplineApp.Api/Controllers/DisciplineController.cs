@@ -1,207 +1,242 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using DisciplineApp.Api.Services;
+﻿using DisciplineApp.Api.Data;
 using DisciplineApp.Api.Models;
+using DisciplineApp.Api.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
-namespace DisciplineApp.Api.Controllers
+namespace DisciplineApp.Api.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class DisciplineController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class DisciplineController : ControllerBase
+    private readonly DisciplineDbContext _context;
+    private readonly HabitCalculationService _habitCalculationService;
+
+    public DisciplineController(DisciplineDbContext context, HabitCalculationService habitCalculationService)
     {
-        private readonly IDisciplineService _disciplineService;
-        private readonly ILogger<DisciplineController> _logger;
+        _context = context;
+        _habitCalculationService = habitCalculationService;
+    }
 
-        public DisciplineController(IDisciplineService disciplineService, ILogger<DisciplineController> logger)
-        {
-            _disciplineService = disciplineService;
-            _logger = logger;
-        }
+    [HttpGet("health")]
+    public IActionResult Health()
+    {
+        return Ok(new { status = "API is running", timestamp = DateTime.UtcNow });
+    }
 
-        /// <summary>
-        /// Health check endpoint
-        /// </summary>
-        [HttpGet("health")]
-        public IActionResult Health()
+    [HttpGet("week/{year}/{month}/{day}")]
+    public async Task<IActionResult> GetWeekData(int year, int month, int day)
+    {
+        try
         {
-            return Ok(new { status = "healthy", timestamp = DateTime.UtcNow });
-        }
+            var currentDate = new DateTime(year, month, day);
+            var weekStart = GetWeekStart(currentDate);
 
-        /// <summary>
-        /// Get calendar data for a specific year
-        /// </summary>
-        [HttpGet("calendar/{year:int}")]
-        public async Task<ActionResult<YearCalendarDto>> GetCalendar(int year)
-        {
-            try
+            var dayStatuses = new List<object>();
+            var weeklyHabitProgress = new List<object>();
+
+            // Get status for each day of the week
+            for (int i = 0; i < 7; i++)
             {
-                if (year < 2020 || year > 2030)
+                var date = weekStart.AddDays(i);
+                var dayStatus = await _habitCalculationService.GetDayStatus(date);
+
+                dayStatuses.Add(new
                 {
-                    return BadRequest("Year must be between 2020 and 2030");
-                }
-
-                var calendar = await _disciplineService.GetYearCalendarAsync(year);
-                return Ok(calendar);
+                    date = date.ToString("yyyy-MM-dd"),
+                    isCompleted = dayStatus.IsCompleted,
+                    isPartiallyCompleted = dayStatus.IsPartiallyCompleted,
+                    canUseGrace = dayStatus.CanUseGrace,
+                    requiredHabitsCount = dayStatus.RequiredHabits.Count,
+                    completedRequiredCount = dayStatus.RequiredHabits.Count(h => h.IsCompleted)
+                });
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting calendar for year {Year}", year);
-                return StatusCode(500, "Internal server error");
-            }
-        }
 
-        /// <summary>
-        /// Toggle completion status for a specific day
-        /// </summary>
-        [HttpPost("toggle")]
-        public async Task<ActionResult<CalendarDayDto>> ToggleDay([FromBody] ToggleDayRequest request)
-        {
-            try
+            // Get weekly progress for all habits
+            var habits = await _context.Habits.ToListAsync();
+            foreach (var habit in habits)
             {
-                if (string.IsNullOrEmpty(request.Date))
+                var progress = await GetWeeklyHabitProgress(habit, weekStart);
+                weeklyHabitProgress.Add(progress);
+            }
+
+            // Get current day's detailed status
+            var currentDayStatus = await _habitCalculationService.GetDayStatus(currentDate);
+
+            var response = new
+            {
+                weekStartDate = weekStart.ToString("yyyy-MM-dd"),
+                weekEndDate = weekStart.AddDays(6).ToString("yyyy-MM-dd"),
+                dayStatuses = dayStatuses,
+                weeklyHabitProgress = weeklyHabitProgress,
+                currentDay = new
                 {
-                    return BadRequest("Date is required in format YYYY-MM-DD");
+                    date = currentDate.ToString("yyyy-MM-dd"),
+                    canUseGrace = currentDayStatus.CanUseGrace,
+                    isCompleted = currentDayStatus.IsCompleted,
+                    isPartiallyCompleted = currentDayStatus.IsPartiallyCompleted,
+                    requiredHabits = currentDayStatus.RequiredHabits.Select(h => new
+                    {
+                        habitId = h.HabitId,
+                        name = h.HabitName,
+                        description = h.Description,
+                        isCompleted = h.IsCompleted,
+                        urgencyLevel = h.UrgencyLevel.ToString(),
+                        reason = h.Reason,
+                        completedAt = h.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss")
+                    }),
+                    optionalHabits = currentDayStatus.OptionalHabits.Select(h => new
+                    {
+                        habitId = h.HabitId,
+                        name = h.HabitName,
+                        description = h.Description,
+                        isCompleted = h.IsCompleted,
+                        urgencyLevel = h.UrgencyLevel.ToString(),
+                        reason = h.Reason,
+                        completedAt = h.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss")
+                    }),
+                    warnings = currentDayStatus.Warnings,
+                    recommendations = currentDayStatus.Recommendations
                 }
+            };
 
-                _logger.LogInformation("Toggling day: {Date}", request.Date);
-
-                var updatedDay = await _disciplineService.ToggleDayAsync(request.Date);
-                return Ok(updatedDay);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid date format: {Date}", request.Date);
-                return BadRequest($"Invalid date format: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error toggling day {Date}", request.Date);
-                return StatusCode(500, "Internal server error");
-            }
+            return Ok(response);
         }
-
-        /// <summary>
-        /// Update a specific day's completion status and notes
-        /// </summary>
-        [HttpPut("day")]
-        public async Task<ActionResult<CalendarDayDto>> UpdateDay([FromBody] UpdateDayRequest request)
+        catch (Exception ex)
         {
-            try
-            {
-                if (string.IsNullOrEmpty(request.Date))
-                {
-                    return BadRequest("Date is required in format YYYY-MM-DD");
-                }
-
-                _logger.LogInformation("Updating day: {Date}, Completed: {IsCompleted}", request.Date, request.IsCompleted);
-
-                var updatedDay = await _disciplineService.UpdateDayAsync(request.Date, request.IsCompleted, request.Notes);
-                return Ok(updatedDay);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid date format: {Date}", request.Date);
-                return BadRequest($"Invalid date format: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating day {Date}", request.Date);
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        /// <summary>
-        /// Get current streak information
-        /// </summary>
-        [HttpGet("streak")]
-        public async Task<ActionResult<StreakInfoDto>> GetStreakInfo()
-        {
-            try
-            {
-                var streakInfo = await _disciplineService.GetStreakInfoAsync();
-                return Ok(streakInfo);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting streak info");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        /// <summary>
-        /// Get details for a specific day
-        /// </summary>
-        [HttpGet("day/{date}")]
-        public async Task<ActionResult<CalendarDayDto>> GetDay(string date)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(date))
-                {
-                    return BadRequest("Date is required in format YYYY-MM-DD");
-                }
-
-                var day = await _disciplineService.GetDayAsync(date);
-                if (day == null)
-                {
-                    return NotFound($"No data found for date {date}");
-                }
-
-                return Ok(day);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid date format: {Date}", date);
-                return BadRequest($"Invalid date format: {ex.Message}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting day {Date}", date);
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        /// <summary>
-        /// Get today's completion status
-        /// </summary>
-        [HttpGet("today")]
-        public async Task<ActionResult<CalendarDayDto>> GetToday()
-        {
-            try
-            {
-                var today = DateHelper.GetToday();
-                var todayString = DateHelper.ToDateString(today);
-
-                var day = await _disciplineService.GetDayAsync(todayString);
-                return Ok(day);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting today's data");
-                return StatusCode(500, "Internal server error");
-            }
-        }
-
-        /// <summary>
-        /// Mark today as completed (quick action endpoint)
-        /// </summary>
-        [HttpPost("complete-today")]
-        public async Task<ActionResult<CalendarDayDto>> CompleteToday()
-        {
-            try
-            {
-                var today = DateHelper.GetToday();
-                var todayString = DateHelper.ToDateString(today);
-
-                _logger.LogInformation("Marking today as completed: {Date}", todayString);
-
-                var updatedDay = await _disciplineService.UpdateDayAsync(todayString, true);
-                return Ok(updatedDay);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error completing today");
-                return StatusCode(500, "Internal server error");
-            }
+            return BadRequest(new { error = ex.Message });
         }
     }
+
+    [HttpPost("complete-habit")]
+    public async Task<IActionResult> CompleteHabit([FromBody] CompleteHabitRequest request)
+    {
+        try
+        {
+            var habit = await _context.Habits.FindAsync(request.HabitId);
+            if (habit == null)
+            {
+                return NotFound(new { error = "Habit not found" });
+            }
+
+            var existingCompletion = await _context.HabitCompletions
+                .FirstOrDefaultAsync(h => h.HabitId == request.HabitId && h.Date.Date == request.Date.Date);
+
+            if (existingCompletion != null)
+            {
+                existingCompletion.IsCompleted = request.IsCompleted;
+                existingCompletion.CompletedAt = request.IsCompleted ? DateTime.UtcNow : null;
+                existingCompletion.Notes = request.Notes;
+            }
+            else
+            {
+                _context.HabitCompletions.Add(new HabitCompletion
+                {
+                    HabitId = request.HabitId,
+                    Date = request.Date.Date,
+                    IsCompleted = request.IsCompleted,
+                    CompletedAt = request.IsCompleted ? DateTime.UtcNow : null,
+                    Notes = request.Notes
+                });
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Return updated day status
+            var dayStatus = await _habitCalculationService.GetDayStatus(request.Date);
+            return Ok(dayStatus);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpPost("use-grace")]
+    public async Task<IActionResult> UseGraceDay([FromBody] UseGraceRequest request)
+    {
+        try
+        {
+            var canUseGrace = await CanUseGraceDay(request.Date);
+            if (!canUseGrace)
+            {
+                return BadRequest(new { error = "Grace day not available for this week" });
+            }
+
+            _context.GraceUsages.Add(new GraceUsage
+            {
+                UsedDate = request.Date.Date,
+                Reason = request.Reason
+            });
+
+            await _context.SaveChangesAsync();
+
+            var dayStatus = await _habitCalculationService.GetDayStatus(request.Date);
+            return Ok(dayStatus);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    private async Task<object> GetWeeklyHabitProgress(Habit habit, DateTime weekStart)
+    {
+        var weekEnd = weekStart.AddDays(6);
+        var completions = await _context.HabitCompletions
+            .Where(h => h.HabitId == habit.Id && h.IsCompleted &&
+                       h.Date >= weekStart && h.Date <= weekEnd)
+            .CountAsync();
+
+        var target = habit.Frequency switch
+        {
+            HabitFrequency.Daily => 7,
+            HabitFrequency.Weekly => habit.WeeklyTarget,
+            HabitFrequency.EveryTwoDays => 4, // Approximate for a week
+            _ => 1
+        };
+
+        return new
+        {
+            habitId = habit.Id,
+            name = habit.Name,
+            completions = completions,
+            target = target,
+            percentage = target > 0 ? (double)completions / target * 100 : 0
+        };
+    }
+
+    private async Task<bool> CanUseGraceDay(DateTime date)
+    {
+        var weekStart = GetWeekStart(date);
+        var weekEnd = weekStart.AddDays(6);
+
+        var graceUsedThisWeek = await _context.GraceUsages
+            .CountAsync(g => g.UsedDate >= weekStart && g.UsedDate <= weekEnd);
+
+        return graceUsedThisWeek < 1; // Max 1 grace per week
+    }
+
+    private DateTime GetWeekStart(DateTime date)
+    {
+        // Get Monday of the current week
+        var dayOfWeek = (int)date.DayOfWeek;
+        var mondayOffset = (dayOfWeek == 0) ? -6 : -(dayOfWeek - 1);
+        return date.AddDays(mondayOffset);
+    }
+}
+
+public class CompleteHabitRequest
+{
+    public int HabitId { get; set; }
+    public DateTime Date { get; set; }
+    public bool IsCompleted { get; set; }
+    public string Notes { get; set; } = string.Empty;
+}
+
+public class UseGraceRequest
+{
+    public DateTime Date { get; set; }
+    public string Reason { get; set; } = string.Empty;
 }

@@ -1,57 +1,50 @@
 ﻿using DisciplineApp.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
-namespace DisciplineApp.Api.Controllers
+namespace DisciplineApp.Api.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class MigrationController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class MigrationController : ControllerBase
+    private readonly DataMigrationService _migrationService;
+
+    public MigrationController(DataMigrationService migrationService)
     {
-        private readonly IDataMigrationService _migrationService;
-        private readonly ILogger<MigrationController> _logger;
+        _migrationService = migrationService;
+    }
 
-        public MigrationController(IDataMigrationService migrationService, ILogger<MigrationController> logger)
+    /// <summary>
+    /// Migrate existing discipline entries to the new habit-based system
+    /// </summary>
+    [HttpPost("migrate-data")]
+    public async Task<IActionResult> MigrateData()
+    {
+        try
         {
-            _migrationService = migrationService;
-            _logger = logger;
+            var result = await _migrationService.MigrateExistingDataAsync();
+            return Ok(new { message = result });
         }
-
-        /// <summary>
-        /// Migrate existing data to new habit tracking system
-        /// </summary>
-        [HttpPost("migrate-data")]
-        public async Task<ActionResult> MigrateData()
+        catch (Exception ex)
         {
-            try
-            {
-                _logger.LogInformation("Starting data migration process");
-                await _migrationService.MigrateExistingDataAsync();
-                return Ok(new { message = "Data migration completed successfully" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error during data migration");
-                return StatusCode(500, new { error = "Migration failed", details = ex.Message });
-            }
+            return BadRequest(new { error = ex.Message });
         }
+    }
 
-        /// <summary>
-        /// Set up initial habits only (without migrating existing data)
-        /// </summary>
-        [HttpPost("setup-habits")]
-        public async Task<ActionResult> SetupHabits()
+    /// <summary>
+    /// Add sample completions for testing the habit system
+    /// </summary>
+    [HttpPost("add-sample-data")]
+    public async Task<IActionResult> AddSampleData()
+    {
+        try
         {
-            try
-            {
-                _logger.LogInformation("Setting up initial habits");
-                await _migrationService.SetupHabitsAsync();
-                return Ok(new { message = "Initial habits created successfully" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error setting up habits");
-                return StatusCode(500, new { error = "Setup failed", details = ex.Message });
-            }
+            var result = await _migrationService.AddSampleCompletionsAsync();
+            return Ok(new { message = result });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
         }
     }
 }

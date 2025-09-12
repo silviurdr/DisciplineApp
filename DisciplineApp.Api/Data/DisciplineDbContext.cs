@@ -1,143 +1,70 @@
-﻿using Microsoft.EntityFrameworkCore;
-using DisciplineApp.Api.Models;
+﻿using DisciplineApp.Api.Models;
+using Microsoft.EntityFrameworkCore;
 
-namespace DisciplineApp.Api.Data
+namespace DisciplineApp.Api.Data;
+
+public class DisciplineDbContext : DbContext
 {
-    public class DisciplineDbContext : DbContext
+    public DisciplineDbContext(DbContextOptions<DisciplineDbContext> options) : base(options)
     {
-        public DisciplineDbContext(DbContextOptions<DisciplineDbContext> options) : base(options)
+    }
+
+    public DbSet<DisciplineEntry> DisciplineEntries { get; set; }
+    public DbSet<Habit> Habits { get; set; }
+    public DbSet<HabitCompletion> HabitCompletions { get; set; }
+    public DbSet<GraceUsage> GraceUsages { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        // DisciplineEntry configuration
+        modelBuilder.Entity<DisciplineEntry>(entity =>
         {
-        }
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Date).IsRequired();
+            entity.HasIndex(e => e.Date).IsUnique();
+        });
 
-        public DbSet<DisciplineEntry> DisciplineEntries { get; set; }
-        public DbSet<Reward> Rewards { get; set; }
-        public DbSet<HabitCompletion> HabitCompletions { get; set; }
-        public DbSet<Habit> Habits { get; set; }
-        public DbSet<GraceUsage> GraceUsages { get; set; }
-
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        // Habit configuration
+        modelBuilder.Entity<Habit>(entity =>
         {
-            base.OnModelCreating(modelBuilder);
+            entity.HasKey(h => h.Id);
+            entity.Property(h => h.Name).IsRequired().HasMaxLength(100);
+            entity.Property(h => h.Description).HasMaxLength(500);
+            entity.Property(h => h.Frequency).IsRequired();
+            entity.Property(h => h.IsActive).HasDefaultValue(true);
+            entity.Property(h => h.CreatedAt).HasDefaultValue(DateTime.UtcNow);
 
-            // Configure DisciplineEntry
-            modelBuilder.Entity<DisciplineEntry>(entity =>
-            {
-                entity.HasKey(e => e.Id);
+            // Configure relationships
+            entity.HasMany(h => h.Completions)
+                  .WithOne(c => c.Habit)
+                  .HasForeignKey(c => c.HabitId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
 
-                // Use DateOnly for date storage to avoid timezone issues
-                entity.Property(e => e.Date)
-                    .IsRequired()
-                    .HasColumnType("DATE"); // Store as DATE type in database
-
-                // Create unique index on Date to prevent duplicates
-                entity.HasIndex(e => e.Date)
-                    .IsUnique()
-                    .HasDatabaseName("IX_DisciplineEntry_Date");
-
-                entity.Property(e => e.IsCompleted)
-                    .IsRequired()
-                    .HasDefaultValue(false);
-
-                entity.Property(e => e.IsSpecial)
-                    .IsRequired()
-                    .HasDefaultValue(false);
-
-                entity.Property(e => e.Notes)
-                    .HasMaxLength(1000)
-                    .IsRequired(false);
-
-                entity.Property(e => e.CreatedAt)
-                    .IsRequired()
-                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                entity.Property(e => e.CompletedAt)
-                    .IsRequired(false);
-            });
-
-            modelBuilder.Entity<HabitCompletion>()
-            .HasOne(hc => hc.Habit)
-            .WithMany(h => h.Completions)
-            .HasForeignKey(hc => hc.HabitId)
-            .OnDelete(DeleteBehavior.Cascade); // Or use DeleteBehavior.Restrict based on your requirements
-
-            // Configure Reward
-            modelBuilder.Entity<Reward>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-
-                entity.Property(e => e.Type)
-                    .IsRequired()
-                    .HasMaxLength(50);
-
-                entity.Property(e => e.Description)
-                    .IsRequired()
-                    .HasMaxLength(500);
-
-                entity.Property(e => e.EarnedAt)
-                    .IsRequired()
-                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                // Configure relationship
-                entity.HasOne(r => r.DisciplineEntry)
-                    .WithMany(de => de.Rewards)
-                    .HasForeignKey(r => r.DisciplineEntryId)
-                    .OnDelete(DeleteBehavior.Cascade);
-            });
-
-            modelBuilder.Entity<Habit>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
-                entity.Property(e => e.Description).HasMaxLength(1000);
-                entity.Property(e => e.IsRequired).HasDefaultValue(true);
-
-                // Configure DateOnly for SQLite if needed
-                if (Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
-                {
-                    // Add any DateOnly conversions if needed
-                }
-            });
-
-            // Configure GraceUsage
-            modelBuilder.Entity<GraceUsage>(entity =>
-            {
-                entity.HasKey(e => e.Id);
-                entity.Property(e => e.Reason).IsRequired().HasMaxLength(500);
-
-                // Configure DateOnly for SQLite
-                if (Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
-                {
-                    entity.Property(e => e.Date)
-                        .HasConversion(
-                            dateOnly => dateOnly.ToString("yyyy-MM-dd"),
-                            dateString => DateOnly.ParseExact(dateString, "yyyy-MM-dd")
-                        );
-                }
-            });
-
-            // Configure DateOnly conversion for SQLite
-            if (Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
-            {
-                modelBuilder.Entity<DisciplineEntry>()
-                    .Property(e => e.Date)
-                    .HasConversion(
-                        dateOnly => dateOnly.ToString("yyyy-MM-dd"),
-                        dateString => DateOnly.ParseExact(dateString, "yyyy-MM-dd")
-                    );
-            }
-        }
-
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        // HabitCompletion configuration
+        modelBuilder.Entity<HabitCompletion>(entity =>
         {
-            if (!optionsBuilder.IsConfigured)
-            {
-                // This should only be used in development
-                optionsBuilder.UseSqlite("Data Source=discipline.db");
-            }
-        }
+            entity.HasKey(hc => hc.Id);
+            entity.Property(hc => hc.Date).IsRequired();
+            entity.Property(hc => hc.IsCompleted).IsRequired();
+            entity.Property(hc => hc.Notes).HasMaxLength(1000);
 
-        // Remove the seed data method to avoid UNIQUE constraint violations
-        // Data will be created through user interactions instead
+            // Create unique constraint for HabitId + Date
+            entity.HasIndex(hc => new { hc.HabitId, hc.Date }).IsUnique();
+        });
+
+        // GraceUsage configuration
+        modelBuilder.Entity<GraceUsage>(entity =>
+        {
+            entity.HasKey(g => g.Id);
+            entity.Property(g => g.UsedDate).IsRequired();
+            entity.Property(g => g.Reason).HasMaxLength(500);
+            entity.Property(g => g.CreatedAt).HasDefaultValue(DateTime.UtcNow);
+
+            // One grace per day constraint
+            entity.HasIndex(g => g.UsedDate).IsUnique();
+        });
+
+        base.OnModelCreating(modelBuilder);
     }
 }

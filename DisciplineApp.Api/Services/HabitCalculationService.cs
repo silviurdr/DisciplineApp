@@ -1,395 +1,367 @@
-﻿using Microsoft.EntityFrameworkCore;
-using DisciplineApp.Api.Data;
+﻿using DisciplineApp.Api.Data;
 using DisciplineApp.Api.Models;
+using Microsoft.EntityFrameworkCore;
 
-namespace DisciplineApp.Api.Services
+namespace DisciplineApp.Api.Services;
+
+public class HabitCalculationService : IHabitCalculationService
 {
-    public interface IHabitCalculationService
+    private readonly DisciplineDbContext _context;
+
+    public HabitCalculationService(DisciplineDbContext context)
     {
-        Task<DayStatusDto> CalculateDayStatusAsync(DateOnly date);
-        Task<List<HabitStatusDto>> GetHabitStatusesForDateAsync(DateOnly date);
-        Task<bool> CompleteHabitAsync(int habitId, DateOnly date, string? notes = null);
-        Task<WeekStatusDto> GetWeekStatusAsync(DateOnly weekStartDate);
-        Task<List<string>> GetSmartRemindersAsync(DateOnly date);
-        Task<GracePeriodStatusDto> GetGracePeriodStatusAsync();
+        _context = context;
     }
 
-    public class HabitCalculationService : IHabitCalculationService
+    public async Task<DayStatusResponse> GetDayStatus(DateTime date)
     {
-        private readonly DisciplineDbContext _context;
-        private readonly ILogger<HabitCalculationService> _logger;
+        var habits = await _context.Habits.ToListAsync();
+        var completions = await _context.HabitCompletions
+            .Where(h => h.Date >= date.AddDays(-60)) // Get last 60 days for analysis
+            .ToListAsync();
 
-        public HabitCalculationService(DisciplineDbContext context, ILogger<HabitCalculationService> logger)
+        var dayCompletions = completions.Where(c => c.Date.Date == date.Date).ToList();
+        var requiredHabits = new List<HabitStatus>();
+        var optionalHabits = new List<HabitStatus>();
+        var warnings = new List<string>();
+        var recommendations = new List<string>();
+
+        foreach (var habit in habits)
         {
-            _context = context;
-            _logger = logger;
-        }
+            var habitStatus = await CalculateHabitStatus(habit, date, completions, dayCompletions);
 
-        // In your HabitCalculationService.cs, update the CalculateDayStatusAsync method
-
-        public async Task<DayStatusDto> CalculateDayStatusAsync(DateOnly date)
-        {
-            try
+            if (habitStatus.IsRequired)
             {
-                var habitStatuses = await GetHabitStatusesForDateAsync(date);
-                var reminders = await GetSmartRemindersAsync(date);
+                requiredHabits.Add(habitStatus);
 
-                var requiredHabits = habitStatuses.Where(h => h.IsRequired).ToList();
-                var completedRequiredHabits = requiredHabits.Where(h => h.IsCompleted).ToList();
-
-                // KEY FIX: Don't mark current day as failed if incomplete
-                var today = DateHelper.GetToday();
-                var status = DayCompletionStatus.Incomplete;
-
-                if (completedRequiredHabits.Count == requiredHabits.Count)
+                // Add warnings for urgent habits
+                if (habitStatus.UrgencyLevel == UrgencyLevel.Critical)
                 {
-                    status = DayCompletionStatus.Complete;
+                    warnings.Add($"CRITICAL: {habit.Name} must be completed today to maintain streak!");
                 }
-                else if (completedRequiredHabits.Any())
+                else if (habitStatus.UrgencyLevel == UrgencyLevel.Urgent)
                 {
-                    status = DayCompletionStatus.Partial;
-                }
-                else if (date < today) // Only past days can be marked as truly "failed"
-                {
-                    status = DayCompletionStatus.Incomplete; // or create a new "Failed" status
-                }
-                else // Current day or future days
-                {
-                    status = DayCompletionStatus.Incomplete; // Should not show as failed
-                }
-
-                return new DayStatusDto
-                {
-                    Date = DateHelper.ToDateString(date),
-                    Status = status,
-                    HabitStatuses = habitStatuses,
-                    CompletionPercentage = requiredHabits.Any()
-                        ? (int)((double)completedRequiredHabits.Count / requiredHabits.Count * 100)
-                        : 100,
-                    Reminders = reminders,
-                    CanUseGrace = await CanUseGraceAsync(date),
-                    IsToday = date == today, // Add this flag for frontend to use
-                    IsPastDay = date < today  // Add this flag too
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error calculating day status for {Date}", date);
-                throw;
-            }
-        }
-
-        public async Task<List<HabitStatusDto>> GetHabitStatusesForDateAsync(DateOnly date)
-        {
-            var habits = await _context.Set<Habit>().ToListAsync();
-            var habitStatuses = new List<HabitStatusDto>();
-
-            foreach (var habit in habits)
-            {
-                var status = await CalculateHabitStatusAsync(habit, date);
-                habitStatuses.Add(status);
-            }
-
-            return habitStatuses;
-        }
-
-        public async Task<bool> CompleteHabitAsync(int habitId, DateOnly date, string? notes = null)
-        {
-            try
-            {
-                var existingCompletion = await _context.Set<HabitCompletion>()
-                    .FirstOrDefaultAsync(hc => hc.HabitId == habitId && hc.Date == date);
-
-                if (existingCompletion != null)
-                {
-                    // Instead of returning false, remove the completion (toggle off)
-                    _context.Set<HabitCompletion>().Remove(existingCompletion);
-                    _logger.LogInformation("Uncompleted habit {HabitId} for date {Date}", habitId, date);
-                }
-                else
-                {
-                    // Add new completion (toggle on)
-                    var completion = new HabitCompletion
-                    {
-                        HabitId = habitId,
-                        Date = date,
-                        CompletedAt = DateTime.UtcNow,
-                        Notes = notes,
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    _context.Set<HabitCompletion>().Add(completion);
-                    _logger.LogInformation("Completed habit {HabitId} for date {Date}", habitId, date);
-                }
-
-                await _context.SaveChangesAsync();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error toggling habit {HabitId} for date {Date}", habitId, date);
-                return false;
-            }
-        }
-
-        public async Task<WeekStatusDto> GetWeekStatusAsync(DateOnly weekStartDate)
-        {
-            // Ensure we start from Monday
-            var mondayDate = weekStartDate.AddDays(-(int)weekStartDate.DayOfWeek + 1);
-            var weekEndDate = mondayDate.AddDays(6);
-
-            var weekStatus = new WeekStatusDto
-            {
-                WeekStartDate = DateHelper.ToDateString(mondayDate),
-                WeekEndDate = DateHelper.ToDateString(weekEndDate),
-                DayStatuses = new List<DayStatusDto>()
-            };
-
-            for (var date = mondayDate; date <= weekEndDate; date = date.AddDays(1))
-            {
-                var dayStatus = await CalculateDayStatusAsync(date);
-                weekStatus.DayStatuses.Add(dayStatus);
-            }
-
-            // Calculate week-level metrics
-            var weeklyHabits = await _context.Set<Habit>()
-                .Where(h => h.Category == HabitCategory.Weekly)
-                .ToListAsync();
-
-            weekStatus.WeeklyHabitProgress = new List<WeeklyHabitProgressDto>();
-
-            foreach (var habit in weeklyHabits)
-            {
-                var completions = await _context.Set<HabitCompletion>()
-                    .Where(hc => hc.HabitId == habit.Id && hc.Date >= mondayDate && hc.Date <= weekEndDate)
-                    .CountAsync();
-
-                var progress = new WeeklyHabitProgressDto
-                {
-                    HabitId = habit.Id,
-                    HabitName = habit.Name,
-                    RequiredCount = habit.RequiredCount,
-                    CompletedCount = completions,
-                    IsOnTrack = completions >= habit.RequiredCount,
-                    DaysRemaining = Math.Max(0, (weekEndDate.DayNumber - DateHelper.GetToday().DayNumber))
-                };
-
-                // Calculate if still achievable
-                var remainingDays = Math.Max(0, weekEndDate.DayNumber - DateHelper.GetToday().DayNumber + 1);
-                var remainingNeeded = Math.Max(0, habit.RequiredCount - completions);
-                progress.IsStillAchievable = remainingNeeded <= remainingDays;
-
-                weekStatus.WeeklyHabitProgress.Add(progress);
-            }
-
-            return weekStatus;
-        }
-
-        public async Task<List<string>> GetSmartRemindersAsync(DateOnly date)
-        {
-            var reminders = new List<string>();
-            var today = DateHelper.GetToday();
-
-            // Only generate reminders for today or future dates
-            if (date < today)
-                return reminders;
-
-            var habits = await _context.Set<Habit>().Where(h => h.IsRequired).ToListAsync();
-
-            foreach (var habit in habits)
-            {
-                var reminderText = await GenerateHabitReminderAsync(habit, date);
-                if (!string.IsNullOrEmpty(reminderText))
-                {
-                    reminders.Add(reminderText);
+                    warnings.Add($"URGENT: {habit.Name} needed to stay on track.");
                 }
             }
-
-            return reminders;
-        }
-
-        public async Task<GracePeriodStatusDto> GetGracePeriodStatusAsync()
-        {
-            var today = DateHelper.GetToday();
-            var weekStart = today.AddDays(-(int)today.DayOfWeek + 1); // Monday
-
-            // Get grace usage for current week
-            var graceUsedThisWeek = await _context.Set<GraceUsage>()
-                .Where(gu => gu.Date >= weekStart && gu.Date <= today)
-                .CountAsync();
-
-            return new GracePeriodStatusDto
+            else if (habitStatus.IsOptional)
             {
-                WeekStartDate = DateHelper.ToDateString(weekStart),
-                GraceAllowance = 1, // One grace per week
-                GraceUsed = graceUsedThisWeek,
-                GraceRemaining = Math.Max(0, 1 - graceUsedThisWeek),
-                CanUseGrace = graceUsedThisWeek < 1
-            };
-        }
+                optionalHabits.Add(habitStatus);
 
-        // Private helper methods
-
-        private async Task<HabitStatusDto> CalculateHabitStatusAsync(Habit habit, DateOnly date)
-        {
-            var isCompleted = await IsHabitCompletedForDateAsync(habit.Id, date);
-            var isRequired = await IsHabitRequiredForDateAsync(habit, date);
-            var urgency = await CalculateHabitUrgencyAsync(habit, date);
-
-            return new HabitStatusDto
-            {
-                HabitId = habit.Id,
-                HabitName = habit.Name,
-                Description = habit.Description,
-                Category = habit.Category.ToString(),
-                IsCompleted = isCompleted,
-                IsRequired = isRequired,
-                UrgencyLevel = urgency,
-                CompletionWindow = await CalculateCompletionWindowAsync(habit, date)
-            };
-        }
-
-        private async Task<bool> IsHabitCompletedForDateAsync(int habitId, DateOnly date)
-        {
-            return await _context.Set<HabitCompletion>()
-                .AnyAsync(hc => hc.HabitId == habitId && hc.Date == date);
-        }
-
-        private async Task<bool> IsHabitRequiredForDateAsync(Habit habit, DateOnly date)
-        {
-            switch (habit.Category)
-            {
-                case HabitCategory.Daily:
-                    return true; // Daily habits are always required
-
-                case HabitCategory.Rolling:
-                    // Check if we need to complete within the rolling window
-                    var windowStart = date.AddDays(-habit.WindowDays + 1);
-                    var completionsInWindow = await _context.Set<HabitCompletion>()
-                        .Where(hc => hc.HabitId == habit.Id && hc.Date >= windowStart && hc.Date <= date)
-                        .CountAsync();
-                    return completionsInWindow < habit.RequiredCount;
-
-                case HabitCategory.Weekly:
-                    // Required if we haven't met weekly target and still have time
-                    var weekStart = date.AddDays(-(int)date.DayOfWeek + 1);
-                    var weekEnd = weekStart.AddDays(6);
-                    var weeklyCompletions = await _context.Set<HabitCompletion>()
-                        .Where(hc => hc.HabitId == habit.Id && hc.Date >= weekStart && hc.Date <= date)
-                        .CountAsync();
-                    return weeklyCompletions < habit.RequiredCount;
-
-                case HabitCategory.Seasonal:
-                    // Check if we're in the seasonal period
-                    if (!string.IsNullOrEmpty(habit.SeasonalMonths))
-                    {
-                        var months = habit.SeasonalMonths.Split(',')
-                            .Select(m => int.TryParse(m, out var month) ? month : 0)
-                            .Where(m => m > 0)
-                            .ToList();
-
-                        return months.Contains(date.Month);
-                    }
-                    break;
-            }
-
-            return habit.IsRequired;
-        }
-
-        private async Task<UrgencyLevel> CalculateHabitUrgencyAsync(Habit habit, DateOnly date)
-        {
-            if (await IsHabitCompletedForDateAsync(habit.Id, date))
-                return UrgencyLevel.Complete;
-
-            switch (habit.Category)
-            {
-                case HabitCategory.Daily:
-                    return UrgencyLevel.Normal;
-
-                case HabitCategory.Weekly:
-                    var weekStart = date.AddDays(-(int)date.DayOfWeek + 1);
-                    var weekEnd = weekStart.AddDays(6);
-                    var daysLeftInWeek = (weekEnd.DayNumber - date.DayNumber);
-
-                    var weeklyCompletions = await _context.Set<HabitCompletion>()
-                        .Where(hc => hc.HabitId == habit.Id && hc.Date >= weekStart && hc.Date < date)
-                        .CountAsync();
-
-                    var remainingNeeded = habit.RequiredCount - weeklyCompletions;
-
-                    if (remainingNeeded > daysLeftInWeek + 1)
-                        return UrgencyLevel.Critical;
-                    if (remainingNeeded > daysLeftInWeek / 2)
-                        return UrgencyLevel.Urgent;
-                    return UrgencyLevel.Normal;
-
-                case HabitCategory.Rolling:
-                    var windowStart = date.AddDays(-habit.WindowDays + 1);
-                    var completionsInWindow = await _context.Set<HabitCompletion>()
-                        .Where(hc => hc.HabitId == habit.Id && hc.Date >= windowStart && hc.Date < date)
-                        .CountAsync();
-
-                    if (completionsInWindow == 0 && habit.WindowDays - 1 <= 1)
-                        return UrgencyLevel.Critical;
-
-                    return UrgencyLevel.Normal;
-            }
-
-            return UrgencyLevel.Normal;
-        }
-
-        private async Task<string> CalculateCompletionWindowAsync(Habit habit, DateOnly date)
-        {
-            switch (habit.Category)
-            {
-                case HabitCategory.Daily:
-                    return "Today";
-
-                case HabitCategory.Weekly:
-                    var weekStart = date.AddDays(-(int)date.DayOfWeek + 1);
-                    var weekEnd = weekStart.AddDays(6);
-                    return $"This week ({DateHelper.ToDateString(weekStart)} - {DateHelper.ToDateString(weekEnd)})";
-
-                case HabitCategory.Rolling:
-                    var windowStart = date.AddDays(-habit.WindowDays + 1);
-                    return $"Rolling {habit.WindowDays} days ({DateHelper.ToDateString(windowStart)} - {DateHelper.ToDateString(date)})";
-
-                case HabitCategory.Monthly:
-                    var monthStart = new DateOnly(date.Year, date.Month, 1);
-                    var monthEnd = monthStart.AddMonths(1).AddDays(-1);
-                    return $"This month ({DateHelper.ToDateString(monthStart)} - {DateHelper.ToDateString(monthEnd)})";
-
-                default:
-                    return "Unknown";
+                // Add recommendations for optional but beneficial habits
+                recommendations.Add($"Optional: {habit.Name} - {habitStatus.Reason}");
             }
         }
 
-        private async Task<string> GenerateHabitReminderAsync(Habit habit, DateOnly date)
+        // Calculate if day can be marked complete
+        var canUseGrace = await CanUseGraceDay(date);
+        var requiredCount = requiredHabits.Count;
+        var completedRequired = requiredHabits.Count(h => h.IsCompleted);
+
+        bool isCompleted = completedRequired == requiredCount;
+        bool isPartiallyCompleted = completedRequired > 0 && completedRequired < requiredCount;
+        bool canUseGraceToComplete = !isCompleted && canUseGrace && (requiredCount - completedRequired) <= 1;
+
+        return new DayStatusResponse
         {
-            if (await IsHabitCompletedForDateAsync(habit.Id, date))
-                return string.Empty;
-
-            var urgency = await CalculateHabitUrgencyAsync(habit, date);
-
-            switch (urgency)
-            {
-                case UrgencyLevel.Critical:
-                    return $"🚨 CRITICAL: {habit.Name} - You must complete this today to maintain your streak!";
-
-                case UrgencyLevel.Urgent:
-                    return $"⚠️ URGENT: {habit.Name} - Complete soon to stay on track!";
-
-                case UrgencyLevel.Normal:
-                    return $"📋 {habit.Name} - Don't forget to complete this today";
-
-                default:
-                    return string.Empty;
-            }
-        }
-
-        private async Task<bool> CanUseGraceAsync(DateOnly date)
-        {
-            var gracePeriod = await GetGracePeriodStatusAsync();
-            return gracePeriod.CanUseGrace;
-        }
+            Date = date,
+            IsCompleted = isCompleted,
+            IsPartiallyCompleted = isPartiallyCompleted,
+            CanUseGrace = canUseGraceToComplete,
+            RequiredHabits = requiredHabits,
+            OptionalHabits = optionalHabits,
+            Warnings = warnings,
+            Recommendations = recommendations
+        };
     }
+
+    private async Task<HabitStatus> CalculateHabitStatus(Habit habit, DateTime date, List<HabitCompletion> allCompletions, List<HabitCompletion> dayCompletions)
+    {
+        var isCompleted = dayCompletions.Any(c => c.HabitId == habit.Id && c.IsCompleted);
+
+        var status = new HabitStatus
+        {
+            HabitId = habit.Id,
+            HabitName = habit.Name,
+            Description = habit.Description,
+            IsCompleted = isCompleted,
+            CompletedAt = dayCompletions.FirstOrDefault(c => c.HabitId == habit.Id)?.CompletedAt
+        };
+
+        switch (habit.Frequency)
+        {
+            case HabitFrequency.Daily:
+                status.IsRequired = true;
+                status.UrgencyLevel = UrgencyLevel.Critical;
+                status.Reason = "Required daily";
+                break;
+
+            case HabitFrequency.EveryTwoDays:
+                status = await CalculateRollingHabitStatus(habit, date, allCompletions, status);
+                break;
+
+            case HabitFrequency.Weekly:
+                status = await CalculateWeeklyHabitStatus(habit, date, allCompletions, status);
+                break;
+
+            case HabitFrequency.Monthly:
+                status = await CalculateMonthlyHabitStatus(habit, date, allCompletions, status);
+                break;
+
+            case HabitFrequency.Seasonal:
+                status = await CalculateSeasonalHabitStatus(habit, date, allCompletions, status);
+                break;
+        }
+
+        return status;
+    }
+
+    private async Task<HabitStatus> CalculateRollingHabitStatus(Habit habit, DateTime date, List<HabitCompletion> allCompletions, HabitStatus status)
+    {
+        // For dishes: every 2 days max gap
+        var habitCompletions = allCompletions
+            .Where(c => c.HabitId == habit.Id && c.IsCompleted)
+            .OrderByDescending(c => c.Date)
+            .ToList();
+
+        var lastCompletion = habitCompletions.FirstOrDefault()?.Date;
+
+        if (lastCompletion == null)
+        {
+            // Never completed - required immediately
+            status.IsRequired = true;
+            status.UrgencyLevel = UrgencyLevel.Critical;
+            status.Reason = "Never completed";
+        }
+        else
+        {
+            var daysSinceLastCompletion = (date - lastCompletion.Value).Days;
+
+            if (daysSinceLastCompletion >= 2)
+            {
+                // Required - too many days passed
+                status.IsRequired = true;
+                status.UrgencyLevel = UrgencyLevel.Critical;
+                status.Reason = $"Last completed {daysSinceLastCompletion} days ago";
+            }
+            else if (daysSinceLastCompletion == 1)
+            {
+                // Optional but getting urgent
+                status.IsOptional = true;
+                status.UrgencyLevel = UrgencyLevel.Normal;
+                status.Reason = "Can wait 1 more day";
+            }
+            else
+            {
+                // Recently completed - not needed
+                status.IsRequired = false;
+                status.IsOptional = false;
+                status.Reason = "Recently completed";
+            }
+        }
+
+        return status;
+    }
+
+    private async Task<HabitStatus> CalculateWeeklyHabitStatus(Habit habit, DateTime date, List<HabitCompletion> allCompletions, HabitStatus status)
+    {
+        var weekStart = GetWeekStart(date);
+        var weekEnd = weekStart.AddDays(6);
+
+        var thisWeekCompletions = allCompletions
+            .Where(c => c.HabitId == habit.Id && c.IsCompleted && c.Date >= weekStart && c.Date <= weekEnd)
+            .Count();
+
+        var daysRemainingInWeek = (weekEnd - date).Days + 1;
+        var completionsNeeded = habit.WeeklyTarget - thisWeekCompletions;
+
+        if (completionsNeeded <= 0)
+        {
+            // Target already met
+            status.IsRequired = false;
+            status.IsOptional = false;
+            status.Reason = $"Weekly target met ({thisWeekCompletions}/{habit.WeeklyTarget})";
+        }
+        else if (completionsNeeded > daysRemainingInWeek)
+        {
+            // Impossible to meet target
+            status.IsRequired = false;
+            status.IsOptional = true;
+            status.UrgencyLevel = UrgencyLevel.Low;
+            status.Reason = $"Weekly target impossible ({thisWeekCompletions}/{habit.WeeklyTarget})";
+        }
+        else if (completionsNeeded == daysRemainingInWeek)
+        {
+            // Must do every remaining day
+            status.IsRequired = true;
+            status.UrgencyLevel = UrgencyLevel.Critical;
+            status.Reason = $"Need {completionsNeeded} more in {daysRemainingInWeek} days";
+        }
+        else if (completionsNeeded == daysRemainingInWeek - 1)
+        {
+            // Getting urgent
+            status.IsRequired = true;
+            status.UrgencyLevel = UrgencyLevel.Urgent;
+            status.Reason = $"Need {completionsNeeded} more in {daysRemainingInWeek} days";
+        }
+        else
+        {
+            // Optional for now
+            status.IsOptional = true;
+            status.UrgencyLevel = UrgencyLevel.Normal;
+            status.Reason = $"Need {completionsNeeded} more in {daysRemainingInWeek} days";
+        }
+
+        return status;
+    }
+
+    private async Task<HabitStatus> CalculateMonthlyHabitStatus(Habit habit, DateTime date, List<HabitCompletion> allCompletions, HabitStatus status)
+    {
+        var monthStart = new DateTime(date.Year, date.Month, 1);
+        var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+        var thisMonthCompletions = allCompletions
+            .Where(c => c.HabitId == habit.Id && c.IsCompleted && c.Date >= monthStart && c.Date <= monthEnd)
+            .Count();
+
+        var daysRemainingInMonth = (monthEnd - date).Days + 1;
+
+        if (thisMonthCompletions >= habit.MonthlyTarget)
+        {
+            // Target already met
+            status.IsRequired = false;
+            status.IsOptional = false;
+            status.Reason = $"Monthly target met ({thisMonthCompletions}/{habit.MonthlyTarget})";
+        }
+        else if (daysRemainingInMonth <= 7)
+        {
+            // Getting urgent - last week of month
+            status.IsRequired = true;
+            status.UrgencyLevel = UrgencyLevel.Urgent;
+            status.Reason = $"Month ending soon - {daysRemainingInMonth} days left";
+        }
+        else if (daysRemainingInMonth <= 3)
+        {
+            // Critical - very few days left
+            status.IsRequired = true;
+            status.UrgencyLevel = UrgencyLevel.Critical;
+            status.Reason = $"Only {daysRemainingInMonth} days left in month!";
+        }
+        else
+        {
+            // Optional for now
+            status.IsOptional = true;
+            status.UrgencyLevel = UrgencyLevel.Normal;
+            status.Reason = $"Can wait - {daysRemainingInMonth} days remaining";
+        }
+
+        return status;
+    }
+
+    private async Task<HabitStatus> CalculateSeasonalHabitStatus(Habit habit, DateTime date, List<HabitCompletion> allCompletions, HabitStatus status)
+    {
+        // Windows cleaning: March-October, 3 times per year
+        var currentYear = date.Year;
+        var seasonStart = new DateTime(currentYear, 3, 1); // March 1
+        var seasonEnd = new DateTime(currentYear, 10, 31); // October 31
+
+        // Check if we're in season
+        if (date < seasonStart || date > seasonEnd)
+        {
+            status.IsRequired = false;
+            status.IsOptional = false;
+            status.Reason = "Out of season (March-October only)";
+            return status;
+        }
+
+        var thisSeasonCompletions = allCompletions
+            .Where(c => c.HabitId == habit.Id && c.IsCompleted &&
+                       c.Date >= seasonStart && c.Date <= seasonEnd)
+            .Count();
+
+        var daysRemainingInSeason = (seasonEnd - date).Days + 1;
+        var completionsNeeded = habit.SeasonalTarget - thisSeasonCompletions;
+
+        if (completionsNeeded <= 0)
+        {
+            status.IsRequired = false;
+            status.IsOptional = false;
+            status.Reason = $"Seasonal target met ({thisSeasonCompletions}/{habit.SeasonalTarget})";
+        }
+        else if (daysRemainingInSeason <= 30)
+        {
+            // Getting urgent - last month of season
+            status.IsRequired = true;
+            status.UrgencyLevel = UrgencyLevel.Urgent;
+            status.Reason = $"Season ending soon - need {completionsNeeded} more";
+        }
+        else if (daysRemainingInSeason <= 14)
+        {
+            // Critical - very few days left
+            status.IsRequired = true;
+            status.UrgencyLevel = UrgencyLevel.Critical;
+            status.Reason = $"Only {daysRemainingInSeason} days left in season!";
+        }
+        else
+        {
+            // Optional for now
+            status.IsOptional = true;
+            status.UrgencyLevel = UrgencyLevel.Low;
+            status.Reason = $"Seasonal - {daysRemainingInSeason} days remaining";
+        }
+
+        return status;
+    }
+
+    private async Task<bool> CanUseGraceDay(DateTime date)
+    {
+        var weekStart = GetWeekStart(date);
+        var weekEnd = weekStart.AddDays(6);
+
+        var graceUsedThisWeek = await _context.GraceUsages
+            .CountAsync(g => g.UsedDate >= weekStart && g.UsedDate <= weekEnd);
+
+        return graceUsedThisWeek < 1; // Max 1 grace per week
+    }
+
+    private DateTime GetWeekStart(DateTime date)
+    {
+        // Get Monday of the current week
+        var dayOfWeek = (int)date.DayOfWeek;
+        var mondayOffset = (dayOfWeek == 0) ? -6 : -(dayOfWeek - 1);
+        return date.AddDays(mondayOffset);
+    }
+}
+
+public class DayStatusResponse
+{
+    public DateTime Date { get; set; }
+    public bool IsCompleted { get; set; }
+    public bool IsPartiallyCompleted { get; set; }
+    public bool CanUseGrace { get; set; }
+    public List<HabitStatus> RequiredHabits { get; set; } = new();
+    public List<HabitStatus> OptionalHabits { get; set; } = new();
+    public List<string> Warnings { get; set; } = new();
+    public List<string> Recommendations { get; set; } = new();
+}
+
+public class HabitStatus
+{
+    public int HabitId { get; set; }
+    public string HabitName { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public bool IsCompleted { get; set; }
+    public bool IsRequired { get; set; }
+    public bool IsOptional { get; set; }
+    public UrgencyLevel UrgencyLevel { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public DateTime? CompletedAt { get; set; }
+}
+
+public enum UrgencyLevel
+{
+    Low,
+    Normal,
+    Urgent,
+    Critical
 }

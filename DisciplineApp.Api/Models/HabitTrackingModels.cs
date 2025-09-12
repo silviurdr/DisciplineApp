@@ -5,22 +5,15 @@ namespace DisciplineApp.Api.Models
     // Core Habit Definition
     public class Habit
     {
-        [Key]
         public int Id { get; set; }
-
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public HabitCategory Category { get; set; }
-        public FrequencyType FrequencyType { get; set; }
-
-        public int RequiredCount { get; set; } // How many times required in window
-        public int WindowDays { get; set; } // Size of the time window
-
-        public bool IsRequired { get; set; } = true;
-        public string? SeasonalMonths { get; set; } // "3,4,5,6,7,8,9,10" for March-October
-
+        public HabitFrequency Frequency { get; set; }
+        public int WeeklyTarget { get; set; } // For weekly habits (gym=4, vacuum=2, bathroom=1)
+        public int MonthlyTarget { get; set; } // For monthly habits (kitchen=1)
+        public int SeasonalTarget { get; set; } // For seasonal habits (windows=3)
+        public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime? UpdatedAt { get; set; }
 
         // Navigation properties
         public virtual ICollection<HabitCompletion> Completions { get; set; } = new List<HabitCompletion>();
@@ -29,39 +22,34 @@ namespace DisciplineApp.Api.Models
     // Individual habit completions
     public class HabitCompletion
     {
-        [Key]
         public int Id { get; set; }
-
         public int HabitId { get; set; }
-        public DateOnly Date { get; set; } // When the habit was completed
+        public DateTime Date { get; set; }
+        public bool IsCompleted { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public string Notes { get; set; } = string.Empty;
 
-        public DateTime CompletedAt { get; set; } // Timestamp of completion
-        public string? Notes { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        // Navigation property
+        // Navigation properties
         public virtual Habit Habit { get; set; } = null!;
     }
 
     // Grace period usage tracking
     public class GraceUsage
     {
-        [Key]
         public int Id { get; set; }
-
-        public DateOnly Date { get; set; }
+        public DateTime UsedDate { get; set; }
         public string Reason { get; set; } = string.Empty;
-        public DateTime UsedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 
     // Enums for habit categorization
-    public enum HabitCategory
+    public enum HabitFrequency
     {
-        Daily,      // Must be done every day
-        Rolling,    // Must be done within rolling window (e.g., every 2 days)
-        Weekly,     // Must be done X times per week
-        Monthly,    // Must be done X times per month
-        Seasonal    // Only required during certain months
+        Daily,              // Phone lock box - every day
+        EveryTwoDays,       // Dishes - every 2 days max
+        Weekly,             // Gym, Vacuum, Bathroom - X times per week
+        Monthly,            // Kitchen deep clean - once per month
+        Seasonal            // Windows - 3 times during March-October
     }
 
     public enum FrequencyType

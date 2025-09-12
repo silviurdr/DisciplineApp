@@ -4,34 +4,32 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
-builder.Services.AddDbContext<DisciplineDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// Register services
-builder.Services.AddScoped<IDisciplineService, DisciplineService>();
-builder.Services.AddScoped<IHabitCalculationService, HabitCalculationService>();
-builder.Services.AddScoped<IDataMigrationService, DataMigrationService>();
-
+// Add services to the container.
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Add Entity Framework
+builder.Services.AddDbContext<DisciplineDbContext>(options =>
+    options.UseSqlite("Data Source=discipline.db"));
+
+// Add services
+builder.Services.AddScoped<HabitCalculationService>();
 
 // Add CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAngular", policy =>
     {
-        policy.WithOrigins("http://localhost:4200") // Angular dev server
+        policy.WithOrigins("http://localhost:4200")
               .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowAnyMethod();
     });
 });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
+// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -39,28 +37,24 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseCors("AllowAngular");
-
 app.UseAuthorization();
-
 app.MapControllers();
 
-// Ensure database is created
+// Initialize database and seed habits
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<DisciplineDbContext>();
+
     try
     {
         context.Database.EnsureCreated();
-        Console.WriteLine("Database initialized successfully.");
+        await SeedHabitsIfEmpty(context);
     }
-    catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.Message.Contains("UNIQUE constraint failed"))
+    catch (Exception ex)
     {
-        // Database already exists with data, continue
-        Console.WriteLine("Database already initialized with data.");
+        Console.WriteLine($"Database initialization error: {ex.Message}");
     }
 }
 
 app.Run();
-
