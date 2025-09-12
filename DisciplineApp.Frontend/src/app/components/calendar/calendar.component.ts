@@ -123,9 +123,9 @@ interface WeeklyProgress {
             </div>
 
             <!-- Warnings -->
-            <div class="warnings" *ngIf="day.warnings.length > 0">
+<!--             <div class="warnings" *ngIf="day.warnings.length > 0">
               <span class="warning-icon">⚠</span>
-            </div>
+            </div> -->
           </div>
         </div>
       </div>
@@ -172,13 +172,13 @@ interface WeeklyProgress {
               <label [for]="'modal-habit-' + habit.habitId">
                 <span class="habit-name">{{habit.habitName}}</span>
                 <span class="habit-description">{{habit.description}}</span>
-                <span class="urgency-badge" [class]="habit.urgencyLevel.toLowerCase()">{{habit.urgencyLevel}}</span>
+<!--                 <span class="urgency-badge" [class]="habit.urgencyLevel.toLowerCase()">{{habit.urgencyLevel}}</span> -->
               </label>
             </div>
           </div>
 
           <!-- Optional Habits -->
-          <div class="habit-section" *ngIf="selectedDay.optionalHabits.length > 0">
+<!--           <div class="habit-section" *ngIf="selectedDay.optionalHabits.length > 0">
             <h4>Optional Habits</h4>
             <div *ngFor="let habit of selectedDay.optionalHabits" class="habit-item optional">
               <input type="checkbox" 
@@ -190,7 +190,7 @@ interface WeeklyProgress {
                 <span class="habit-description">{{habit.description}}</span>
               </label>
             </div>
-          </div>
+          </div> -->
 
           <!-- Grace Option -->
           <div class="grace-section" *ngIf="selectedDay.canUseGrace && !selectedDay.isCompleted">
@@ -200,7 +200,7 @@ interface WeeklyProgress {
           </div>
 
           <!-- Warnings & Recommendations -->
-          <div class="alerts" *ngIf="selectedDay.warnings.length > 0 || selectedDay.recommendations.length > 0">
+<!--           <div class="alerts" *ngIf="selectedDay.warnings.length > 0 || selectedDay.recommendations.length > 0">
             <div class="warnings" *ngIf="selectedDay.warnings.length > 0">
               <h5>Warnings</h5>
               <ul>
@@ -213,7 +213,7 @@ interface WeeklyProgress {
                 <li *ngFor="let rec of selectedDay.recommendations">{{rec}}</li>
               </ul>
             </div>
-          </div>
+          </div> -->
         </div>
       </div>
     </div>
@@ -849,12 +849,18 @@ private mapApiDataToWeekDays(weekData: any): any[] {
     canUseGrace: apiDay.canUseGrace,
     requiredHabitsCount: apiDay.requiredHabitsCount,
     completedRequiredCount: apiDay.completedRequiredCount,
+    requiredHabits: apiDay.requiredHabits.map((habit: any) => ({
     // Add these missing properties:
-    warnings: apiDay.warnings || [],  // Add default empty array
+    habitId: habit.habitId,
+    habitName: habit.name,
+    isCompleted: habit.isCompleted,
+    urgencyLevel: habit.urgencyLevel || 'Normal',
+    description: habit.description || '',
+    isRequired: habit.isRequired || true,
     recommendations: apiDay.recommendations || [],
     // Add any other properties your template expects
-  }));
-}
+  })),
+  }))};
 
 // Map numeric habit IDs back to string IDs for frontend
 private mapNumericIdToString(numericId: number): string {
@@ -1000,6 +1006,12 @@ private formatDateForAPI(date: Date): string {
     };
   }
 
+  getHabitKey(habitName: string): string {
+  // Convert habit name to the key format your toggleHabit expects
+  return habitName.toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/\//g, '-');
+}
 
 getHabitDescription(habitId: string): string {
   const descriptions: { [key: string]: string } = {
@@ -1057,13 +1069,21 @@ getHabitDescription(habitId: string): string {
 toggleHabit(habitId: string, date: string): void {
   console.log(`Toggling habit ${habitId} for ${date}`);
   
-  const day = this.currentWeekDays.find(d => d.date === date);
-  if (!day) {
-    console.error(`Day not found for date: ${date}`);
+  // Use todayData directly since it contains the habits
+  if (!this.todayData || !this.todayData.requiredHabits) {
+    console.error('No today data or required habits found');
     return;
   }
 
-  const habit = day.requiredHabits.find(h => h.habitId === habitId);
+  // Find the habit in requiredHabits
+  const habit = this.todayData.requiredHabits.find((h: any) => {
+    // Convert the habit name to match your habitId format
+/*     const habitName = h.name.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-');
+    return habitName === habitId; */
+    const habitName = h.habitId || this.getHabitIdFromName(h.name);
+    return habitName === habitId;
+  });
+
   if (!habit) {
     console.error(`Habit not found with ID: ${habitId}`);
     return;
@@ -1071,43 +1091,36 @@ toggleHabit(habitId: string, date: string): void {
 
   const newCompletionState = !habit.isCompleted;
   
-  // Optimistically update UI for better UX
-  habit.isCompleted = newCompletionState;
-  day.isCompleted = day.requiredHabits.every(h => h.isCompleted);
-  
   const habitIdMap: { [key: string]: number } = {
-    'phone-lock': 1,
+    'phone-lock-box': 1,
     'clean-dishes': 2, 
     'gym-workout': 3,
-    'vacuum-sweep': 4,
+    'vacuum-sweep-floors': 4,
     'clean-bathroom': 5,
     'kitchen-deep-clean': 6,
     'clean-windows': 7
   };
 
-  const numericHabitId = habitIdMap[habitId];
+  const numericHabitId = parseInt(habitId);
   if (!numericHabitId) {
     console.error(`No numeric habit ID mapping found for: ${habitId}`);
     return;
   }
 
-  // Always call the same API endpoint - it handles both complete and uncomplete
-  this.habitService.completeHabit({
+  // Use disciplineService with the correct method signature
+  this.disciplineService.completeHabit({
     habitId: numericHabitId,
     date: date,
-    notes: `Toggled via weekly calendar`
+    isCompleted: newCompletionState,
+    notes: 'Toggled via weekly calendar'
   }).subscribe({
     next: (response) => {
-      console.log(`Successfully toggled habit ${habitId} for ${date}`);
-      // The optimistic update should already match the server state
-      this.updateWeeklyProgress();
+      console.log(`Successfully toggled habit ${habitId} for ${date}`, response);
+      // Reload the data to get the updated state
+      this.loadCurrentWeekData();
     },
     error: (error) => {
       console.error(`Error toggling habit ${habitId} for ${date}:`, error);
-      // Revert optimistic update on error
-      habit.isCompleted = !newCompletionState;
-      day.isCompleted = day.requiredHabits.every(h => h.isCompleted);
-      alert('Failed to toggle habit. Please try again.');
     }
   });
 }

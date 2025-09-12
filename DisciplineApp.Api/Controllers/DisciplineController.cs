@@ -49,7 +49,22 @@ public class DisciplineController : ControllerBase
                     isPartiallyCompleted = dayStatus.IsPartiallyCompleted,
                     canUseGrace = dayStatus.CanUseGrace,
                     requiredHabitsCount = dayStatus.RequiredHabits.Count,
-                    completedRequiredCount = dayStatus.RequiredHabits.Count(h => h.IsCompleted)
+                    completedRequiredCount = dayStatus.RequiredHabits.Count(h => h.IsCompleted),
+                    requiredHabits = dayStatus.RequiredHabits.Select(h => new
+                    {
+                        habitId = h.HabitId,
+                        name = h.HabitName,
+                        isCompleted = h.IsCompleted,
+                        urgencyLevel = h.UrgencyLevel.ToString()
+                    }),
+                    optionalHabit = dayStatus.OptionalHabits.Select(oh => new
+                    {
+                        habitId = oh.HabitId,
+                        name = oh.HabitName,
+                        isCompleted = oh.IsCompleted,
+                        UrgencyLevel = oh.UrgencyLevel.ToString()
+                    }),
+                    warnings = dayStatus.Warnings
                 });
             }
 
