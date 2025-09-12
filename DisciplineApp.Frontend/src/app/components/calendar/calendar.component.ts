@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HabitService } from '../../services/habit.service';
+import { DisciplineService } from '../../services/discipline.services';
 
 
 // Models for the habit-based system
@@ -685,7 +686,7 @@ export class CalendarComponent implements OnInit {
   loading = false;
   error: string | null = null;
 
-  constructor(private habitService: HabitService) {}
+  constructor(private habitService: HabitService, private disciplineService: DisciplineService) {}
 
   ngOnInit(): void {
     this.loadCurrentWeekData();
@@ -693,31 +694,101 @@ export class CalendarComponent implements OnInit {
 
 private loadCurrentWeekData(): void {
   const today = new Date();
-  const currentWeekStart = this.getWeekStart(today);
-  
+
   this.loading = true;
   this.error = null;
 
-  // Use your habit tracking API to get real week data
-  this.habitService.getWeekStatus(this.formatDateForAPI(currentWeekStart))
-    .subscribe({
-      next: (weekData) => {
-        console.log('API Week Data:', weekData);
-        
-        // Map API data to your existing DayStatus format
-        this.currentWeekDays = this.mapApiDataToDayStatus(weekData);
-        this.weeklyProgress = this.mapWeekDataToProgress(weekData);
-        this.todayData = this.getCurrentDayData();
-        this.loading = false;
-      },
-      error: (error) => {
-        console.error('Error loading week data:', error);
-        // Only fallback to hardcoded data if API completely fails
-        this.loadHardcodedData();
-      }
-    });
+  this.disciplineService.getWeekData(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    today.getDate()
+  ).subscribe({
+    next: (weekData) => {
+      console.log('API Week Data:', weekData);
+      
+      // Map the API response correctly
+      this.currentWeekDays = this.mapApiDataToWeekDays(weekData);
+      this.weeklyProgress = this.mapWeekDataToProgress(weekData);
+      this.todayData = this.getCurrentDayData(weekData); // Pass weekData parameter
+      this.loading = false;
+    },
+    error: (error) => {
+      console.error('Error loading week data:', error);
+/*       this.loadHardcodedData(); // Make sure this method exists */
+    }
+  });
 }
 
+private mapApiDataToDayStatus(weekData: any): any[] {
+  return weekData.dayStatuses.map((dayStatus: any) => ({
+    date: dayStatus.date,
+    isCompleted: dayStatus.isCompleted,
+    isPartiallyCompleted: dayStatus.isPartiallyCompleted,
+    canUseGrace: dayStatus.canUseGrace,
+    requiredHabitsCount: dayStatus.requiredHabitsCount,
+    completedRequiredCount: dayStatus.completedRequiredCount
+  }));
+}
+
+private mapWeekDataToProgress(weekData: any): any {
+  return weekData.weeklyHabitProgress.reduce((acc: any, habit: any) => {
+    acc[habit.name.replace(/\s+/g, '')] = {
+      completed: habit.completions,
+      target: habit.target,
+      percentage: habit.percentage
+    };
+    return acc;
+  }, {});
+}
+
+private getCurrentDayData(weekData: any): any {
+  if (!weekData || !weekData.currentDay) {
+    return {
+      requiredHabits: [],
+      optionalHabits: [],
+      warnings: [],
+      recommendations: []
+    };
+  }
+
+  // Transform the habit objects to the format your template expects
+  const requiredTasks = weekData.currentDay.requiredHabits.map((habit: any) => ({
+    name: habit.name,
+    description: habit.description,
+    isCompleted: habit.isCompleted,
+    habitId: habit.habitId,
+    urgencyLevel: habit.urgencyLevel,
+    reason: habit.reason
+  }));
+
+  const optionalTasks = weekData.currentDay.optionalHabits.map((habit: any) => ({
+    name: habit.name,
+    description: habit.description,
+    isCompleted: habit.isCompleted,
+    habitId: habit.habitId,
+    urgencyLevel: habit.urgencyLevel,
+    reason: habit.reason
+  }));
+
+  return {
+    date: weekData.currentDay.date,
+    requiredHabits: requiredTasks,
+    optionalHabits: optionalTasks,
+    warnings: weekData.currentDay.warnings || [],
+    recommendations: weekData.currentDay.recommendations || [],
+    canUseGrace: weekData.currentDay.canUseGrace,
+    isCompleted: weekData.currentDay.isCompleted,
+    isPartiallyCompleted: weekData.currentDay.isPartiallyCompleted
+  };
+}
+
+private getWeekStart(date: Date): Date {
+  const dayOfWeek = date.getDay();
+  const mondayOffset = (dayOfWeek === 0) ? -6 : -(dayOfWeek - 1);
+  const weekStart = new Date(date);
+  weekStart.setDate(date.getDate() + mondayOffset);
+  return weekStart;
+}
 
 
 private mapWeekDataToDays(weekData: any): DayStatus[] {
@@ -743,26 +814,6 @@ private mapWeekDataToDays(weekData: any): DayStatus[] {
   }));
 }
 
-private mapWeekDataToProgress(weekData: any): WeeklyProgress {
-  if (!weekData || !weekData.weeklyHabitProgress) {
-    return this.generateWeeklyProgressData(); // Fallback to hardcoded data
-  }
-
-  return {
-    weekStart: weekData.weekStartDate,
-    weekEnd: weekData.weekEndDate,
-    graceRemaining: 1, // Default for now
-    graceUsed: 0,      // Default for now
-    overallProgress: this.calculateOverallProgress(weekData.weeklyHabitProgress),
-    habitProgress: weekData.weeklyHabitProgress.map((habit: any) => ({
-      habitName: habit.habitName,
-      completedCount: habit.completedCount,
-      requiredCount: habit.requiredCount,
-      isOnTrack: habit.isOnTrack
-    }))
-  };
-}
-
 private calculateOverallProgress(habitProgress: any[]): number {
   if (!habitProgress.length) return 0;
   
@@ -773,33 +824,35 @@ private calculateOverallProgress(habitProgress: any[]): number {
 }
 
 // Fallback method for when API fails
-private loadHardcodedData(): void {
-  this.currentWeekDays = this.generateCurrentWeekData();
-  this.weeklyProgress = this.generateWeeklyProgressData();
-  
-  // ✅ FIX: Set todayData to show Today's Tasks section
-  this.todayData = this.getCurrentDayData();
-  
+/* private loadHardcodedData(): void {
+  // Initialize with proper data structures that match what your template expects
+  this.currentWeekDays = [];
+  this.weeklyProgress = {}; // Empty object instead of null
+  this.todayData = {
+    requiredHabits: [],
+    optionalHabits: [],
+    warnings: [],
+    recommendations: [],
+    canUseGrace: false,
+    isCompleted: false,
+    isPartiallyCompleted: false
+  }; // Proper object structure instead of null
   this.loading = false;
-}
+} */
 
 
-private mapApiDataToWeekDays(weekData: any): DayStatus[] {
+private mapApiDataToWeekDays(weekData: any): any[] {
   return weekData.dayStatuses.map((apiDay: any) => ({
     date: apiDay.date,
-    isCompleted: apiDay.status === 'Complete',
-    isPartiallyCompleted: apiDay.status === 'Partial',
-    isGraceUsed: apiDay.status === 'GraceUsed',
-    requiredHabits: apiDay.habitStatuses.map((habit: any) => ({
-      habitId: this.mapNumericIdToString(habit.habitId),
-      name: habit.habitName,
-      isCompleted: habit.isCompleted,
-      isRequired: habit.isRequired,
-      urgency: habit.urgencyLevel || 'normal'
-    })),
-    completedHabits: apiDay.habitStatuses.filter((h: any) => h.isCompleted).length,
-    totalHabits: apiDay.habitStatuses.length,
-    warnings: apiDay.reminders || []
+    isCompleted: apiDay.isCompleted,
+    isPartiallyCompleted: apiDay.isPartiallyCompleted,
+    canUseGrace: apiDay.canUseGrace,
+    requiredHabitsCount: apiDay.requiredHabitsCount,
+    completedRequiredCount: apiDay.completedRequiredCount,
+    // Add these missing properties:
+    warnings: apiDay.warnings || [],  // Add default empty array
+    recommendations: apiDay.recommendations || [],
+    // Add any other properties your template expects
   }));
 }
 
@@ -823,12 +876,6 @@ private formatDateForAPI(date: Date): string {
 }
 
 // Helper method to get Monday of current week
-private getWeekStart(date: Date): Date {
-  const day = date.getDay();
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Monday
-  return new Date(date.setDate(diff));
-}
-
   loadCurrentWeek(): void {
     this.loading = true;
     this.error = null;
@@ -836,7 +883,7 @@ private getWeekStart(date: Date): Date {
     // Generate current week (September 11-17, 2025)
     this.currentWeekDays = this.generateCurrentWeekData();
     this.weeklyProgress = this.generateWeeklyProgressData();
-    this.todayData = this.getCurrentDayData();
+    this.todayData = this.getCurrentDayData(this.currentWeekDays.find(day => this.isToday(day.date)) || this.currentWeekDays[0]);
     
     this.loading = false;
   }
@@ -953,15 +1000,6 @@ private getWeekStart(date: Date): Date {
     };
   }
 
-private getCurrentDayData(): DayStatus | null {
-  const today = new Date().toISOString().split('T')[0];
-  const todayData = this.currentWeekDays.find(day => day.date === today);
-  
-  console.log('Current day data:', todayData);
-  console.log('Required habits:', todayData?.requiredHabits);
-  
-  return todayData || null;
-}
 
 getHabitDescription(habitId: string): string {
   const descriptions: { [key: string]: string } = {
@@ -1075,6 +1113,28 @@ toggleHabit(habitId: string, date: string): void {
 }
 
 
+toggleTask(task: any, date: string, event: Event): void {
+  const isCompleted = (event.target as HTMLInputElement).checked;
+  
+  this.disciplineService.completeHabit({
+    habitId: task.habitId,
+    date: date,
+    isCompleted: isCompleted,
+    notes: ''
+  }).subscribe({
+    next: (response) => {
+      console.log('Task toggled:', response);
+      this.loadCurrentWeekData(); // Reload to get updated status
+    },
+    error: (error) => {
+      console.error('Error toggling task:', error);
+      // Revert checkbox on error
+      (event.target as HTMLInputElement).checked = !isCompleted;
+    }
+  });
+}
+
+
   useGraceDay(date: string): void {
     // TODO: Call API to use grace day
     console.log(`Use grace day for ${date}`);
@@ -1115,4 +1175,17 @@ toggleHabit(habitId: string, date: string): void {
     };
     return mapping[habitName] || '';
   }
+
+  private getHabitIdByName(name: string): number {
+  const habitMap: { [key: string]: number } = {
+    'Phone Lock Box': 1,
+    'Clean Dishes': 2,
+    'Gym Workout': 3,
+    'Vacuum/Sweep Floors': 4,
+    'Clean Bathroom': 5,
+    'Kitchen Deep Clean': 6,
+    'Clean Windows': 7
+  };
+  return habitMap[name] || 1;
+}
 }

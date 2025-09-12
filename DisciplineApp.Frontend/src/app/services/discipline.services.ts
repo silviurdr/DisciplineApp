@@ -17,7 +17,7 @@ import {
   providedIn: 'root'
 })
 export class DisciplineService {
-  private readonly apiUrl = 'https://localhost:7001/api/discipline';
+  private readonly apiUrl = 'https://localhost:7025/api/discipline';
 
   constructor(private http: HttpClient) {}
 
@@ -132,6 +132,18 @@ export class DisciplineService {
     return this.http.get(`${this.apiUrl}/health`)
       .pipe(catchError(this.handleError));
   }
+
+      getWeekData(year: number, month: number, day: number): Observable<any> {
+    return this.http.get(`${this.apiUrl}/week/${year}/${month}/${day}`);
+  }
+
+  completeHabit(request: { habitId: number; date: string; isCompleted: boolean; notes?: string }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/complete-habit`, request);
+  }
+
+  useGraceDay(request: { date: string; reason?: string }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/use-grace`, request);
+    }
 
   // Private helper methods
 
