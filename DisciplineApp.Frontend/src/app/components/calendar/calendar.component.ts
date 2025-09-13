@@ -155,11 +155,11 @@ export class CalendarComponent implements OnInit {
     if (!this.todayData) return;
 
     const newCompletionState = !habit.isCompleted;
+      // Only play task completed sound when COMPLETING a task (not unchecking)
+  if (newCompletionState) {
+    console.log('Playing task completed sound for:', habit.name);
     this.soundService.playTaskCompleted();
-    if(this.todayData.isCompleted && newCompletionState) {
-      this.soundService.playDayCompleted();
-    }
-    
+  }
     // Optimistic UI update
     habit.isCompleted = newCompletionState;
 
@@ -174,6 +174,13 @@ export class CalendarComponent implements OnInit {
         // Update the current day data with the response
         if (response.allHabits) {
           this.todayData = response;
+                  // Check if ALL tasks are now completed (day completed sound)
+        const allTasksCompleted = response.allHabits.every(h => h.isCompleted);
+        
+        if (allTasksCompleted && newCompletionState) {
+          console.log('All tasks completed! Playing day completed sound');
+          this.soundService.playDayCompleted();
+        }
         }
         // Refresh the entire week data to update progress
         this.loadCurrentWeekData();
