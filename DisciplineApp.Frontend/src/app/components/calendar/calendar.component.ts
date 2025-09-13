@@ -162,6 +162,7 @@ export class CalendarComponent implements OnInit {
   }
     // Optimistic UI update
     habit.isCompleted = newCompletionState;
+    let timeoutForCompleteDay = 0;
 
     this.disciplineService.completeHabit({
       habitId: habit.habitId,
@@ -179,11 +180,16 @@ export class CalendarComponent implements OnInit {
         
         if (allTasksCompleted && newCompletionState) {
           console.log('All tasks completed! Playing day completed sound');
-          this.soundService.playDayCompleted();
-        }
+                  timeoutForCompleteDay = 100; // Set delay for refreshing data
+                setTimeout(() => {
+              this.soundService.playDayCompleted();
+            }, 100); // Delay of 1000 milliseconds (1 second)
+          }
         }
         // Refresh the entire week data to update progress
-        this.loadCurrentWeekData();
+          setTimeout(() => {
+             this.loadCurrentWeekData();;
+            }, timeoutForCompleteDay); // Delay of 1000 milliseconds (1 second)
       },
       error: (error) => {
         console.error('Error toggling habit:', error);
