@@ -159,7 +159,14 @@ public class DisciplineController : ControllerBase
                 isLocked = isLocked,
                 reason = scheduledHabit.Reason,
                 priority = scheduledHabit.Priority.ToString(),
-                completedAt = completion?.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss")
+                completedAt = completion?.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss"),
+                hasDeadline = scheduledHabit.HasDeadline,
+                deadlineTime = scheduledHabit.DeadlineTime.ToString("HH:mm"), // Format as "18:00"
+
+                // Optional: You might also want to add these for frontend convenience
+                isOverdue = scheduledHabit.HasDeadline && date.Date == DateTime.Today &&
+               TimeOnly.FromDateTime(DateTime.Now) > (scheduledHabit?.DeadlineTime ?? TimeOnly.MaxValue) &&
+               !(completion?.IsCompleted ?? false)
             });
         }
 

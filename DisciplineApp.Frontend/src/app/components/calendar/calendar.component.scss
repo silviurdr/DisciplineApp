@@ -1,27 +1,30 @@
 .calendar-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-  color: #e3f2fd;
   padding: 20px;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  max-width: 1400px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  min-height: 100vh;
+  color: #e3f2fd;
 }
 
 .header {
   text-align: center;
-  margin-bottom: 30px;
-
+  margin-bottom: 40px; // ✅ Increased from smaller value
+  padding-top: 20px;   // ✅ Add padding to push away from top navigation
+  
   .title {
-    font-size: 2.5rem;
-    font-weight: 700;
     color: #64b5f6;
-    margin: 0;
+    margin: 0 0 15px 0; // ✅ Add bottom margin
+    font-size: 2.5rem;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
 
   .week-title {
-    font-size: 1.2rem;
     color: #90caf9;
-    margin: 10px 0 0 0;
-    font-weight: 400;
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin: 10px 0; // ✅ Add vertical margin
   }
 }
 
@@ -1005,6 +1008,18 @@ h3 {
       color: #F44336;
       border-color: #F44336;
       background-color: rgba(244, 67, 54, 0.1);
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    margin-bottom: 30px;
+    padding-top: 30px; // ✅ More padding on mobile where nav might be closer
+    
+    .title {
+      font-size: 2rem;
+      margin-bottom: 10px;
     }
   }
 }

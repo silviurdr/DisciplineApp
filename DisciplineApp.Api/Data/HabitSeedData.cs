@@ -22,7 +22,7 @@ public static class HabitSeedData
                 Description = "Lock iPhone in the lockbox for the evening",
                 Frequency = HabitFrequency.Daily,
                 HasDeadline = true,
-                DeadlineTime = new TimeOnly(19, 45), // 6:00 PM
+                DeadlineTime = new TimeOnly(20, 30), // 6:00 PM
                 IsLocked = false,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
@@ -37,6 +37,7 @@ public static class HabitSeedData
                 SeasonalTarget = 0,
                 IsActive = true,
                 IsLocked = false,
+                HasDeadline = false
             },
             new Habit
             {
@@ -48,6 +49,7 @@ public static class HabitSeedData
                 SeasonalTarget = 0,
                 IsActive = true,
                 IsLocked = false,
+                HasDeadline = false
             },
             new Habit
             {
@@ -59,6 +61,7 @@ public static class HabitSeedData
                 SeasonalTarget = 0,
                 IsActive = true,
                 IsLocked = false,
+                HasDeadline = false
             },
             new Habit
             {
@@ -70,6 +73,7 @@ public static class HabitSeedData
                 SeasonalTarget = 0,
                 IsActive = true,
                 IsLocked = false,
+                HasDeadline = false
             },
             new Habit
             {
@@ -81,6 +85,7 @@ public static class HabitSeedData
                 SeasonalTarget = 0,
                 IsActive = true,
                 IsLocked = false,
+                HasDeadline = false
             },
             new Habit
             {
@@ -91,7 +96,8 @@ public static class HabitSeedData
                 MonthlyTarget = 0,
                 SeasonalTarget = 3,
                 IsActive = true,
-                IsLocked = false
+                IsLocked = false,
+                HasDeadline = false
             }
         };
 

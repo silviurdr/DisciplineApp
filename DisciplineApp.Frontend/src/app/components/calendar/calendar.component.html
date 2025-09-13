@@ -83,13 +83,13 @@
 
     <!-- All Scheduled Habits -->
     <div class="scheduled-habits" *ngIf="todayData.allHabits && todayData.allHabits.length > 0">
-      <div class="habit-item" 
-           *ngFor="let habit of todayData.allHabits"
-           [class]="getPriorityClass(habit) + ' ' + getCompletionClass(habit)"
-           [class.locked]="habit.isLocked"
-           [class.urgent]="habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) === 'urgent'"
-           [class.critical]="habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) === 'critical'"
-           [class.overdue]="habit.isOverdue">
+<div class="habit-item" 
+     *ngFor="let habit of todayData.allHabits"
+     [class]="getPriorityClass(habit) + ' ' + getCompletionClass(habit)"
+     [class.locked]="habit.isLocked"
+     [class.urgent]="!habit.isCompleted && habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) === 'urgent'"
+     [class.critical]="!habit.isCompleted && habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) === 'critical'"
+     [class.overdue]="habit.isOverdue">
 
         <div class="habit-checkbox">
           <input type="checkbox" 
@@ -118,16 +118,15 @@
                 ⏰ {{ habit.deadlineTime }}
               </span>
               
-              <!-- Time remaining badge -->
-              <span class="time-remaining-badge urgent" 
-                    *ngIf="habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) === 'urgent'">
-                ⚠️ {{ habit.timeRemaining }}
-              </span>
-              
-              <span class="time-remaining-badge critical" 
-                    *ngIf="habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) === 'critical'">
-                🚨 {{ habit.timeRemaining }}
-              </span>
+            <span class="time-remaining-badge urgent" 
+                *ngIf="habit.timeRemaining && !habit.isCompleted && getUrgencyLevel(habit.timeRemaining) === 'urgent'">
+            ⚠️ {{ habit.timeRemaining }}
+            </span>
+
+            <span class="time-remaining-badge critical" 
+                *ngIf="habit.timeRemaining && !habit.isCompleted && getUrgencyLevel(habit.timeRemaining) === 'critical'">
+            🚨 {{ habit.timeRemaining }}
+            </span>
               
               <!-- Overdue badge -->
               <span class="overdue-badge" *ngIf="habit.isOverdue">
@@ -158,13 +157,13 @@
           </div>
           
           <!-- Urgency warning for tasks approaching deadline -->
-          <div class="urgency-warning" *ngIf="habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) !== 'normal'">
+            <div class="urgency-warning" *ngIf="habit.timeRemaining && !habit.isCompleted && getUrgencyLevel(habit.timeRemaining) !== 'normal'">
             <span class="warning-text" 
-                  [class.urgent]="getUrgencyLevel(habit.timeRemaining) === 'urgent'"
-                  [class.critical]="getUrgencyLevel(habit.timeRemaining) === 'critical'">
-              {{ getDeadlineWarningMessage(habit) }}
+                    [class.urgent]="getUrgencyLevel(habit.timeRemaining) === 'urgent'"
+                    [class.critical]="getUrgencyLevel(habit.timeRemaining) === 'critical'">
+                {{ getDeadlineWarningMessage(habit) }}
             </span>
-          </div>
+            </div>
         </div>
       </div>
     </div>

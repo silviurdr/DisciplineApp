@@ -361,16 +361,20 @@ export class CalendarComponent implements OnInit {
   /**
    * Update time remaining for all habits (call this periodically)
    */
-  refreshTimeRemaining(): void {
-    if (this.todayData?.allHabits) {
-      this.todayData.allHabits.forEach(habit => {
-        if (habit.hasDeadline && !habit.isCompleted) {
-          habit.timeRemaining = this.calculateTimeRemaining(habit.deadlineTime);
-          habit.isOverdue = this.isOverdue(habit.deadlineTime);
-        }
-      });
-    }
+refreshTimeRemaining(): void {
+  if (this.todayData?.allHabits) {
+    this.todayData.allHabits.forEach(habit => {
+      if (habit.hasDeadline && !habit.isCompleted) {
+        habit.timeRemaining = this.calculateTimeRemaining(habit.deadlineTime);
+        habit.isOverdue = this.disciplineService.isOverdue(habit.deadlineTime, habit.isCompleted);
+      } else {
+        // ✅ Clear deadline-related properties for habits without deadlines
+        habit.timeRemaining = undefined;
+        habit.isOverdue = false;
+      }
+    });
   }
+}
 
   private calculateTimeRemaining(deadlineTime?: string): string | undefined {
     if (!deadlineTime) return undefined;
@@ -390,15 +394,5 @@ export class CalendarComponent implements OnInit {
     } else {
       return `${minutes}m`;
     }
-  }
-
-  private isOverdue(deadlineTime?: string): boolean {
-    if (!deadlineTime) return false;
-    
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const deadlineDateTime = new Date(`${today}T${deadlineTime}`);
-    
-    return now > deadlineDateTime;
   }
 }

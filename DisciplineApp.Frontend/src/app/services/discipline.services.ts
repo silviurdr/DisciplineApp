@@ -167,23 +167,25 @@ export class DisciplineService {
   /**
    * Normalize habits array from API response
    */
-  private normalizeHabits(habits: any[]): ScheduledHabit[] {
-    return habits.map(habit => ({
-      habitId: habit.habitId || 0,
-      name: habit.name || '',
-      description: habit.description || '',
-      isCompleted: Boolean(habit.isCompleted),
-      isRequired: Boolean(habit.isRequired),
-      isLocked: habit.isLocked || false,
-      reason: habit.reason || '',
-      priority: habit.priority || 'Normal',
-      completedAt: habit.completedAt || undefined,
-      hasDeadline: Boolean(habit.hasDeadline),
-      deadlineTime: habit.deadlineTime || undefined,
-      timeRemaining: this.calculateTimeRemaining(habit.deadlineTime),
-      isOverdue: this.isOverdue(habit.deadlineTime, habit.isCompleted)
-    }));
-  }
+private normalizeHabits(habits: any[]): ScheduledHabit[] {
+  return habits.map(habit => ({
+    habitId: habit.habitId || 0,
+    name: habit.name || '',
+    description: habit.description || '',
+    isCompleted: Boolean(habit.isCompleted),
+    isRequired: Boolean(habit.isRequired),
+    isLocked: habit.isLocked || false,
+    reason: habit.reason || '',
+    priority: habit.priority || 'Normal',
+    completedAt: habit.completedAt || undefined,
+    hasDeadline: Boolean(habit.hasDeadline),
+    deadlineTime: habit.deadlineTime || undefined,
+    
+    // ✅ FIX: Only calculate timeRemaining and isOverdue for habits with deadlines
+    timeRemaining: habit.hasDeadline ? this.calculateTimeRemaining(habit.deadlineTime) : undefined,
+    isOverdue: habit.hasDeadline ? this.isOverdue(habit.deadlineTime, habit.isCompleted) : false
+  }));
+}
 
   /**
    * Calculate time remaining until deadline
@@ -212,16 +214,18 @@ export class DisciplineService {
   /**
    * Check if a habit is overdue
    */
-  private isOverdue(deadlineTime?: string, isCompleted?: boolean): boolean {
-    if (!deadlineTime || isCompleted) return false;
-    
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const deadlineDateTime = new Date(`${today}T${deadlineTime}`);
-    
-    return now > deadlineDateTime;
+public isOverdue(deadlineTime?: string, isCompleted?: boolean): boolean {
+  // ✅ If no deadline time or already completed, cannot be overdue
+  if (!deadlineTime || isCompleted) {
+    return false;
   }
-
+  
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const deadlineDateTime = new Date(`${today}T${deadlineTime}`);
+  
+  return now > deadlineDateTime;
+}
   /**
    * Normalize weekly progress from API response
    */
