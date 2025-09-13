@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DisciplineService } from '../../services/discipline.services';
+import { SoundService } from '../../services/sound.service';
 
 interface ScheduledHabit {
   habitId: number;
@@ -55,7 +56,7 @@ export class CalendarComponent implements OnInit {
   error: string | null = null;
   selectedDay: any = null;
 
-  constructor(private disciplineService: DisciplineService) {}
+  constructor(private disciplineService: DisciplineService, private soundService: SoundService) {}
 
   ngOnInit(): void {
     this.loadCurrentWeekData();
@@ -154,6 +155,10 @@ export class CalendarComponent implements OnInit {
     if (!this.todayData) return;
 
     const newCompletionState = !habit.isCompleted;
+    this.soundService.playTaskCompleted();
+    if(this.todayData.isCompleted && newCompletionState) {
+      this.soundService.playDayCompleted();
+    }
     
     // Optimistic UI update
     habit.isCompleted = newCompletionState;
@@ -180,6 +185,7 @@ export class CalendarComponent implements OnInit {
       }
     });
   }
+
 
   // Helper methods for template
   getRequiredHabits(): ScheduledHabit[] {
