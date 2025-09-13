@@ -14,7 +14,8 @@ builder.Services.AddDbContext<DisciplineDbContext>(options =>
     options.UseSqlite("Data Source=discipline.db"));
 
 // Add services
-builder.Services.AddScoped<HabitCalculationService>();
+builder.Services.AddScoped<WeeklyScheduleService>();
+builder.Services.AddScoped<DataMigrationService>();
 
 // Add CORS
 builder.Services.AddCors(options =>

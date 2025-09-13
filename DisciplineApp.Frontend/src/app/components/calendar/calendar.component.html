@@ -1,0 +1,186 @@
+<div class="calendar-container">
+  <!-- Header -->
+  <div class="header">
+    <h1 class="title">Discipline Calendar</h1>
+    <div class="week-title" *ngIf="weekData">
+      Current Week: {{ weekData.weekStartDate | date:'MMMM d' }} - {{ weekData.weekEndDate | date:'d, y' }}
+    </div>
+  </div>
+
+  <!-- Weekly Progress Overview -->
+  <div class="weekly-overview" *ngIf="weeklyProgress">
+    <div class="progress-card">
+      <h3>Week Progress: {{ weeklyProgress.overallProgress }}%</h3>
+      <div class="grace-info">
+        <span class="grace-remaining">Grace Days: {{ weeklyProgress.graceRemaining }}/1</span>
+        <span class="grace-used" *ngIf="weeklyProgress.graceUsed > 0">Used: {{ weeklyProgress.graceUsed }}</span>
+      </div>
+    </div>
+    
+    <!-- Habit Progress Summary -->
+    <div class="habit-summary">
+      <div *ngFor="let habit of weeklyProgress.habitProgress"
+           class="habit-progress"
+           [class.on-track]="habit.isOnTrack"
+           [class.behind]="!habit.isOnTrack">
+        <span class="habit-name">{{ habit.habitName }}</span>
+        <span class="habit-count">{{ habit.completedCount }}/{{ habit.requiredCount }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weekly Calendar Grid -->
+  <div class="weekly-calendar" *ngIf="currentWeekDays && currentWeekDays.length > 0">
+    <div class="calendar-week">
+      <div *ngFor="let day of currentWeekDays" 
+           class="calendar-day"
+           [class.completed]="day.isCompleted"
+           [class.partial]="day.isPartiallyCompleted && !day.isCompleted"
+           [class.today]="isToday(day.date)"
+           [class.future]="isFuture(day.date)"
+           (click)="openDayDetail(day)">
+        
+        <div class="day-header">
+          <div class="day-name">{{ getDayName(day.date) }}</div>
+          <div class="day-number">{{ getDayNumber(day.date) }}</div>
+        </div>
+        
+        <div class="day-content">
+          <!-- Completion Status -->
+          <div class="completion-status">
+            <div class="status-icon" *ngIf="day.isCompleted">✓</div>
+            <div class="status-icon partial" *ngIf="day.isPartiallyCompleted && !day.isCompleted">◐</div>
+            <div class="status-icon incomplete" *ngIf="!day.isCompleted && !day.isPartiallyCompleted">○</div>
+          </div>
+          
+          <!-- Progress Indicator -->
+          <div class="progress-indicator" *ngIf="day.requiredHabitsCount > 0">
+            <div class="progress-bar">
+              <div class="progress-fill" 
+                   [style.width.%]="(day.completedRequiredCount / day.requiredHabitsCount) * 100">
+              </div>
+            </div>
+            <div class="progress-text">
+              {{ day.completedRequiredCount }}/{{ day.requiredHabitsCount }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Today's Smart Schedule -->
+  <div class="smart-schedule" *ngIf="todayData">
+    <h2>Today's Smart Schedule</h2>
+    
+    <!-- Warnings -->
+    <div class="warnings-section" *ngIf="todayData.warnings && todayData.warnings.length > 0">
+      <div class="warning-item" *ngFor="let warning of todayData.warnings">
+        <span class="warning-icon">⚠️</span>
+        {{ warning }}
+      </div>
+    </div>
+
+    <!-- All Scheduled Habits -->
+    <div class="scheduled-habits" *ngIf="todayData.allHabits && todayData.allHabits.length > 0">
+      <div class="habit-item" 
+           *ngFor="let habit of todayData.allHabits"
+           [class]="getPriorityClass(habit) + ' ' + getCompletionClass(habit)">
+        
+        <div class="habit-checkbox">
+          <input type="checkbox" 
+                 [id]="'habit-' + habit.habitId"
+                 [checked]="habit.isCompleted"
+                 (change)="toggleHabit(habit)">
+          <label [for]="'habit-' + habit.habitId"></label>
+        </div>
+        
+        <div class="habit-content">
+          <div class="habit-header">
+            <div class="habit-name">{{ habit.name }}</div>
+            <div class="habit-badges">
+              <span class="priority-badge" [class.required]="habit.isRequired" [class.optional]="!habit.isRequired">
+                {{ habit.isRequired ? 'Required' : 'Optional' }}
+              </span>
+              <span class="completed-badge" *ngIf="habit.isCompleted">✓ Done</span>
+            </div>
+          </div>
+          <div class="habit-description">{{ habit.description }}</div>
+          <div class="habit-reason" *ngIf="habit.reason">
+            <em>{{ habit.reason }}</em>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- No Habits Scheduled -->
+    <div class="no-habits" *ngIf="!todayData.allHabits || todayData.allHabits.length === 0">
+      <p>No habits scheduled for today</p>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="recommendations-section" *ngIf="todayData.recommendations && todayData.recommendations.length > 0">
+      <h3>Recommendations</h3>
+      <div class="recommendation-item" *ngFor="let recommendation of todayData.recommendations">
+        <span class="recommendation-icon">💡</span>
+        {{ recommendation }}
+      </div>
+    </div>
+
+    <!-- Grace Day Option -->
+    <div class="grace-section" *ngIf="todayData.canUseGrace && !todayData.isCompleted">
+      <button class="grace-button" (click)="useGraceDay()">
+        Use Grace Day (1 per week)
+      </button>
+      <p class="grace-explanation">
+        Use your weekly grace day to maintain your streak even if you can't complete all required tasks.
+      </p>
+    </div>
+
+    <!-- Day Status Summary -->
+    <div class="day-status-summary">
+      <div class="status-header">
+        <h3>Day Status</h3>
+        <div class="completion-percentage">
+          {{ getCompletedHabitsCount() }}/{{ getTotalHabitsCount() }} habits completed
+        </div>
+      </div>
+      <div class="status-message" [class]="todayData.isCompleted ? 'completed' : 'incomplete'">
+        {{ getDayCompletionStatus() }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="loading">
+    <div class="loading-spinner"></div>
+    <p>Loading your smart schedule...</p>
+  </div>
+
+  <!-- Error State -->
+  <div class="error-state" *ngIf="error">
+    <p>{{ error }}</p>
+    <button (click)="loadCurrentWeekData()">Retry</button>
+  </div>
+
+  <!-- Day Detail Modal -->
+  <div class="modal-overlay" *ngIf="selectedDay" (click)="closeModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{ formatDate(selectedDay.date) }}</h3>
+        <button class="close-button" (click)="closeModal()">×</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="day-details">
+          <p><strong>Status:</strong> 
+            <span [class]="selectedDay.isCompleted ? 'completed' : 'incomplete'">
+              {{ selectedDay.isCompleted ? 'Complete' : 'Incomplete' }}
+            </span>
+          </p>
+          <p><strong>Progress:</strong> {{ selectedDay.completedRequiredCount }}/{{ selectedDay.requiredHabitsCount }} required tasks</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

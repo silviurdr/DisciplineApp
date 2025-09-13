@@ -1,17 +1,65 @@
-// src/app/services/discipline.service.ts - Fixed timezone handling
-
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-import { 
-  YearCalendar, 
-  CalendarDay, 
-  StreakInfo, 
-  ToggleDayRequest, 
-  UpdateDayRequest,
-  DateUtils 
-} from '../models/discipline.models';
+
+export interface ScheduledHabit {
+  habitId: number;
+  name: string;
+  description: string;
+  isCompleted: boolean;
+  isRequired: boolean;
+  reason: string;
+  priority: string;
+  completedAt?: string;
+}
+
+export interface DayData {
+  date: string;
+  allHabits: ScheduledHabit[];
+  warnings: string[];
+  recommendations: string[];
+  canUseGrace: boolean;
+  isCompleted: boolean;
+  isPartiallyCompleted: boolean;
+}
+
+export interface WeeklyProgress {
+  habitId: number;
+  name: string;
+  completions: number;
+  target: number;
+  percentage: number;
+}
+
+export interface DayStatus {
+  date: string;
+  isCompleted: boolean;
+  isPartiallyCompleted: boolean;
+  canUseGrace: boolean;
+  requiredHabitsCount: number;
+  completedRequiredCount: number;
+}
+
+export interface WeekDataResponse {
+  weekStartDate: string;
+  weekEndDate: string;
+  currentDay: DayData;
+  weeklyHabitProgress: WeeklyProgress[];
+  dayStatuses: DayStatus[];
+}
+
+export interface CompleteHabitRequest {
+  habitId: number;
+  date: string;
+  isCompleted: boolean;
+  notes?: string;
+}
+
+export interface UseGraceRequest {
+  date: string;
+  reason?: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -19,200 +67,203 @@ import {
 export class DisciplineService {
   private readonly apiUrl = 'https://localhost:7025/api/discipline';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   /**
-   * Get calendar data for a specific year
+   * Get smart schedule data for a specific week
    */
-  getCalendar(year: number): Observable<YearCalendar> {
-    return this.http.get<YearCalendar>(`${this.apiUrl}/calendar/${year}`)
+  getWeekData(year: number, month: number, day: number): Observable<WeekDataResponse> {
+    return this.http.get<WeekDataResponse>(`${this.apiUrl}/week/${year}/${month}/${day}`)
       .pipe(
-        map(calendar => this.normalizeCalendarDates(calendar)),
+        map(response => this.normalizeWeekData(response)),
         catchError(this.handleError)
       );
   }
 
   /**
-   * Toggle completion status for a specific day
-   * Uses proper date string format to avoid timezone issues
+   * Complete or uncomplete a habit for a specific date
    */
-  toggleDay(request: ToggleDayRequest): Observable<CalendarDay> {
-    // Ensure date is in correct format
-    const normalizedRequest = {
-      date: this.normalizeDateString(request.date)
-    };
-
-    return this.http.post<CalendarDay>(`${this.apiUrl}/toggle`, normalizedRequest)
+  completeHabit(request: CompleteHabitRequest): Observable<DayData> {
+    return this.http.post<DayData>(`${this.apiUrl}/complete-habit`, request)
       .pipe(
-        map(day => this.normalizeCalendarDay(day)),
+        map(response => this.normalizeDayData(response)),
         catchError(this.handleError)
       );
   }
 
   /**
-   * Update a specific day's completion status and notes
+   * Use a grace day to maintain streak
    */
-  updateDay(request: UpdateDayRequest): Observable<CalendarDay> {
-    // Ensure date is in correct format
-    const normalizedRequest = {
-      ...request,
-      date: this.normalizeDateString(request.date)
-    };
-
-    return this.http.put<CalendarDay>(`${this.apiUrl}/day`, normalizedRequest)
+  useGraceDay(request: UseGraceRequest): Observable<DayData> {
+    return this.http.post<DayData>(`${this.apiUrl}/use-grace`, request)
       .pipe(
-        map(day => this.normalizeCalendarDay(day)),
+        map(response => this.normalizeDayData(response)),
         catchError(this.handleError)
       );
   }
 
   /**
-   * Get current streak information
+   * Get current week data (convenience method)
    */
-  getStreakInfo(): Observable<StreakInfo> {
-    return this.http.get<StreakInfo>(`${this.apiUrl}/streak`)
-      .pipe(catchError(this.handleError));
+  getCurrentWeekData(): Observable<WeekDataResponse> {
+    const today = new Date();
+    return this.getWeekData(
+      today.getFullYear(),
+      today.getMonth() + 1,
+      today.getDate()
+    );
   }
 
   /**
-   * Get details for a specific day
+   * Get today's smart schedule data
    */
-  getDay(dateString: string): Observable<CalendarDay> {
-    const normalizedDate = this.normalizeDateString(dateString);
-    
-    return this.http.get<CalendarDay>(`${this.apiUrl}/day/${normalizedDate}`)
-      .pipe(
-        map(day => this.normalizeCalendarDay(day)),
-        catchError(this.handleError)
-      );
+  getTodayData(): Observable<DayData> {
+    return this.getCurrentWeekData().pipe(
+      map(weekData => weekData.currentDay)
+    );
   }
 
   /**
-   * Get today's completion status
+   * Check API health
    */
-  getToday(): Observable<CalendarDay> {
-    return this.http.get<CalendarDay>(`${this.apiUrl}/today`)
-      .pipe(
-        map(day => this.normalizeCalendarDay(day)),
-        catchError(this.handleError)
-      );
-  }
-
-  /**
-   * Mark today as completed (quick action)
-   */
-  completeToday(): Observable<CalendarDay> {
-    return this.http.post<CalendarDay>(`${this.apiUrl}/complete-today`, {})
-      .pipe(
-        map(day => this.normalizeCalendarDay(day)),
-        catchError(this.handleError)
-      );
-  }
-
-  /**
-   * Toggle day by Date object (convenience method)
-   */
-  toggleDayByDate(date: Date): Observable<CalendarDay> {
-    const dateString = DateUtils.toDateString(date);
-    return this.toggleDay({ date: dateString });
-  }
-
-  /**
-   * Update day by Date object (convenience method)
-   */
-  updateDayByDate(date: Date, isCompleted: boolean, notes?: string): Observable<CalendarDay> {
-    const dateString = DateUtils.toDateString(date);
-    return this.updateDay({ date: dateString, isCompleted, notes });
-  }
-
-  /**
-   * Health check endpoint
-   */
-  healthCheck(): Observable<any> {
+  checkHealth(): Observable<any> {
     return this.http.get(`${this.apiUrl}/health`)
       .pipe(catchError(this.handleError));
   }
 
-      getWeekData(year: number, month: number, day: number): Observable<any> {
-    return this.http.get(`${this.apiUrl}/week/${year}/${month}/${day}`);
-  }
-
-  completeHabit(request: { habitId: number; date: string; isCompleted: boolean; notes?: string }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/complete-habit`, request);
-  }
-
-  useGraceDay(request: { date: string; reason?: string }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/use-grace`, request);
-    }
-
-  // Private helper methods
-
   /**
-   * Normalizes a date string to ensure it's in YYYY-MM-DD format
-   * This prevents timezone conversion issues
+   * Normalize week data from API response
    */
-  private normalizeDateString(dateInput: string | Date): string {
-    if (typeof dateInput === 'string') {
-      // If it's already a string, validate and return
-      if (DateUtils.isValidDateString(dateInput)) {
-        return dateInput;
-      }
-      
-      // Try to parse as Date and convert
-      const date = new Date(dateInput);
-      if (!isNaN(date.getTime())) {
-        return DateUtils.toDateString(date);
-      }
-      
-      throw new Error(`Invalid date format: ${dateInput}`);
-    }
-    
-    // If it's a Date object
-    return DateUtils.toDateString(dateInput);
-  }
-
-  /**
-   * Normalizes calendar day dates to ensure consistency
-   */
-  private normalizeCalendarDay(day: CalendarDay): CalendarDay {
+  private normalizeWeekData(data: any): WeekDataResponse {
     return {
-      ...day,
-      date: this.normalizeDateString(day.date)
+      weekStartDate: data.weekStartDate || '',
+      weekEndDate: data.weekEndDate || '',
+      currentDay: this.normalizeDayData(data.currentDay || {}),
+      weeklyHabitProgress: this.normalizeWeeklyProgress(data.weeklyHabitProgress || []),
+      dayStatuses: this.normalizeDayStatuses(data.dayStatuses || [])
     };
   }
 
   /**
-   * Normalizes all dates in a calendar response
+   * Normalize day data from API response
    */
-  private normalizeCalendarDates(calendar: YearCalendar): YearCalendar {
+  private normalizeDayData(data: any): DayData {
     return {
-      ...calendar,
-      months: calendar.months.map(month => ({
-        ...month,
-        days: month.days.map(day => this.normalizeCalendarDay(day))
-      }))
+      date: data.date || new Date().toISOString().split('T')[0],
+      allHabits: this.normalizeHabits(data.allHabits || []),
+      warnings: Array.isArray(data.warnings) ? data.warnings : [],
+      recommendations: Array.isArray(data.recommendations) ? data.recommendations : [],
+      canUseGrace: Boolean(data.canUseGrace),
+      isCompleted: Boolean(data.isCompleted),
+      isPartiallyCompleted: Boolean(data.isPartiallyCompleted)
     };
+  }
+
+  /**
+   * Normalize habits array from API response
+   */
+  private normalizeHabits(habits: any[]): ScheduledHabit[] {
+    return habits.map(habit => ({
+      habitId: habit.habitId || 0,
+      name: habit.name || '',
+      description: habit.description || '',
+      isCompleted: Boolean(habit.isCompleted),
+      isRequired: Boolean(habit.isRequired),
+      reason: habit.reason || '',
+      priority: habit.priority || 'Normal',
+      completedAt: habit.completedAt || undefined
+    }));
+  }
+
+  /**
+   * Normalize weekly progress from API response
+   */
+  private normalizeWeeklyProgress(progress: any[]): WeeklyProgress[] {
+    return progress.map(item => ({
+      habitId: item.habitId || 0,
+      name: item.name || '',
+      completions: Number(item.completions) || 0,
+      target: Number(item.target) || 0,
+      percentage: Number(item.percentage) || 0
+    }));
+  }
+
+  /**
+   * Normalize day statuses from API response
+   */
+  private normalizeDayStatuses(statuses: any[]): DayStatus[] {
+    return statuses.map(status => ({
+      date: status.date || '',
+      isCompleted: Boolean(status.isCompleted),
+      isPartiallyCompleted: Boolean(status.isPartiallyCompleted),
+      canUseGrace: Boolean(status.canUseGrace),
+      requiredHabitsCount: Number(status.requiredHabitsCount) || 0,
+      completedRequiredCount: Number(status.completedRequiredCount) || 0
+    }));
   }
 
   /**
    * Handle HTTP errors
    */
-  private handleError = (error: HttpErrorResponse) => {
-    let errorMessage = 'An unknown error occurred';
-    
+  private handleError(error: HttpErrorResponse): Observable<never> {
+    let errorMessage = 'An error occurred';
+
     if (error.error instanceof ErrorEvent) {
       // Client-side error
       errorMessage = `Client Error: ${error.error.message}`;
     } else {
       // Server-side error
-      errorMessage = `Server Error: ${error.status} - ${error.message}`;
+      errorMessage = `Server Error ${error.status}: ${error.message}`;
       
-      if (error.error && typeof error.error === 'string') {
-        errorMessage += ` - ${error.error}`;
+      if (error.status === 0) {
+        errorMessage = 'Unable to connect to the server. Please check if the API is running.';
+      } else if (error.status === 404) {
+        errorMessage = 'API endpoint not found. Please check the server configuration.';
+      } else if (error.status >= 500) {
+        errorMessage = 'Server error. Please try again later.';
       }
     }
-    
-    console.error('DisciplineService Error:', errorMessage, error);
-    return throwError(() => errorMessage);
-  };
+
+    console.error('DisciplineService Error:', error);
+    return throwError(() => new Error(errorMessage));
+  }
+
+  // Utility methods for date handling
+  static toDateString(date: Date): string {
+    return date.toISOString().split('T')[0];
+  }
+
+  static fromDateString(dateString: string): Date {
+    return new Date(dateString + 'T00:00:00');
+  }
+
+  static isToday(dateString: string): boolean {
+    const today = new Date().toISOString().split('T')[0];
+    return dateString === today;
+  }
+
+  static isFuture(dateString: string): boolean {
+    const today = new Date().toISOString().split('T')[0];
+    return dateString > today;
+  }
+
+  static formatDisplayDate(dateString: string): string {
+    const date = new Date(dateString + 'T00:00:00');
+    return date.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  }
+
+  static getDayName(dateString: string): string {
+    const date = new Date(dateString + 'T00:00:00');
+    return date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+  }
+
+  static getDayNumber(dateString: string): number {
+    const date = new Date(dateString + 'T00:00:00');
+    return date.getDate();
+  }
 }

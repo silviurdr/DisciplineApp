@@ -11,12 +11,12 @@ namespace DisciplineApp.Api.Controllers;
 public class DisciplineController : ControllerBase
 {
     private readonly DisciplineDbContext _context;
-    private readonly HabitCalculationService _habitCalculationService;
+    private readonly WeeklyScheduleService _scheduleService;
 
-    public DisciplineController(DisciplineDbContext context, HabitCalculationService habitCalculationService)
+    public DisciplineController(DisciplineDbContext context, WeeklyScheduleService scheduleService)
     {
         _context = context;
-        _habitCalculationService = habitCalculationService;
+        _scheduleService = scheduleService;
     }
 
     [HttpGet("health")]
@@ -33,87 +33,22 @@ public class DisciplineController : ControllerBase
             var currentDate = new DateTime(year, month, day);
             var weekStart = GetWeekStart(currentDate);
 
-            var dayStatuses = new List<object>();
-            var weeklyHabitProgress = new List<object>();
+            // Generate the smart schedule for this week
+            var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
 
-            // Get status for each day of the week
-            for (int i = 0; i < 7; i++)
-            {
-                var date = weekStart.AddDays(i);
-                var dayStatus = await _habitCalculationService.GetDayStatus(date);
+            // Get actual completion data
+            var completions = await _context.HabitCompletions
+                .Where(h => h.Date >= weekStart && h.Date <= weekStart.AddDays(6))
+                .ToListAsync();
 
-                dayStatuses.Add(new
-                {
-                    date = date.ToString("yyyy-MM-dd"),
-                    isCompleted = dayStatus.IsCompleted,
-                    isPartiallyCompleted = dayStatus.IsPartiallyCompleted,
-                    canUseGrace = dayStatus.CanUseGrace,
-                    requiredHabitsCount = dayStatus.RequiredHabits.Count,
-                    completedRequiredCount = dayStatus.RequiredHabits.Count(h => h.IsCompleted),
-                    requiredHabits = dayStatus.RequiredHabits.Select(h => new
-                    {
-                        habitId = h.HabitId,
-                        name = h.HabitName,
-                        isCompleted = h.IsCompleted,
-                        urgencyLevel = h.UrgencyLevel.ToString()
-                    }),
-                    optionalHabit = dayStatus.OptionalHabits.Select(oh => new
-                    {
-                        habitId = oh.HabitId,
-                        name = oh.HabitName,
-                        isCompleted = oh.IsCompleted,
-                        UrgencyLevel = oh.UrgencyLevel.ToString()
-                    }),
-                    warnings = dayStatus.Warnings
-                });
-            }
-
-            // Get weekly progress for all habits
-            var habits = await _context.Habits.ToListAsync();
-            foreach (var habit in habits)
-            {
-                var progress = await GetWeeklyHabitProgress(habit, weekStart);
-                weeklyHabitProgress.Add(progress);
-            }
-
-            // Get current day's detailed status
-            var currentDayStatus = await _habitCalculationService.GetDayStatus(currentDate);
-
+            // Build response
             var response = new
             {
                 weekStartDate = weekStart.ToString("yyyy-MM-dd"),
                 weekEndDate = weekStart.AddDays(6).ToString("yyyy-MM-dd"),
-                dayStatuses = dayStatuses,
-                weeklyHabitProgress = weeklyHabitProgress,
-                currentDay = new
-                {
-                    date = currentDate.ToString("yyyy-MM-dd"),
-                    canUseGrace = currentDayStatus.CanUseGrace,
-                    isCompleted = currentDayStatus.IsCompleted,
-                    isPartiallyCompleted = currentDayStatus.IsPartiallyCompleted,
-                    requiredHabits = currentDayStatus.RequiredHabits.Select(h => new
-                    {
-                        habitId = h.HabitId,
-                        name = h.HabitName,
-                        description = h.Description,
-                        isCompleted = h.IsCompleted,
-                        urgencyLevel = h.UrgencyLevel.ToString(),
-                        reason = h.Reason,
-                        completedAt = h.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss")
-                    }),
-                    optionalHabits = currentDayStatus.OptionalHabits.Select(h => new
-                    {
-                        habitId = h.HabitId,
-                        name = h.HabitName,
-                        description = h.Description,
-                        isCompleted = h.IsCompleted,
-                        urgencyLevel = h.UrgencyLevel.ToString(),
-                        reason = h.Reason,
-                        completedAt = h.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss")
-                    }),
-                    warnings = currentDayStatus.Warnings,
-                    recommendations = currentDayStatus.Recommendations
-                }
+                currentDay = await BuildCurrentDayResponse(currentDate, weekSchedule, completions),
+                weeklyHabitProgress = await BuildWeeklyProgress(weekSchedule, completions),
+                dayStatuses = BuildDayStatuses(weekSchedule, completions)
             };
 
             return Ok(response);
@@ -159,8 +94,14 @@ public class DisciplineController : ControllerBase
             await _context.SaveChangesAsync();
 
             // Return updated day status
-            var dayStatus = await _habitCalculationService.GetDayStatus(request.Date);
-            return Ok(dayStatus);
+            var weekStart = GetWeekStart(request.Date);
+            var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+            var completions = await _context.HabitCompletions
+                .Where(h => h.Date.Date == request.Date.Date)
+                .ToListAsync();
+
+            var dayResponse = await BuildCurrentDayResponse(request.Date, weekSchedule, completions);
+            return Ok(dayResponse);
         }
         catch (Exception ex)
         {
@@ -168,58 +109,143 @@ public class DisciplineController : ControllerBase
         }
     }
 
-    [HttpPost("use-grace")]
-    public async Task<IActionResult> UseGraceDay([FromBody] UseGraceRequest request)
+    private async Task<object> BuildCurrentDayResponse(DateTime date, WeekSchedule weekSchedule, List<HabitCompletion> completions)
     {
-        try
+        var daySchedule = weekSchedule.DailySchedules.FirstOrDefault(d => d.Date.Date == date.Date);
+        if (daySchedule == null)
         {
-            var canUseGrace = await CanUseGraceDay(request.Date);
-            if (!canUseGrace)
+            return new
             {
-                return BadRequest(new { error = "Grace day not available for this week" });
-            }
+                date = date.ToString("yyyy-MM-dd"),
+                allHabits = new List<object>(),
+                warnings = new List<string>(),
+                recommendations = new List<string>()
+            };
+        }
 
-            _context.GraceUsages.Add(new GraceUsage
+        var allHabits = new List<object>();
+
+        foreach (var scheduledHabit in daySchedule.ScheduledHabits)
+        {
+            var completion = completions.FirstOrDefault(c => c.HabitId == scheduledHabit.HabitId && c.Date.Date == date.Date);
+
+            allHabits.Add(new
             {
-                UsedDate = request.Date.Date,
-                Reason = request.Reason
+                habitId = scheduledHabit.HabitId,
+                name = scheduledHabit.HabitName,
+                description = scheduledHabit.Description,
+                isCompleted = completion?.IsCompleted ?? false,
+                isRequired = scheduledHabit.Priority == SchedulePriority.Required,
+                reason = scheduledHabit.Reason,
+                priority = scheduledHabit.Priority.ToString(),
+                completedAt = completion?.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss")
             });
-
-            await _context.SaveChangesAsync();
-
-            var dayStatus = await _habitCalculationService.GetDayStatus(request.Date);
-            return Ok(dayStatus);
         }
-        catch (Exception ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-    }
 
-    private async Task<object> GetWeeklyHabitProgress(Habit habit, DateTime weekStart)
-    {
-        var weekEnd = weekStart.AddDays(6);
-        var completions = await _context.HabitCompletions
-            .Where(h => h.HabitId == habit.Id && h.IsCompleted &&
-                       h.Date >= weekStart && h.Date <= weekEnd)
-            .CountAsync();
-
-        var target = habit.Frequency switch
-        {
-            HabitFrequency.Daily => 7,
-            HabitFrequency.Weekly => habit.WeeklyTarget,
-            HabitFrequency.EveryTwoDays => 4, // Approximate for a week
-            _ => 1
-        };
+        // Generate warnings and recommendations
+        var warnings = GenerateWarnings(allHabits);
+        var recommendations = GenerateRecommendations(allHabits);
 
         return new
         {
-            habitId = habit.Id,
-            name = habit.Name,
-            completions = completions,
-            target = target,
-            percentage = target > 0 ? (double)completions / target * 100 : 0
+            date = date.ToString("yyyy-MM-dd"),
+            allHabits = allHabits,
+            warnings = warnings,
+            recommendations = recommendations,
+            canUseGrace = await CanUseGraceDay(date),
+            isCompleted = allHabits.Where(h => (bool)h.GetType().GetProperty("isRequired").GetValue(h))
+                                   .All(h => (bool)h.GetType().GetProperty("isCompleted").GetValue(h)),
+            isPartiallyCompleted = allHabits.Any(h => (bool)h.GetType().GetProperty("isCompleted").GetValue(h))
         };
+    }
+
+    private async Task<List<object>> BuildWeeklyProgress(WeekSchedule weekSchedule, List<HabitCompletion> completions)
+    {
+        var habits = await _context.Habits.ToListAsync();
+        var progress = new List<object>();
+
+        foreach (var habit in habits)
+        {
+            var weeklyCompletions = completions.Count(c => c.HabitId == habit.Id && c.IsCompleted);
+            var target = CalculateWeeklyTarget(habit);
+            var percentage = target > 0 ? (double)weeklyCompletions / target * 100 : 0;
+
+            progress.Add(new
+            {
+                habitId = habit.Id,
+                name = habit.Name,
+                completions = weeklyCompletions,
+                target = target,
+                percentage = Math.Round(percentage, 1)
+            });
+        }
+
+        return progress;
+    }
+
+    private List<object> BuildDayStatuses(WeekSchedule weekSchedule, List<HabitCompletion> completions)
+    {
+        var dayStatuses = new List<object>();
+
+        foreach (var daySchedule in weekSchedule.DailySchedules)
+        {
+            var dayCompletions = completions.Where(c => c.Date.Date == daySchedule.Date.Date).ToList();
+            var requiredHabits = daySchedule.ScheduledHabits.Where(h => h.Priority == SchedulePriority.Required).ToList();
+            var completedRequired = requiredHabits.Count(h => dayCompletions.Any(c => c.HabitId == h.HabitId && c.IsCompleted));
+
+            dayStatuses.Add(new
+            {
+                date = daySchedule.Date.ToString("yyyy-MM-dd"),
+                isCompleted = requiredHabits.Count > 0 && completedRequired == requiredHabits.Count,
+                isPartiallyCompleted = completedRequired > 0 && completedRequired < requiredHabits.Count,
+                canUseGrace = false, // Implement grace logic
+                requiredHabitsCount = requiredHabits.Count,
+                completedRequiredCount = completedRequired
+            });
+        }
+
+        return dayStatuses;
+    }
+
+    private int CalculateWeeklyTarget(Habit habit)
+    {
+        return habit.Frequency switch
+        {
+            HabitFrequency.Daily => 7,
+            HabitFrequency.EveryTwoDays => 4, // Approximate
+            HabitFrequency.Weekly => habit.WeeklyTarget,
+            HabitFrequency.Monthly => habit.MonthlyTarget > 0 ? 1 : 0,
+            HabitFrequency.Seasonal => habit.SeasonalTarget > 0 ? 1 : 0,
+            _ => 0
+        };
+    }
+
+    private List<string> GenerateWarnings(List<object> allHabits)
+    {
+        var warnings = new List<string>();
+        var incompleteRequired = allHabits.Where(h =>
+            (bool)h.GetType().GetProperty("isRequired").GetValue(h) &&
+            !(bool)h.GetType().GetProperty("isCompleted").GetValue(h)).ToList();
+
+        if (incompleteRequired.Count > 0)
+        {
+            warnings.Add($"{incompleteRequired.Count} required habits still pending");
+        }
+
+        return warnings;
+    }
+
+    private List<string> GenerateRecommendations(List<object> allHabits)
+    {
+        var recommendations = new List<string>();
+        var completedCount = allHabits.Count(h => (bool)h.GetType().GetProperty("isCompleted").GetValue(h));
+
+        if (completedCount > 0)
+        {
+            recommendations.Add($"Great progress! {completedCount} habits completed today");
+        }
+
+        return recommendations;
     }
 
     private async Task<bool> CanUseGraceDay(DateTime date)
@@ -230,12 +256,11 @@ public class DisciplineController : ControllerBase
         var graceUsedThisWeek = await _context.GraceUsages
             .CountAsync(g => g.UsedDate >= weekStart && g.UsedDate <= weekEnd);
 
-        return graceUsedThisWeek < 1; // Max 1 grace per week
+        return graceUsedThisWeek < 1;
     }
 
     private DateTime GetWeekStart(DateTime date)
     {
-        // Get Monday of the current week
         var dayOfWeek = (int)date.DayOfWeek;
         var mondayOffset = (dayOfWeek == 0) ? -6 : -(dayOfWeek - 1);
         return date.AddDays(mondayOffset);
@@ -248,10 +273,4 @@ public class CompleteHabitRequest
     public DateTime Date { get; set; }
     public bool IsCompleted { get; set; }
     public string Notes { get; set; } = string.Empty;
-}
-
-public class UseGraceRequest
-{
-    public DateTime Date { get; set; }
-    public string Reason { get; set; } = string.Empty;
 }

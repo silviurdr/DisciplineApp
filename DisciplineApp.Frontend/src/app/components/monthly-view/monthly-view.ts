@@ -498,8 +498,24 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
       const dateStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
       
       console.log(`Requesting data for: ${dateStr}`);
+
+      return {
+        date: dateStr,
+        dayNumber: date.getDate(),
+        isCurrentMonth: true,
+        isToday: this.isToday(date),
+        isCompleted: false,
+        isPartiallyCompleted: false,
+        isGraceUsed: false,
+        completedHabits: 0,
+        totalHabits: 1,
+        tasks: ['Phone Lock Box'],
+        completedTasks: [],
+        hasWarnings: false,
+        rewards: []
+      };
       
-      return this.disciplineService.getDay(dateStr)
+/*       return this.disciplineService.getDay(dateStr)
         .pipe(
           map((disciplineDay: any) => this.mapToMonthlyDayData(disciplineDay, date)),
           catchError(error => {
@@ -507,7 +523,7 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
             return of(this.createEmptyDayData(date));
           }),
           takeUntil(this.destroy$)
-        );
+        ); */
     });
 
     forkJoin(dayRequests).subscribe({
