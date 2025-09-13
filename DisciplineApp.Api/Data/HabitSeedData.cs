@@ -19,12 +19,13 @@ public static class HabitSeedData
             new Habit
             {
                 Name = "Phone Lock Box",
-                Description = "Lock iPhone in the lock box for the day",
+                Description = "Lock iPhone in the lockbox for the evening",
                 Frequency = HabitFrequency.Daily,
-                WeeklyTarget = 7,
-                MonthlyTarget = 30,
-                SeasonalTarget = 0,
-                IsActive = true
+                HasDeadline = true,
+                DeadlineTime = new TimeOnly(19, 45), // 6:00 PM
+                IsLocked = false,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
             },
             new Habit
             {
@@ -34,7 +35,8 @@ public static class HabitSeedData
                 WeeklyTarget = 4,
                 MonthlyTarget = 15,
                 SeasonalTarget = 0,
-                IsActive = true
+                IsActive = true,
+                IsLocked = false,
             },
             new Habit
             {
@@ -44,7 +46,8 @@ public static class HabitSeedData
                 WeeklyTarget = 4,
                 MonthlyTarget = 16,
                 SeasonalTarget = 0,
-                IsActive = true
+                IsActive = true,
+                IsLocked = false,
             },
             new Habit
             {
@@ -54,7 +57,8 @@ public static class HabitSeedData
                 WeeklyTarget = 2,
                 MonthlyTarget = 8,
                 SeasonalTarget = 0,
-                IsActive = true
+                IsActive = true,
+                IsLocked = false,
             },
             new Habit
             {
@@ -64,7 +68,8 @@ public static class HabitSeedData
                 WeeklyTarget = 1,
                 MonthlyTarget = 4,
                 SeasonalTarget = 0,
-                IsActive = true
+                IsActive = true,
+                IsLocked = false,
             },
             new Habit
             {
@@ -74,7 +79,8 @@ public static class HabitSeedData
                 WeeklyTarget = 0,
                 MonthlyTarget = 1,
                 SeasonalTarget = 0,
-                IsActive = true
+                IsActive = true,
+                IsLocked = false,
             },
             new Habit
             {
@@ -84,7 +90,8 @@ public static class HabitSeedData
                 WeeklyTarget = 0,
                 MonthlyTarget = 0,
                 SeasonalTarget = 3,
-                IsActive = true
+                IsActive = true,
+                IsLocked = false
             }
         };
 

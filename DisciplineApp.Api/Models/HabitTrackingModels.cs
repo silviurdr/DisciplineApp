@@ -12,6 +12,9 @@ namespace DisciplineApp.Api.Models
         public int WeeklyTarget { get; set; } // For weekly habits (gym=4, vacuum=2, bathroom=1)
         public int MonthlyTarget { get; set; } // For monthly habits (kitchen=1)
         public int SeasonalTarget { get; set; } // For seasonal habits (windows=3)
+        public TimeOnly DeadlineTime { get; set; } // e.g., 18:00 for 6 PM
+        public bool HasDeadline { get; set; } = false;
+        public bool IsLocked { get; set; }
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

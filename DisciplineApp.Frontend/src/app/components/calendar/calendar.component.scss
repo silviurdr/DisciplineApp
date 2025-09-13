@@ -521,6 +521,20 @@
         border-color: rgba(76, 175, 80, 0.3);
       }
 
+      &.locked {
+        opacity: 0.6;
+        background-color: #2a2a2a;
+        
+        .habit-checkbox input {
+          cursor: not-allowed;
+        }
+        
+        .habit-name {
+          text-decoration: line-through;
+          color: #666;
+        }
+      }
+
       .habit-checkbox {
         margin-top: 2px;
 
@@ -894,4 +908,116 @@ h3 {
       gap: 10px;
     }
   }
+}
+
+.locked-badge {
+  background-color: #d32f2f;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.deadline-warning {
+  margin-top: 4px;
+  
+  .warning-text {
+    color: #ff6b6b;
+    font-size: 0.9rem;
+    font-style: italic;
+  }
+}
+
+// Deadline-related styles
+.deadline-badge {
+  background-color: #2196F3;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.time-remaining-badge {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  
+  &.urgent {
+    background-color: #FF9800;
+    color: white;
+  }
+  
+  &.critical {
+    background-color: #F44336;
+    color: white;
+    animation: pulse 1s infinite;
+  }
+}
+
+.overdue-badge {
+  background-color: #D32F2F;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  animation: pulse 1s infinite;
+}
+
+.habit-item {
+  &.urgent {
+    border-left: 4px solid #FF9800;
+    background: linear-gradient(90deg, rgba(255, 152, 0, 0.1), transparent);
+  }
+  
+  &.critical {
+    border-left: 4px solid #F44336;
+    background: linear-gradient(90deg, rgba(244, 67, 54, 0.1), transparent);
+    animation: urgentGlow 2s infinite;
+  }
+  
+  &.overdue {
+    opacity: 0.6;
+    background-color: #2a2a2a;
+    border-left: 4px solid #D32F2F;
+  }
+}
+
+.urgency-warning {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 4px;
+  border-left: 3px solid;
+  
+  .warning-text {
+    font-size: 0.9rem;
+    font-weight: 500;
+    
+    &.urgent {
+      color: #FF9800;
+      border-color: #FF9800;
+      background-color: rgba(255, 152, 0, 0.1);
+    }
+    
+    &.critical {
+      color: #F44336;
+      border-color: #F44336;
+      background-color: rgba(244, 67, 54, 0.1);
+    }
+  }
+}
+
+// Animations
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+@keyframes urgentGlow {
+  0% { box-shadow: 0 0 5px rgba(244, 67, 54, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(244, 67, 54, 0.6); }
+  100% { box-shadow: 0 0 5px rgba(244, 67, 54, 0.3); }
 }

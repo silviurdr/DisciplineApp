@@ -11,7 +11,12 @@ export interface ScheduledHabit {
   isRequired: boolean;
   reason: string;
   priority: string;
+  isLocked: boolean;
   completedAt?: string;
+  hasDeadline: boolean;
+  deadlineTime?: string; // Format: "18:00" for 6 PM
+  timeRemaining?: string; // e.g., "2 hours 30 minutes remaining"
+  isOverdue?: boolean;
 }
 
 export interface DayData {
@@ -169,10 +174,52 @@ export class DisciplineService {
       description: habit.description || '',
       isCompleted: Boolean(habit.isCompleted),
       isRequired: Boolean(habit.isRequired),
+      isLocked: habit.isLocked || false,
       reason: habit.reason || '',
       priority: habit.priority || 'Normal',
-      completedAt: habit.completedAt || undefined
+      completedAt: habit.completedAt || undefined,
+      hasDeadline: Boolean(habit.hasDeadline),
+      deadlineTime: habit.deadlineTime || undefined,
+      timeRemaining: this.calculateTimeRemaining(habit.deadlineTime),
+      isOverdue: this.isOverdue(habit.deadlineTime, habit.isCompleted)
     }));
+  }
+
+  /**
+   * Calculate time remaining until deadline
+   */
+  private calculateTimeRemaining(deadlineTime?: string): string | undefined {
+    if (!deadlineTime) return undefined;
+    
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const deadlineDateTime = new Date(`${today}T${deadlineTime}`);
+    
+    // If deadline has passed, return undefined
+    if (now > deadlineDateTime) return undefined;
+    
+    const diffMs = deadlineDateTime.getTime() - now.getTime();
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m remaining`;
+    } else {
+      return `${minutes}m remaining`;
+    }
+  }
+
+  /**
+   * Check if a habit is overdue
+   */
+  private isOverdue(deadlineTime?: string, isCompleted?: boolean): boolean {
+    if (!deadlineTime || isCompleted) return false;
+    
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const deadlineDateTime = new Date(`${today}T${deadlineTime}`);
+    
+    return now > deadlineDateTime;
   }
 
   /**

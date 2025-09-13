@@ -70,6 +70,17 @@ public class DisciplineController : ControllerBase
                 return NotFound(new { error = "Habit not found" });
             }
 
+            if (habit.HasDeadline && request.Date.Date == DateTime.Today)
+            {
+                var currentTime = TimeOnly.FromDateTime(DateTime.Now);
+                var deadlineTime = habit?.DeadlineTime ?? TimeOnly.MaxValue;
+
+                if (currentTime > deadlineTime && request.IsCompleted)
+                {
+                    return BadRequest($"Cannot complete {habit.Name} after {deadlineTime:HH:mm}. Deadline has passed.");
+                }
+            }
+
             var existingCompletion = await _context.HabitCompletions
                 .FirstOrDefaultAsync(h => h.HabitId == request.HabitId && h.Date.Date == request.Date.Date);
 
@@ -129,6 +140,15 @@ public class DisciplineController : ControllerBase
         {
             var completion = completions.FirstOrDefault(c => c.HabitId == scheduledHabit.HabitId && c.Date.Date == date.Date);
 
+            // Determine if the habit is locked based on the deadline
+            var isLocked = false;
+            if (scheduledHabit.HasDeadline && date.Date == DateTime.Today)
+            {
+                var currentTime = TimeOnly.FromDateTime(DateTime.Now);
+                var deadlineTime = scheduledHabit?.DeadlineTime ?? TimeOnly.MaxValue;
+                isLocked = currentTime > deadlineTime;
+            }
+
             allHabits.Add(new
             {
                 habitId = scheduledHabit.HabitId,
@@ -136,6 +156,7 @@ public class DisciplineController : ControllerBase
                 description = scheduledHabit.Description,
                 isCompleted = completion?.IsCompleted ?? false,
                 isRequired = scheduledHabit.Priority == SchedulePriority.Required,
+                isLocked = isLocked,
                 reason = scheduledHabit.Reason,
                 priority = scheduledHabit.Priority.ToString(),
                 completedAt = completion?.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss")

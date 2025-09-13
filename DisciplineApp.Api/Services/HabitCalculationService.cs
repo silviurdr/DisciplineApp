@@ -79,13 +79,27 @@ public class HabitCalculationService : IHabitCalculationService
     {
         var isCompleted = dayCompletions.Any(c => c.HabitId == habit.Id && c.IsCompleted);
 
+        bool isLocked = false;
+        if (habit.HasDeadline && date.Date == DateTime.Today)
+        {
+            var currentTime = TimeOnly.FromDateTime(DateTime.Now);
+            var deadlineTime = habit?.DeadlineTime ?? TimeOnly.MaxValue;
+
+            // If it's past the deadline and not completed, lock it
+            if (currentTime > deadlineTime && !isCompleted)
+            {
+                isLocked = true;
+            }
+        }
+
         var status = new HabitStatus
         {
             HabitId = habit.Id,
             HabitName = habit.Name,
             Description = habit.Description,
             IsCompleted = isCompleted,
-            CompletedAt = dayCompletions.FirstOrDefault(c => c.HabitId == habit.Id)?.CompletedAt
+            CompletedAt = dayCompletions.FirstOrDefault(c => c.HabitId == habit.Id)?.CompletedAt,
+            IsLocked = isLocked
         };
 
         switch (habit.Frequency)
@@ -353,6 +367,7 @@ public class HabitStatus
     public bool IsCompleted { get; set; }
     public bool IsRequired { get; set; }
     public bool IsOptional { get; set; }
+    public bool IsLocked { get; set; } = false;
     public UrgencyLevel UrgencyLevel { get; set; }
     public string Reason { get; set; } = string.Empty;
     public DateTime? CompletedAt { get; set; }

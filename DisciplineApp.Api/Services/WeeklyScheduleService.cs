@@ -67,6 +67,9 @@ public class WeeklyScheduleService
                 {
                     HabitId = habit.Id,
                     HabitName = habit.Name,
+                    IsLocked   = habit.IsLocked,
+                    HasDeadline = habit.HasDeadline,
+                    DeadlineTime = habit.DeadlineTime,
                     Description = habit.Description,
                     Priority = SchedulePriority.Required,
                     Reason = "Daily habit"
@@ -295,6 +298,9 @@ public class ScheduledHabit
     public int HabitId { get; set; }
     public string HabitName { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public bool IsLocked { get; set; }
+    public bool HasDeadline { get; set; }
+    public TimeOnly DeadlineTime { get; set; }
     public SchedulePriority Priority { get; set; }
     public string Reason { get; set; } = string.Empty;
 }

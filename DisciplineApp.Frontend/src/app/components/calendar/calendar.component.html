@@ -85,29 +85,85 @@
     <div class="scheduled-habits" *ngIf="todayData.allHabits && todayData.allHabits.length > 0">
       <div class="habit-item" 
            *ngFor="let habit of todayData.allHabits"
-           [class]="getPriorityClass(habit) + ' ' + getCompletionClass(habit)">
-        
+           [class]="getPriorityClass(habit) + ' ' + getCompletionClass(habit)"
+           [class.locked]="habit.isLocked"
+           [class.urgent]="habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) === 'urgent'"
+           [class.critical]="habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) === 'critical'"
+           [class.overdue]="habit.isOverdue">
+
         <div class="habit-checkbox">
           <input type="checkbox" 
                  [id]="'habit-' + habit.habitId"
                  [checked]="habit.isCompleted"
-                 (change)="toggleHabit(habit)">
-          <label [for]="'habit-' + habit.habitId"></label>
+                 [disabled]="habit.isLocked"
+                 (change)="!habit.isLocked && toggleHabit(habit)">
+          <label [for]="'habit-' + habit.habitId" 
+                 [class.disabled]="habit.isLocked"></label>
         </div>
         
         <div class="habit-content">
           <div class="habit-header">
-            <div class="habit-name">{{ habit.name }}</div>
+            <div class="habit-name" [class.locked-text]="habit.isLocked">
+              {{ habit.name }}
+            </div>
             <div class="habit-badges">
-              <span class="priority-badge" [class.required]="habit.isRequired" [class.optional]="!habit.isRequired">
+              <span class="priority-badge" 
+                    [class.required]="habit.isRequired" 
+                    [class.optional]="!habit.isRequired">
                 {{ habit.isRequired ? 'Required' : 'Optional' }}
               </span>
-              <span class="completed-badge" *ngIf="habit.isCompleted">✓ Done</span>
+              
+              <!-- Deadline time badge -->
+              <span class="deadline-badge" *ngIf="habit.hasDeadline && !habit.isCompleted">
+                ⏰ {{ habit.deadlineTime }}
+              </span>
+              
+              <!-- Time remaining badge -->
+              <span class="time-remaining-badge urgent" 
+                    *ngIf="habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) === 'urgent'">
+                ⚠️ {{ habit.timeRemaining }}
+              </span>
+              
+              <span class="time-remaining-badge critical" 
+                    *ngIf="habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) === 'critical'">
+                🚨 {{ habit.timeRemaining }}
+              </span>
+              
+              <!-- Overdue badge -->
+              <span class="overdue-badge" *ngIf="habit.isOverdue">
+                ⏰ OVERDUE
+              </span>
+              
+              <span class="locked-badge" *ngIf="habit.isLocked">
+                🔒 Deadline Passed
+              </span>
+              
+              <span class="completed-badge" *ngIf="habit.isCompleted">
+                ✓ Done
+              </span>
             </div>
           </div>
-          <div class="habit-description">{{ habit.description }}</div>
-          <div class="habit-reason" *ngIf="habit.reason">
+          
+          <div class="habit-description" [class.locked-text]="habit.isLocked">
+            {{ habit.description }}
+          </div>
+          
+          <div class="habit-reason" *ngIf="habit.reason" [class.locked-text]="habit.isLocked">
             <em>{{ habit.reason }}</em>
+          </div>
+          
+          <!-- Deadline warning for overdue tasks -->
+          <div class="deadline-warning" *ngIf="habit.isOverdue">
+            <span class="warning-text">⏰ Deadline passed - task is now locked</span>
+          </div>
+          
+          <!-- Urgency warning for tasks approaching deadline -->
+          <div class="urgency-warning" *ngIf="habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) !== 'normal'">
+            <span class="warning-text" 
+                  [class.urgent]="getUrgencyLevel(habit.timeRemaining) === 'urgent'"
+                  [class.critical]="getUrgencyLevel(habit.timeRemaining) === 'critical'">
+              {{ getDeadlineWarningMessage(habit) }}
+            </span>
           </div>
         </div>
       </div>

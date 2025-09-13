@@ -10,8 +10,13 @@ interface ScheduledHabit {
   isCompleted: boolean;
   isRequired: boolean;
   reason: string;
+  isLocked? : boolean;
   priority: string;
   completedAt?: string;
+  timeRemaining?: string;
+  hasDeadline?: boolean;
+  deadlineTime?: string;
+  isOverdue?: boolean;
 }
 
 interface DayData {
@@ -314,5 +319,86 @@ export class CalendarComponent implements OnInit {
         console.error('Error using grace day:', error);
       }
     });
+  }
+
+  /**
+   * Get urgency level based on time remaining
+   */
+  getUrgencyLevel(timeRemaining: string): 'normal' | 'urgent' | 'critical' {
+    if (!timeRemaining) return 'normal';
+    
+    // Extract hours from "2h 30m remaining" format
+    const hourMatch = timeRemaining.match(/(\d+)h/);
+    const minuteMatch = timeRemaining.match(/(\d+)m/);
+    
+    const hours = hourMatch ? parseInt(hourMatch[1]) : 0;
+    const minutes = minuteMatch ? parseInt(minuteMatch[1]) : 0;
+    const totalMinutes = hours * 60 + minutes;
+    
+    if (totalMinutes <= 30) return 'critical';  // 30 minutes or less
+    if (totalMinutes <= 120) return 'urgent';   // 2 hours or less
+    return 'normal';
+  }
+
+  /**
+   * Get deadline warning message
+   */
+  getDeadlineWarningMessage(habit: ScheduledHabit): string {
+    if (!habit.timeRemaining) return '';
+    
+    const urgency = this.getUrgencyLevel(habit.timeRemaining);
+    
+    switch (urgency) {
+      case 'critical':
+        return `🚨 URGENT: Only ${habit.timeRemaining} to complete "${habit.name}"!`;
+      case 'urgent':
+        return `⚠️ ${habit.timeRemaining} to complete "${habit.name}"`;
+      default:
+        return '';
+    }
+  }
+
+  /**
+   * Update time remaining for all habits (call this periodically)
+   */
+  refreshTimeRemaining(): void {
+    if (this.todayData?.allHabits) {
+      this.todayData.allHabits.forEach(habit => {
+        if (habit.hasDeadline && !habit.isCompleted) {
+          habit.timeRemaining = this.calculateTimeRemaining(habit.deadlineTime);
+          habit.isOverdue = this.isOverdue(habit.deadlineTime);
+        }
+      });
+    }
+  }
+
+  private calculateTimeRemaining(deadlineTime?: string): string | undefined {
+    if (!deadlineTime) return undefined;
+    
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const deadlineDateTime = new Date(`${today}T${deadlineTime}`);
+    
+    if (now > deadlineDateTime) return undefined;
+    
+    const diffMs = deadlineDateTime.getTime() - now.getTime();
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m`;
+    }
+  }
+
+  private isOverdue(deadlineTime?: string): boolean {
+    if (!deadlineTime) return false;
+    
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const deadlineDateTime = new Date(`${today}T${deadlineTime}`);
+    
+    return now > deadlineDateTime;
   }
 }
