@@ -54,11 +54,17 @@ public class WeeklyScheduleService
     private async Task<List<TaskDeferral>> GetWeekDeferrals(DateTime weekStart)
     {
         var weekEnd = weekStart.AddDays(6);
+
         return await _context.TaskDeferrals
             .Include(d => d.Habit)
             .Where(d =>
-    (d.DeferredToDate >= weekStart && d.DeferredToDate <= weekEnd) ||
-    (d.OriginalDate >= weekStart && d.OriginalDate <= weekEnd))
+                // CASE 1: Tasks deferred TO this week (from any previous date)
+                (d.DeferredToDate >= weekStart && d.DeferredToDate <= weekEnd) ||
+
+                // CASE 2: Tasks deferred FROM this week (to any future date)
+                // This prevents double-scheduling tasks that were moved away from this week
+                (d.OriginalDate >= weekStart && d.OriginalDate <= weekEnd)
+            )
             .OrderBy(d => d.DeferredToDate)
             .ToListAsync();
     }
@@ -66,25 +72,35 @@ public class WeeklyScheduleService
     // NEW: Apply deferred tasks to their target dates
     private async Task ApplyDeferredTasks(WeekSchedule schedule, List<TaskDeferral> deferrals)
     {
+        var weekStart = schedule.WeekStart;
+        var weekEnd = schedule.WeekEnd;
+
         foreach (var deferral in deferrals)
         {
-            var targetDay = schedule.DailySchedules
-                .FirstOrDefault(d => d.Date.Date == deferral.DeferredToDate.Date);
-
-            if (targetDay != null && deferral.Habit.IsActive)
+            // CASE 1: Tasks deferred TO this week (ADD them)
+            if (deferral.DeferredToDate >= weekStart && deferral.DeferredToDate <= weekEnd)
             {
-                targetDay.ScheduledHabits.Add(new ScheduledHabit
+                var targetDay = schedule.DailySchedules
+                    .FirstOrDefault(d => d.Date.Date == deferral.DeferredToDate.Date);
+
+                if (targetDay != null && deferral.Habit.IsActive)
                 {
-                    HabitId = deferral.HabitId,
-                    HabitName = deferral.Habit.Name,
-                    Description = deferral.Habit.Description,
-                    IsLocked = deferral.Habit.IsLocked,
-                    HasDeadline = deferral.Habit.HasDeadline,
-                    DeadlineTime = deferral.Habit.DeadlineTime,
-                    Priority = SchedulePriority.Required, // Deferred tasks get high priority
-                    Reason = $"Moved from {deferral.OriginalDate:MMM dd} - {deferral.Reason}"
-                });
+                    targetDay.ScheduledHabits.Add(new ScheduledHabit
+                    {
+                        HabitId = deferral.HabitId,
+                        HabitName = deferral.Habit.Name,
+                        Description = deferral.Habit.Description,
+                        IsLocked = deferral.Habit.IsLocked,
+                        HasDeadline = deferral.Habit.HasDeadline,
+                        DeadlineTime = deferral.Habit.DeadlineTime,
+                        Priority = SchedulePriority.Required, // Deferred tasks get high priority
+                        Reason = $"Moved from {deferral.OriginalDate:MMM dd} - {deferral.Reason}"
+                    });
+                }
             }
+
+            // CASE 2: Tasks deferred FROM this week are handled by the assignment methods
+            // (they check weekDeferrals and skip scheduling tasks that were moved away)
         }
     }
 
