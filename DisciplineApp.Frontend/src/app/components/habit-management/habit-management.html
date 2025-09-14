@@ -61,16 +61,20 @@
         <div class="form-section">
           <h4>Frequency</h4>
           
-          <div class="form-group">
-            <label for="frequency">How often? *</label>
-            <select id="frequency" formControlName="frequency">
-              <option value="Daily">Daily</option>
-              <option value="EveryTwoDays">Every 2 Days (Rolling)</option>
-              <option value="Weekly">Weekly</option>
-              <option value="Monthly">Monthly</option>
-              <option value="Seasonal">Seasonal</option>
-            </select>
-          </div>
+     <div class="form-group">
+  <label for="frequency">How often? *</label>
+  
+  <!-- Custom Select Wrapper -->
+  <div class="custom-select-container">
+    <select id="frequency" formControlName="frequency" (change)="onFrequencyChange()" class="custom-select">
+      <option value="Daily">Daily</option>
+      <option value="EveryTwoDays">Every 2 Days (Rolling)</option>
+      <option value="Weekly">Weekly</option>
+      <option value="Monthly">Monthly</option>
+      <option value="Seasonal">Seasonal</option>
+    </select>
+  </div>
+</div>
 
           <!-- Weekly Target -->
           <div class="form-group" *ngIf="shouldShowTargetField(habitForm.get('frequency')?.value, 'weekly')">
