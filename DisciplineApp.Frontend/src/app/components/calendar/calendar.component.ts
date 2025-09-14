@@ -554,6 +554,11 @@ moveTaskToTomorrow(habit: ScheduledHabit): void {
     }
   }
 
+  isDailyHabit(habit: any): boolean {
+  // Check if habit frequency is Daily (assuming you have access to frequency data)
+  return typeof habit.reason === 'string' && habit.reason.toLowerCase().includes('daily');
+}
+
   /**
    * Update time remaining for all habits (call this periodically)
    */
