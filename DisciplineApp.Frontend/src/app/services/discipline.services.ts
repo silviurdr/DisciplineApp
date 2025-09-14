@@ -97,6 +97,11 @@ export interface CompleteAdHocTaskRequest {
   notes?: string;
 }
 
+export interface EditAdHocTaskRequest {
+  name: string;
+  description?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -140,6 +145,11 @@ export class DisciplineService {
 
   addAdHocTask(request: AddAdHocTaskRequest): Observable<any> {
   return this.http.post(`${this.apiUrl}/add-adhoc-task`, request);
+}
+
+
+editAdHocTask(taskId: number, request: EditAdHocTaskRequest): Observable<any> {
+  return this.http.put(`${this.apiUrl}/edit-adhoc-task/${taskId}`, request);
 }
 
   completeAdHocTask(request: CompleteAdHocTaskRequest): Observable<any> {

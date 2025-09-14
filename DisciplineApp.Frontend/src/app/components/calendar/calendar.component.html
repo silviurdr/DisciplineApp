@@ -97,15 +97,15 @@
      [class.urgent]="!habit.isCompleted && habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) === 'urgent'"
      [class.critical]="!habit.isCompleted && habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) === 'critical'"
      [class.overdue]="habit.isOverdue"
-     [class.ad-hoc]="habit.isAdHoc">
-
+     [class.ad-hoc]="habit.isAdHoc"
+     [class.completed]="habit.isCompleted">  <!-- ✅ Add this explicit completed class -->
   <!-- Add ad-hoc indicator -->
 <!--   <div class="habit-badges" *ngIf="habit.isAdHoc">
     <span class="ad-hoc-badge">📝 Today Only</span>
   </div> -->
      <label [class.overdue]="habit.isOverdue" ></label>
 
-            <div class="habit-actions" *ngIf="!habit.isCompleted && !habit.isLocked">
+            <div class="habit-actions" *ngIf="!habit.isCompleted && !habit.isLocked && !habit.isAdHoc">
           <button class="move-tomorrow-btn" 
                   (click)="moveTaskToTomorrow(habit)"
                   [disabled]="habit.isCompleted || habit.isLocked">
@@ -114,25 +114,28 @@
         </div>  
         <div class="habit-checkbox">
           <input type="checkbox" 
-                 [id]="'habit-' + habit.habitId"
-                 [checked]="habit.isCompleted"
-                 [disabled]="habit.isLocked"
-                 (change)="!habit.isLocked && toggleHabit(habit)">
-          <label [for]="'habit-' + habit.habitId" 
-                 [class.disabled]="habit.isLocked"></label>
+                [class.disabled]="habit.isCompleted"
+                [id]="'habit-' + habit.habitId + (habit.adHocId || '')"
+                [checked]="habit.isCompleted"
+                [disabled]="habit.isLocked || habit.isCompleted"
+                (change)="!habit.isLocked && toggleHabit(habit)">
+          <label [for]="'habit-' + habit.habitId + (habit.adHocId || '')" 
+                [class.disabled]="habit.isLocked"></label>
         </div>
         
-        <div class="habit-content">
-          <div class="habit-header">
-            <div class="habit-name" [class.locked-text]="habit.isLocked">
-              {{ habit.name }}
-            </div>
+          <div class="habit-content">
+              <div class="habit-header">
+                <div class="habit-name" [class.locked-text]="habit.isLocked">
+                  {{ habit.name }}
+                </div>
             <div class="habit-badges">
               <span class="priority-badge" 
                     [class.required]="habit.isRequired" 
                     [class.optional]="!habit.isRequired">
                 {{ habit.isRequired ? 'Required' : 'Optional' }}
               </span>
+        
+        <span class="ad-hoc-badge" *ngIf="habit.isAdHoc">Today Only</span>
               
               <!-- Deadline time badge -->
               <span class="deadline-badge" *ngIf="habit.hasDeadline && !habit.isCompleted">
@@ -164,7 +167,7 @@
             </div>
           </div>
           
-          <div class="habit-description" [class.locked-text]="habit.isLocked">
+           <div class="habit-description" [class.locked-text]="habit.isLocked">
             {{ habit.description }}
           </div>
           
@@ -186,6 +189,11 @@
             </span>
             </div>
         </div>
+        <div class="habit-actions" *ngIf="habit.isAdHoc && !habit.isCompleted">
+        <button class="edit-adhoc-btn" (click)="openEditTaskDialog(habit)">
+          ✏️
+        </button>
+      </div>
       </div>
     </div>
 
@@ -302,6 +310,54 @@
         class="add-btn" 
         (click)="addNewTask()">
         Add Task
+      </button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" *ngIf="showEditTaskDialog" (click)="closeEditTaskDialog()">
+  <div class="edit-task-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Edit Task</h3>
+      <button class="close-btn" (click)="closeEditTaskDialog()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="editTaskName">Task Name *</label>
+        <input 
+          id="editTaskName"
+          type="text" 
+          [(ngModel)]="editTaskName"
+          placeholder="e.g., Call dentist, Buy groceries..."
+          maxlength="200"
+          class="task-input">
+      </div>
+      
+      <div class="form-group">
+        <label for="editTaskDescription">Description (Optional)</label>
+        <textarea 
+          id="editTaskDescription"
+          [(ngModel)]="editTaskDescription"
+          placeholder="Additional details..."
+          maxlength="500"
+          rows="3"
+          class="task-textarea"></textarea>
+      </div>
+      
+      <div class="task-info">
+        <small>This will update the task details for today only.</small>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="cancel-btn" (click)="closeEditTaskDialog()">
+        Cancel
+      </button>
+      <button 
+        class="save-btn" 
+        (click)="saveEditedTask()"
+        [disabled]="!editTaskName.trim()">
+        Save Changes
       </button>
     </div>
   </div>

@@ -165,6 +165,56 @@ public class DisciplineController : ControllerBase
         }
     }
 
+    // Add to your DisciplineController.cs
+
+    [HttpPut("edit-adhoc-task/{taskId}")]
+    public async Task<IActionResult> EditAdHocTask(int taskId, [FromBody] EditAdHocTaskRequest request)
+    {
+        try
+        {
+            var task = await _context.AdHocTasks.FindAsync(taskId);
+            if (task == null)
+            {
+                return NotFound(new { error = "Task not found" });
+            }
+
+            // Update the task details
+            task.Name = request.Name.Trim();
+            task.Description = request.Description?.Trim() ?? "";
+
+            await _context.SaveChangesAsync();
+
+            // Return updated day status
+            var weekStart = GetWeekStart(task.Date);
+            var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+            var completions = await _context.HabitCompletions
+                .Where(h => h.Date.Date == task.Date.Date)
+                .ToListAsync();
+            var adHocTasks = await _context.AdHocTasks
+                .Where(t => t.Date.Date == task.Date.Date)
+                .ToListAsync();
+
+            var dayResponse = await BuildCurrentDayResponse(task.Date, weekSchedule, completions, adHocTasks);
+
+            return Ok(new
+            {
+                message = "Ad-hoc task updated successfully",
+                dayData = dayResponse
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    // Request model
+    public class EditAdHocTaskRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+
     [HttpPost("complete-adhoc-task")]
     public async Task<IActionResult> CompleteAdHocTask([FromBody] CompleteAdHocTaskRequest request)
     {
@@ -466,4 +516,10 @@ public class CompleteAdHocTaskRequest
     public int TaskId { get; set; }
     public bool IsCompleted { get; set; }
     public string Notes { get; set; }
+}
+
+public class EditAdHocTaskRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
 }

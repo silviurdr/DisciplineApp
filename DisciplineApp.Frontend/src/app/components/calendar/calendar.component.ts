@@ -47,6 +47,11 @@ interface AddAdHocTaskRequest {
   date: string; // Format: "YYYY-MM-DD"
 }
 
+interface EditAdHocTaskRequest {
+  name: string;
+  description?: string;
+}
+
 interface WeekData {
   weekStartDate: string;
   weekEndDate: string;
@@ -73,6 +78,10 @@ export class CalendarComponent implements OnInit {
   showAddTaskDialog = false;
   newTaskName = '';
   newTaskDescription = '';
+  showEditTaskDialog = false;
+  editingTask: ScheduledHabit | null = null;
+  editTaskName = '';
+  editTaskDescription = '';
 
   constructor(private disciplineService: DisciplineService, private soundService: SoundService) {}
 
@@ -365,6 +374,63 @@ addNewTask(): void {
   });
 }
 
+openEditTaskDialog(habit: ScheduledHabit): void {
+  if (!habit.isAdHoc || !habit.adHocId) {
+    console.error('Can only edit ad-hoc tasks');
+    return;
+  }
+  
+  this.editingTask = habit;
+  this.editTaskName = habit.name;
+  this.editTaskDescription = habit.description || '';
+  this.showEditTaskDialog = true;
+}
+
+closeEditTaskDialog(): void {
+  this.showEditTaskDialog = false;
+  this.editingTask = null;
+  this.editTaskName = '';
+  this.editTaskDescription = '';
+}
+
+saveEditedTask(): void {
+  if (!this.editTaskName.trim() || !this.editingTask?.adHocId) {
+    return;
+  }
+
+  const request: EditAdHocTaskRequest = {
+    name: this.editTaskName.trim(),
+    description: (this.editTaskDescription !== undefined && this.editTaskDescription !== null)
+      ? this.editTaskDescription.trim()
+      : ''
+  };
+
+  this.disciplineService.editAdHocTask(this.editingTask.adHocId, request).subscribe({
+    next: (response) => {
+      console.log('Ad-hoc task edited successfully:', response);
+      
+      // Update the task in the current UI immediately
+      if (this.editingTask && this.todayData?.allHabits) {
+        const taskIndex = this.todayData.allHabits.findIndex(h => h.adHocId === this.editingTask!.adHocId);
+        if (taskIndex !== -1) {
+          this.todayData.allHabits[taskIndex].name = this.editTaskName.trim();
+          this.todayData.allHabits[taskIndex].description = this.editTaskDescription.trim();
+        }
+      }
+      
+      // Close dialog
+      this.closeEditTaskDialog();
+      
+      // Reload data to ensure consistency
+      this.loadCurrentWeekData();
+    },
+    error: (error) => {
+      console.error('Error editing ad-hoc task:', error);
+      alert('Failed to update task. Please try again.');
+    }
+  });
+}
+
   // Modal methods
   openDayDetail(day: any): void {
     if (this.isFuture(day.date)) return;
@@ -384,8 +450,8 @@ addNewTask(): void {
   }
 
   getCompletionClass(habit: ScheduledHabit): string {
-    return habit.isCompleted ? 'completed' : 'incomplete';
-  }
+  return habit.isCompleted ? 'completed' : 'incomplete';
+}
 
   getDayCompletionStatus(): string {
     if (!this.todayData) return 'No data';

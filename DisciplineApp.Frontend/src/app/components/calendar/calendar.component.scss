@@ -572,6 +572,10 @@
             opacity: 0;
             transition: opacity 0.3s ease;
           }
+
+            &.disabled {
+            cursor: default;
+      }
         }
 
         input:checked + label {
@@ -1220,6 +1224,205 @@ h3 {
       font-weight: 500;
       margin-bottom: 8px;
       display: inline-block;
+    }
+  }
+}
+
+.habit-item {
+  transition: all 0.3s ease;
+  
+  // Completed task styling
+  &.completed {
+    opacity: 0.7;
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(76, 175, 80, 0.05));
+    
+    .habit-name {
+      text-decoration: line-through;
+      color: #4caf50;
+    }
+    
+    .habit-description {
+      color: #81c784;
+      opacity: 0.8;
+    }
+    
+    .habit-reason {
+      color: #81c784;
+      opacity: 0.8;
+    }
+    
+    // Disable hover effects on completed tasks
+    &:hover {
+      transform: none;
+      border-color: rgba(76, 175, 80, 0.5);
+    }
+    
+    // Hide action buttons on completed tasks
+    .habit-actions {
+      opacity: 0 !important;
+    }
+    
+    // Style the move to tomorrow button differently for completed tasks
+    .move-tomorrow-btn {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+  }
+  
+  // Ensure non-completed tasks don't have strikethrough
+  &:not(.completed) {
+    .habit-name,
+    .habit-description,
+    .habit-reason {
+      text-decoration: none;
+    }
+  }
+}
+
+.edit-task-modal {
+  background: linear-gradient(135deg, #2a2a4a, #1a1a3a);
+  border-radius: 16px;
+  padding: 0;
+  max-width: 500px;
+  width: 90vw;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    h3 {
+      color: #2196F3; // Blue for edit vs green for add
+      margin: 0;
+      font-size: 1.3rem;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 1.5rem;
+      cursor: pointer;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+    }
+  }
+
+  .modal-body {
+    padding: 24px;
+
+    .form-group {
+      margin-bottom: 20px;
+
+      label {
+        display: block;
+        color: #90caf9;
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+      }
+
+      .task-input, .task-textarea {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        background: rgba(30, 30, 60, 0.6);
+        color: #e3f2fd;
+        font-size: 1rem;
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+
+        &:focus {
+          outline: none;
+          border-color: #2196F3; // Blue focus for edit
+          background: rgba(30, 30, 60, 0.8);
+        }
+
+        &::placeholder {
+          color: #666;
+        }
+      }
+
+      .task-textarea {
+        resize: vertical;
+        min-height: 80px;
+        font-family: inherit;
+      }
+    }
+
+    .task-info {
+      background: rgba(33, 150, 243, 0.1);
+      border: 1px solid rgba(33, 150, 243, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 16px;
+
+      small {
+        color: #2196F3;
+        font-size: 0.85rem;
+      }
+    }
+  }
+
+  .modal-footer {
+    display: flex;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+
+    button {
+      flex: 1;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .cancel-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #aaa;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+      }
+    }
+
+    .save-btn {
+      background: linear-gradient(135deg, #2196F3, #1976D2);
+      border: none;
+      color: white;
+
+      &:hover:not(:disabled) {
+        background: linear-gradient(135deg, #1976D2, #2196F3);
+        transform: translateY(-1px);
+      }
+
+      &:disabled {
+        background: #666;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
     }
   }
 }
