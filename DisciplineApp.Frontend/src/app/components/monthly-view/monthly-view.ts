@@ -277,40 +277,40 @@ private async getCurrentStreakInfo(): Promise<StreakInfo> {
 }
 
   private calculateProjectedRewards(currentStreakInfo: StreakInfo): void {
-    this.projectedRewards = [];
-    
-    if (!currentStreakInfo.lastCompletedDate || currentStreakInfo.currentStreak === 0) {
-      return; // No streak to project from
-    }
-
-    const today = new Date();
-    const startProjectionDate = new Date(today);
-    startProjectionDate.setDate(today.getDate() + 1); // Start projecting from tomorrow
-
-    // Find upcoming reward milestones
-    const upcomingRewards = this.rewardSchedule.filter(reward => 
-      reward.day > currentStreakInfo.currentStreak && 
-      reward.day <= currentStreakInfo.currentStreak + 60 // Project up to 60 days ahead
-    );
-
-    upcomingRewards.forEach(reward => {
-      const daysUntilReward = reward.day - currentStreakInfo.currentStreak;
-      const rewardDate = new Date(startProjectionDate);
-      rewardDate.setDate(startProjectionDate.getDate() + daysUntilReward - 1);
-
-      // Only show rewards within the current month view
-      if (rewardDate.getMonth() === this.currentMonth && rewardDate.getFullYear() === this.currentYear) {
-        this.projectedRewards.push({
-          date: rewardDate,
-          dateString: rewardDate.toISOString().split('T')[0],
-          streakDay: reward.day,
-          tier: this.rewardTiers[reward.tier]
-        });
-      }
-    });
-
-    console.log('Projected rewards for current month:', this.projectedRewards);
+  this.projectedRewards = [];
+  
+  if (!currentStreakInfo.lastCompletedDate || currentStreakInfo.currentStreak === 0) {
+    return; // No streak to project from
   }
+
+  const today = new Date();
+  const startProjectionDate = new Date(today);
+  startProjectionDate.setDate(today.getDate() + 1); // Start projecting from tomorrow
+
+  // Find upcoming reward milestones - INCREASED FROM 60 TO 120 DAYS
+  const upcomingRewards = this.rewardSchedule.filter(reward => 
+    reward.day > currentStreakInfo.currentStreak && 
+    reward.day <= currentStreakInfo.currentStreak + 120 // Project up to 120 days ahead to ensure 90-day rewards show
+  );
+
+  upcomingRewards.forEach(reward => {
+    const daysUntilReward = reward.day - currentStreakInfo.currentStreak;
+    const rewardDate = new Date(startProjectionDate);
+    rewardDate.setDate(startProjectionDate.getDate() + daysUntilReward - 1);
+
+    // Only show rewards within the current month view
+    if (rewardDate.getMonth() === this.currentMonth && rewardDate.getFullYear() === this.currentYear) {
+      this.projectedRewards.push({
+        date: rewardDate,
+        dateString: rewardDate.toISOString().split('T')[0],
+        streakDay: reward.day,
+        tier: this.rewardTiers[reward.tier]
+      });
+    }
+  });
+
+  console.log('Projected rewards for current month:', this.projectedRewards);
+}
 
   private applyProjectedRewardsToCalendar(): void {
     this.projectedRewards.forEach(reward => {
