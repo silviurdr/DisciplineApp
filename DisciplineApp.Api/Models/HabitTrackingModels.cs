@@ -80,6 +80,16 @@ namespace DisciplineApp.Api.Models
         GraceUsed   // Used grace day
     }
 
+    public class TaskDeferral
+    {
+        public int Id { get; set; }
+        public int HabitId { get; set; }
+        public DateTime OriginalDate { get; set; }
+        public DateTime DeferredToDate { get; set; }
+        public string Reason { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+    }
+
     // DTOs for API responses
     public class DayStatusDto
     {

@@ -234,6 +234,46 @@ public class DisciplineController : ControllerBase
 
         return dayStatuses;
     }
+    [HttpPost("move-task-tomorrow")]
+    public async Task<IActionResult> MoveTaskToTomorrow([FromBody] MoveTaskRequest request)
+    {
+        try
+        {
+            var habit = await _context.Habits.FindAsync(request.HabitId);
+            if (habit == null)
+            {
+                return NotFound(new { error = "Habit not found" });
+            }
+
+            var currentDate = DateTime.Parse(request.CurrentDate);
+            var tomorrow = currentDate.AddDays(1);
+
+            // Remove from current day (mark as deferred, not failed)
+            await _scheduleService.DeferTask(request.HabitId, currentDate, tomorrow, request.Reason);
+
+            // Get updated schedules
+            var weekStart = GetWeekStart(currentDate);
+            var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+            var completions = await _context.HabitCompletions
+                .Where(h => h.Date.Date == currentDate.Date || h.Date.Date == tomorrow.Date)
+                .ToListAsync();
+
+            // Return both today and tomorrow's updated status
+            var todayResponse = await BuildCurrentDayResponse(currentDate, weekSchedule, completions);
+            var tomorrowResponse = await BuildCurrentDayResponse(tomorrow, weekSchedule, completions);
+
+            return Ok(new
+            {
+                today = todayResponse,
+                tomorrow = tomorrowResponse,
+                message = $"{habit.Name} moved to tomorrow"
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
 
     private int CalculateWeeklyTarget(Habit habit)
     {
@@ -301,4 +341,9 @@ public class CompleteHabitRequest
     public DateTime Date { get; set; }
     public bool IsCompleted { get; set; }
     public string Notes { get; set; } = string.Empty;
+}public class MoveTaskRequest
+{
+    public int HabitId { get; set; }
+    public string CurrentDate { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
 }

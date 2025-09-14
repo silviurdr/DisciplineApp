@@ -303,6 +303,28 @@ export class CalendarComponent implements OnInit {
     return `${remaining} required tasks remaining`;
   }
 
+  moveTaskToTomorrow(habit: ScheduledHabit): void {
+  if (confirm(`Move "${habit.name}" to tomorrow?`)) {
+    this.disciplineService.moveTaskToTomorrow({
+      habitId: habit.habitId,
+      currentDate: this.todayData?.date ?? '',
+      reason: 'Moved by user request'
+    }).subscribe({
+      next: (response) => {
+        console.log('Task moved to tomorrow');
+        // Play success sound
+        this.soundService.playTaskCompleted();
+        // Reload current day to reflect changes
+        this.loadCurrentWeekData();
+      },
+      error: (error) => {
+        console.error('Error moving task:', error);
+        alert('Failed to move task. Please try again.');
+      }
+    });
+  }
+}
+
   // Grace day method
   useGraceDay(): void {
     if (!this.todayData?.canUseGrace) return;

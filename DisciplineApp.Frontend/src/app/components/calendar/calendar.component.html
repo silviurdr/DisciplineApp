@@ -91,6 +91,13 @@
      [class.critical]="!habit.isCompleted && habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) === 'critical'"
      [class.overdue]="habit.isOverdue">
 
+            <div class="habit-actions" *ngIf="!habit.isCompleted && !habit.isLocked">
+          <button class="move-tomorrow-btn" 
+                  (click)="moveTaskToTomorrow(habit)"
+                  [disabled]="habit.isCompleted || habit.isLocked">
+            📅 Move to Tomorrow
+          </button>
+        </div>  
         <div class="habit-checkbox">
           <input type="checkbox" 
                  [id]="'habit-' + habit.habitId"

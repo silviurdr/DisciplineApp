@@ -66,6 +66,12 @@ export interface UseGraceRequest {
   reason?: string;
 }
 
+export interface MoveTaskRequest {
+  habitId: number;
+  currentDate: string;
+  reason?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -252,6 +258,10 @@ public isOverdue(deadlineTime?: string, isCompleted?: boolean): boolean {
       completedRequiredCount: Number(status.completedRequiredCount) || 0
     }));
   }
+
+  moveTaskToTomorrow(request: MoveTaskRequest): Observable<any> {
+  return this.http.post(`${this.apiUrl}/move-task-tomorrow`, request);
+}
 
   /**
    * Handle HTTP errors

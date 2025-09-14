@@ -78,6 +78,22 @@ public class WeeklyScheduleService
         }
     }
 
+    public async Task DeferTask(int habitId, DateTime fromDate, DateTime toDate, string reason)
+    {
+        // Create a deferred task record (tracks that task was moved, not failed)
+        _context.TaskDeferrals.Add(new TaskDeferral
+        {
+            HabitId = habitId,
+            OriginalDate = fromDate,
+            DeferredToDate = toDate,
+            Reason = reason,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        await _context.SaveChangesAsync();
+    }
+
+
     private async Task AssignRollingHabits(WeekSchedule schedule, List<Habit> habits, List<HabitCompletion> recentCompletions)
     {
         var rollingHabits = habits.Where(h => h.Frequency == HabitFrequency.EveryTwoDays).ToList();

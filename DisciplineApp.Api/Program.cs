@@ -10,8 +10,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Add Entity Framework
+// In Program.cs
 builder.Services.AddDbContext<DisciplineDbContext>(options =>
-    options.UseSqlite("Data Source=discipline.db"));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Add services
 builder.Services.AddScoped<WeeklyScheduleService>();

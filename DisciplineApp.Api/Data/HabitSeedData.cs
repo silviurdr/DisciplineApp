@@ -22,7 +22,7 @@ public static class HabitSeedData
                 Description = "Lock iPhone in the lockbox for the evening",
                 Frequency = HabitFrequency.Daily,
                 HasDeadline = true,
-                DeadlineTime = new TimeOnly(20, 30), // 6:00 PM
+                DeadlineTime = new TimeOnly(11, 00), // 6:00 PM
                 IsLocked = false,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow

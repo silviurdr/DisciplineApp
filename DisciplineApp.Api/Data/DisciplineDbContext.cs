@@ -15,6 +15,8 @@ public class DisciplineDbContext : DbContext
     public DbSet<GraceUsage> GraceUsages { get; set; }
     public DbSet<Reward> Rewards { get; set; }
 
+    public DbSet<TaskDeferral> TaskDeferrals { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // DisciplineEntry configuration
@@ -64,6 +66,22 @@ public class DisciplineDbContext : DbContext
 
             // One grace per day constraint
             entity.HasIndex(g => g.UsedDate).IsUnique();
+        });
+
+        // TaskDeferral configuration
+        modelBuilder.Entity<TaskDeferral>(entity =>
+        {
+            entity.HasKey(td => td.Id);
+            entity.Property(td => td.OriginalDate).IsRequired();
+            entity.Property(td => td.DeferredToDate).IsRequired();
+            entity.Property(td => td.Reason).HasMaxLength(500);
+            entity.Property(td => td.CreatedAt).HasDefaultValue(DateTime.UtcNow);
+
+            // Configure relationship with Habit
+            entity.HasOne<Habit>()
+                      .WithMany()
+                      .HasForeignKey(td => td.HabitId)
+                      .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Reward configuration
