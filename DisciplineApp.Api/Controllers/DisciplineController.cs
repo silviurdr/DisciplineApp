@@ -53,7 +53,7 @@ public class DisciplineController : ControllerBase
                 weekEndDate = weekStart.AddDays(6).ToString("yyyy-MM-dd"),
                 currentDay = await BuildCurrentDayResponse(currentDate, weekSchedule, completions, adHocTasks), // ✅ ADD adHocTasks parameter
                 weeklyHabitProgress = await BuildWeeklyProgress(weekSchedule, completions),
-                dayStatuses = BuildDayStatuses(weekSchedule, completions)
+                dayStatuses = await BuildDayStatuses(weekSchedule, completions)
             };
 
             return Ok(response);
@@ -251,10 +251,10 @@ public class DisciplineController : ControllerBase
                 name = adHocTask.Name,
                 description = adHocTask.Description,
                 isCompleted = adHocTask.IsCompleted,
-                isRequired = false, // Ad-hoc tasks are not required for day completion
+                isRequired = true, // Ad-hoc tasks are not required for day completion
                 isLocked = false, // Ad-hoc tasks are never locked
                 reason = "Ad-hoc task",
-                priority = "Optional",
+                priority = "Required",
                 completedAt = adHocTask.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss"),
                 hasDeadline = false,
                 deadlineTime = (string)null,
@@ -305,27 +305,35 @@ public class DisciplineController : ControllerBase
         return progress;
     }
 
-    private List<object> BuildDayStatuses(WeekSchedule weekSchedule, List<HabitCompletion> completions)
+    private async Task<List<object>> BuildDayStatuses(WeekSchedule weekSchedule, List<HabitCompletion> completions)
     {
         var dayStatuses = new List<object>();
-
         foreach (var daySchedule in weekSchedule.DailySchedules)
         {
             var dayCompletions = completions.Where(c => c.Date.Date == daySchedule.Date.Date).ToList();
             var requiredHabits = daySchedule.ScheduledHabits.Where(h => h.Priority == SchedulePriority.Required).ToList();
             var completedRequired = requiredHabits.Count(h => dayCompletions.Any(c => c.HabitId == h.HabitId && c.IsCompleted));
 
+            // ✅ ADD: Get ad-hoc tasks for this day
+            var adHocTasksForDay = await _context.AdHocTasks
+                .Where(t => t.Date.Date == daySchedule.Date.Date)
+                .ToListAsync();
+            var completedAdHocTasks = adHocTasksForDay.Count(t => t.IsCompleted);
+
+            // ✅ UPDATE: Calculate total tasks including ad-hoc
+            var totalRequiredTasks = requiredHabits.Count + adHocTasksForDay.Count; // Include ad-hoc in total
+            var totalCompletedTasks = completedRequired + completedAdHocTasks;
+
             dayStatuses.Add(new
             {
                 date = daySchedule.Date.ToString("yyyy-MM-dd"),
-                isCompleted = requiredHabits.Count > 0 && completedRequired == requiredHabits.Count,
-                isPartiallyCompleted = completedRequired > 0 && completedRequired < requiredHabits.Count,
+                isCompleted = totalRequiredTasks > 0 && totalCompletedTasks == totalRequiredTasks,
+                isPartiallyCompleted = totalCompletedTasks > 0 && totalCompletedTasks < totalRequiredTasks,
                 canUseGrace = false, // Implement grace logic
-                requiredHabitsCount = requiredHabits.Count,
-                completedRequiredCount = completedRequired
+                requiredHabitsCount = totalRequiredTasks, // ✅ Now includes ad-hoc tasks
+                completedRequiredCount = totalCompletedTasks // ✅ Now includes ad-hoc tasks
             });
         }
-
         return dayStatuses;
     }
     [HttpPost("move-task-tomorrow")]

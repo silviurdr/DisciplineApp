@@ -72,7 +72,7 @@
 
   <div class="add-task-section" *ngIf="todayData">
   <button class="add-task-btn" (click)="openAddTaskDialog()">
-    ➕ Add Unexpected Task
+    ➕ Add Ad Hoc Task
   </button>
 </div>
 
@@ -100,9 +100,9 @@
      [class.ad-hoc]="habit.isAdHoc">
 
   <!-- Add ad-hoc indicator -->
-  <div class="habit-badges" *ngIf="habit.isAdHoc">
+<!--   <div class="habit-badges" *ngIf="habit.isAdHoc">
     <span class="ad-hoc-badge">📝 Today Only</span>
-  </div>
+  </div> -->
      <label [class.overdue]="habit.isOverdue" ></label>
 
             <div class="habit-actions" *ngIf="!habit.isCompleted && !habit.isLocked">

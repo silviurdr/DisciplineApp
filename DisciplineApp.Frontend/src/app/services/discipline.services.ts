@@ -219,6 +219,8 @@ private normalizeHabits(habits: any[]): ScheduledHabit[] {
     completedAt: habit.completedAt || undefined,
     hasDeadline: Boolean(habit.hasDeadline),
     deadlineTime: habit.deadlineTime || undefined,
+    isAdHoc: Boolean(habit.isAdHoc) || false,
+    adHocId: habit.adHocId || undefined,
     
     // ✅ FIX: Only calculate timeRemaining and isOverdue for habits with deadlines
     timeRemaining: habit.hasDeadline ? this.calculateTimeRemaining(habit.deadlineTime) : undefined,

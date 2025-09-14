@@ -189,6 +189,7 @@ private toggleAdHocTask(habit: ScheduledHabit): void {
   
   // Optimistic UI update
   habit.isCompleted = newCompletionState;
+  let timeoutForCompleteDay = 0;
 
   this.disciplineService.completeAdHocTask({
     taskId: habit.adHocId!,
@@ -198,10 +199,18 @@ private toggleAdHocTask(habit: ScheduledHabit): void {
     next: (response) => {
       console.log('Ad-hoc task toggled successfully:', response);
       // Check if all tasks are now completed for day completed sound
-      const allCompleted = this.todayData?.allHabits?.every(h => h.isCompleted) || false;
-      if (allCompleted && newCompletionState) {
-        this.soundService.playDayCompleted();
-      }
+      const allTasksCompleted = this.todayData?.allHabits?.every(h => h.isCompleted) || false;
+        if (allTasksCompleted && newCompletionState) {
+          console.log('All tasks completed! Playing day completed sound');
+                  timeoutForCompleteDay = 100; // Set delay for refreshing data
+                setTimeout(() => {
+              this.soundService.playDayCompleted();
+            }, 100); // Delay of 1000 milliseconds (1 second)
+          }
+                  // Refresh the entire week data to update progress
+          setTimeout(() => {
+             this.loadCurrentWeekData();
+            }, timeoutForCompleteDay); // Delay of 1000 milliseconds (1 second)    
     },
     error: (error) => {
       console.error('Error toggling ad-hoc task:', error);
@@ -249,7 +258,7 @@ private toggleAdHocTask(habit: ScheduledHabit): void {
         }
         // Refresh the entire week data to update progress
           setTimeout(() => {
-             this.loadCurrentWeekData();;
+             this.loadCurrentWeekData();
             }, timeoutForCompleteDay); // Delay of 1000 milliseconds (1 second)
       },
       error: (error) => {
