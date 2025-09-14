@@ -62,37 +62,57 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
   }
 
   async loadMonthData(): Promise<void> {
-    this.loading = true;
-    this.error = null;
+  this.loading = true;
+  this.error = null;
+  
+  try {
+    console.log('🚀 Loading month data...');
     
-    try {
-      // Generate calendar grid for the month
-      this.calendarDays = this.generateCalendarGrid();
+    // Generate calendar grid for the month
+    this.calendarDays = this.generateCalendarGrid();
+    console.log(`📅 Generated ${this.calendarDays.length} calendar days`);
+    
+    // Load data for each week that intersects with this month
+    const weeksInMonth = this.getWeeksInMonth();
+    console.log(`📊 Found ${weeksInMonth.length} weeks in month`);
+    
+    const weekPromises = weeksInMonth.map(async (weekStart, index) => {
+      console.log(`📥 Loading week ${index + 1} starting: ${weekStart.toISOString().split('T')[0]}`);
       
-      // Load data for each week that intersects with this month
-      const weekPromises = this.getWeeksInMonth().map(weekStart => 
-        this.disciplineService.getWeekData(
+      try {
+        const weekData = await this.disciplineService.getWeekData(
           weekStart.getFullYear(),
           weekStart.getMonth() + 1,
           weekStart.getDate()
-        ).toPromise()
-      );
+        ).toPromise();
+        
+        console.log(`✅ Week ${index + 1} loaded successfully:`, weekData);
+        return weekData;
+      } catch (error) {
+        console.error(`❌ Failed to load week ${index + 1}:`, error);
+        return null;
+      }
+    });
 
-      const weekDataArray = await Promise.all(weekPromises);
-      
-      // Process the week data to populate our calendar days
-      this.processWeekData(weekDataArray);
-      
-      // Calculate monthly statistics
-      this.calculateMonthlyStats();
-      
-    } catch (error) {
-      console.error('Error loading month data:', error);
-      this.error = 'Failed to load monthly data. Please try again.';
-    } finally {
-      this.loading = false;
-    }
+    const weekDataArray = await Promise.all(weekPromises);
+    console.log(`📊 Loaded ${weekDataArray.filter(w => w !== null).length} weeks successfully`);
+    
+    // Process the week data to populate our calendar days
+    this.processWeekData(weekDataArray.filter(w => w !== null));
+    
+    // Calculate monthly statistics
+    this.calculateMonthlyStats();
+    
+    console.log('✅ Month data loading completed');
+    
+  } catch (error) {
+    console.error('❌ Error loading month data:', error);
+    this.error = 'Failed to load monthly data. Please try again.';
+  } finally {
+    this.loading = false;
   }
+}
+
 
   private generateCalendarGrid(): MonthlyDayData[] {
     const days: MonthlyDayData[] = [];
