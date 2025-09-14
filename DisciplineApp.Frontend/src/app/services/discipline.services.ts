@@ -17,6 +17,8 @@ export interface ScheduledHabit {
   deadlineTime?: string; // Format: "18:00" for 6 PM
   timeRemaining?: string; // e.g., "2 hours 30 minutes remaining"
   isOverdue?: boolean;
+  isAdHoc?: boolean; // New property to distinguish ad-hoc tasks
+  adHocId?: number;
 }
 
 export interface DayData {
@@ -72,6 +74,29 @@ export interface MoveTaskRequest {
   reason?: string;
 }
 
+export interface AdHocTask {
+  id: number;
+  name: string;
+  description: string;
+  date: string;
+  isCompleted: boolean;
+  completedAt?: string;
+  notes: string;
+  createdAt: string;
+}
+
+export interface AddAdHocTaskRequest {
+  name: string;
+  description?: string;
+  date: string;
+}
+
+export interface CompleteAdHocTaskRequest {
+  taskId: number;
+  isCompleted: boolean;
+  notes?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -111,6 +136,14 @@ export class DisciplineService {
         map(response => this.normalizeDayData(response)),
         catchError(this.handleError)
       );
+  }
+
+  addAdHocTask(request: AddAdHocTaskRequest): Observable<any> {
+  return this.http.post(`${this.apiUrl}/add-adhoc-task`, request);
+}
+
+  completeAdHocTask(request: CompleteAdHocTaskRequest): Observable<any> {
+    return this.http.post(`${this.apiUrl}/complete-adhoc-task`, request);
   }
 
   /**

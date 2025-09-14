@@ -17,6 +17,8 @@ interface ScheduledHabit {
   hasDeadline?: boolean;
   deadlineTime?: string;
   isOverdue?: boolean;
+  isAdHoc?: boolean; // New property to distinguish ad-hoc tasks
+  adHocId?: number;  // ID for ad-hoc tasks
 }
 
 interface DayData {
@@ -35,6 +37,13 @@ interface WeeklyProgress {
   completions: number;
   target: number;
   percentage: number;
+}
+
+
+interface AddAdHocTaskRequest {
+  name: string;
+  description?: string;
+  date: string; // Format: "YYYY-MM-DD"
 }
 
 interface WeekData {
@@ -60,6 +69,9 @@ export class CalendarComponent implements OnInit {
   loading = true;
   error: string | null = null;
   selectedDay: any = null;
+  showAddTaskDialog = false;
+newTaskName = '';
+newTaskDescription = '';
 
   constructor(private disciplineService: DisciplineService, private soundService: SoundService) {}
 
@@ -155,8 +167,51 @@ export class CalendarComponent implements OnInit {
     this.loading = false;
   }
 
+
+  // Update your toggleHabit method to handle ad-hoc tasks:
+toggleHabit(habit: ScheduledHabit): void {
+  if (habit.isAdHoc && habit.adHocId) {
+    // Handle ad-hoc task completion
+    this.toggleAdHocTask(habit);
+  } else {
+    // Handle regular habit completion (your existing logic)
+    this.toggleRegularHabit(habit);
+  }
+}
+
+private toggleAdHocTask(habit: ScheduledHabit): void {
+  const newCompletionState = !habit.isCompleted;
+  
+  if (newCompletionState) {
+    this.soundService.playTaskCompleted();
+  }
+  
+  // Optimistic UI update
+  habit.isCompleted = newCompletionState;
+
+  this.disciplineService.completeAdHocTask({
+    taskId: habit.adHocId!,
+    isCompleted: newCompletionState,
+    notes: 'Completed via smart schedule'
+  }).subscribe({
+    next: (response) => {
+      console.log('Ad-hoc task toggled successfully:', response);
+      // Check if all tasks are now completed for day completed sound
+      const allCompleted = this.todayData?.allHabits?.every(h => h.isCompleted) || false;
+      if (allCompleted && newCompletionState) {
+        this.soundService.playDayCompleted();
+      }
+    },
+    error: (error) => {
+      console.error('Error toggling ad-hoc task:', error);
+      // Revert optimistic update on error
+      habit.isCompleted = !newCompletionState;
+    }
+  });
+}
+
   // Habit completion method
-  toggleHabit(habit: ScheduledHabit): void {
+  toggleRegularHabit(habit: ScheduledHabit): void {
     if (!this.todayData) return;
 
     const newCompletionState = !habit.isCompleted;
@@ -263,6 +318,42 @@ export class CalendarComponent implements OnInit {
       day: 'numeric' 
     });
   }
+
+  openAddTaskDialog(): void {
+  this.showAddTaskDialog = true;
+  this.newTaskName = '';
+  this.newTaskDescription = '';
+}
+
+closeAddTaskDialog(): void {
+  this.showAddTaskDialog = false;
+}
+
+addNewTask(): void {
+  if (!this.newTaskName.trim() || !this.todayData) return;
+
+  const request: AddAdHocTaskRequest = {
+    name: this.newTaskName.trim(),
+    description: this.newTaskDescription.trim(),
+    date: this.todayData.date
+  };
+
+  this.disciplineService.addAdHocTask(request).subscribe({
+    next: (response) => {
+      console.log('Ad-hoc task added successfully:', response);
+      // Play success sound
+      this.soundService.playTaskCompleted();
+      // Refresh the current day data
+      this.loadCurrentWeekData();
+      // Close dialog
+      this.closeAddTaskDialog();
+    },
+    error: (error) => {
+      console.error('Error adding ad-hoc task:', error);
+      alert('Failed to add task. Please try again.');
+    }
+  });
+}
 
   // Modal methods
   openDayDetail(day: any): void {

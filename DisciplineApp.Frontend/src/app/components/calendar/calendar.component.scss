@@ -1012,6 +1012,235 @@ h3 {
   }
 }
 
+.add-task-section {
+  margin-bottom: 20px;
+  text-align: center;
+
+  .add-task-btn {
+    background: linear-gradient(135deg, #4caf50, #45a049);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+      background: linear-gradient(135deg, #45a049, #4caf50);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.add-task-modal {
+  background: linear-gradient(135deg, #2a2a4a, #1a1a3a);
+  border-radius: 16px;
+  padding: 0;
+  max-width: 500px;
+  width: 90vw;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    h3 {
+      color: #64b5f6;
+      margin: 0;
+      font-size: 1.3rem;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 1.5rem;
+      cursor: pointer;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+    }
+  }
+
+  .modal-body {
+    padding: 24px;
+
+    .form-group {
+      margin-bottom: 20px;
+
+      label {
+        display: block;
+        color: #90caf9;
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+      }
+
+      .task-input, .task-textarea {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        background: rgba(30, 30, 60, 0.6);
+        color: #e3f2fd;
+        font-size: 1rem;
+        box-sizing: border-box;
+        transition: all 0.3s ease;
+
+        &:focus {
+          outline: none;
+          border-color: #64b5f6;
+          background: rgba(30, 30, 60, 0.8);
+        }
+
+        &::placeholder {
+          color: #666;
+        }
+      }
+
+      .task-textarea {
+        resize: vertical;
+        min-height: 80px;
+        font-family: inherit;
+      }
+    }
+
+    .task-info {
+      background: rgba(76, 175, 80, 0.1);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 16px;
+
+      small {
+        color: #4caf50;
+        font-size: 0.85rem;
+      }
+    }
+  }
+
+  .modal-footer {
+    display: flex;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+
+    button {
+      flex: 1;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .cancel-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #aaa;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+      }
+    }
+
+    .add-btn {
+      background: linear-gradient(135deg, #4caf50, #45a049);
+      border: none;
+      color: white;
+
+      &:hover:not(:disabled) {
+        background: linear-gradient(135deg, #45a049, #4caf50);
+        transform: translateY(-1px);
+      }
+
+      &:disabled {
+        background: #666;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+    }
+  }
+}
+
+// Style for ad-hoc tasks in the habit list
+.habit-item {
+  &.ad-hoc {
+    border-left: 4px solid #ff9800;
+    background: linear-gradient(90deg, rgba(255, 152, 0, 0.1), transparent);
+    
+    .ad-hoc-badge {
+      background-color: #ff9800;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      margin-bottom: 8px;
+      display: inline-block;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .add-task-modal {
+    width: 95vw;
+    margin: 20px;
+
+    .modal-body {
+      padding: 16px;
+    }
+
+    .modal-footer {
+      flex-direction: column;
+      
+      button {
+        margin-bottom: 8px;
+      }
+    }
+  }
+}
+
 @media (max-width: 768px) {
   .header {
     margin-bottom: 30px;

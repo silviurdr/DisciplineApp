@@ -69,6 +69,12 @@
     </div>
   </div>
 
+  <div class="add-task-section" *ngIf="todayData">
+  <button class="add-task-btn" (click)="openAddTaskDialog()">
+    ➕ Add Unexpected Task
+  </button>
+</div>
+
   <!-- Today's Smart Schedule -->
   <div class="smart-schedule" *ngIf="todayData">
     <h2>Today's Smart Schedule</h2>
@@ -89,7 +95,14 @@
      [class.locked]="habit.isLocked"
      [class.urgent]="!habit.isCompleted && habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) === 'urgent'"
      [class.critical]="!habit.isCompleted && habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) === 'critical'"
-     [class.overdue]="habit.isOverdue">
+     [class.overdue]="habit.isOverdue"
+     [class.ad-hoc]="habit.isAdHoc">
+
+  <!-- Add ad-hoc indicator -->
+  <div class="habit-badges" *ngIf="habit.isAdHoc">
+    <span class="ad-hoc-badge">📝 Today Only</span>
+  </div>
+     <label [class.overdue]="habit.isOverdue" ></label>
 
             <div class="habit-actions" *ngIf="!habit.isCompleted && !habit.isLocked">
           <button class="move-tomorrow-btn" 
@@ -245,4 +258,49 @@
       </div>
     </div>
   </div>
+  <div class="modal-overlay" *ngIf="showAddTaskDialog" (click)="closeAddTaskDialog()">
+  <div class="add-task-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Add New Task for Today</h3>
+      <button class="close-btn" (click)="closeAddTaskDialog()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="taskName">Task Name *</label>
+        <input 
+          id="taskName"
+          type="text" 
+          placeholder="e.g., Call dentist, Buy groceries..."
+          maxlength="200"
+          class="task-input">
+      </div>
+      
+      <div class="form-group">
+        <label for="taskDescription">Description (Optional)</label>
+        <textarea 
+          id="taskDescription"
+          placeholder="Additional details..."
+          maxlength="500"
+          rows="3"
+          class="task-textarea"></textarea>
+      </div>
+      
+      <div class="task-info">
+        <small>This task will be added to today only and won't affect your regular habit streaks.</small>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="cancel-btn" (click)="closeAddTaskDialog()">
+        Cancel
+      </button>
+      <button 
+        class="add-btn" 
+        (click)="addNewTask()">
+        Add Task
+      </button>
+    </div>
+  </div>
+</div>
 </div>

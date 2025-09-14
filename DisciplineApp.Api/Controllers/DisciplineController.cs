@@ -41,12 +41,17 @@ public class DisciplineController : ControllerBase
                 .Where(h => h.Date >= weekStart && h.Date <= weekStart.AddDays(6))
                 .ToListAsync();
 
+            // ✅ ADD: Get ad-hoc tasks for current day
+            var adHocTasks = await _context.AdHocTasks
+                .Where(t => t.Date.Date == currentDate.Date)
+                .ToListAsync();
+
             // Build response
             var response = new
             {
                 weekStartDate = weekStart.ToString("yyyy-MM-dd"),
                 weekEndDate = weekStart.AddDays(6).ToString("yyyy-MM-dd"),
-                currentDay = await BuildCurrentDayResponse(currentDate, weekSchedule, completions),
+                currentDay = await BuildCurrentDayResponse(currentDate, weekSchedule, completions, adHocTasks), // ✅ ADD adHocTasks parameter
                 weeklyHabitProgress = await BuildWeeklyProgress(weekSchedule, completions),
                 dayStatuses = BuildDayStatuses(weekSchedule, completions)
             };
@@ -111,7 +116,11 @@ public class DisciplineController : ControllerBase
                 .Where(h => h.Date.Date == request.Date.Date)
                 .ToListAsync();
 
-            var dayResponse = await BuildCurrentDayResponse(request.Date, weekSchedule, completions);
+            var adHocTasks = await _context.AdHocTasks
+            .Where(t => t.Date.Date == request.Date.Date)
+            .ToListAsync();
+
+            var dayResponse = await BuildCurrentDayResponse(request.Date, weekSchedule, completions, adHocTasks);
             return Ok(dayResponse);
         }
         catch (Exception ex)
@@ -120,7 +129,70 @@ public class DisciplineController : ControllerBase
         }
     }
 
-    private async Task<object> BuildCurrentDayResponse(DateTime date, WeekSchedule weekSchedule, List<HabitCompletion> completions)
+    [HttpPost("add-adhoc-task")]
+    public async Task<IActionResult> AddAdHocTask([FromBody] AddAdHocTaskRequest request)
+    {
+        try
+        {
+            var task = new AdHocTask
+            {
+                Name = request.Name,
+                Description = request.Description ?? "",
+                Date = request.Date.Date,
+                IsCompleted = false,
+                Notes = ""
+            };
+
+            _context.AdHocTasks.Add(task);
+            await _context.SaveChangesAsync();
+
+            // Return updated day status including the new ad-hoc task
+            var weekStart = GetWeekStart(request.Date);
+            var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+            var completions = await _context.HabitCompletions
+                .Where(h => h.Date.Date == request.Date.Date)
+                .ToListAsync();
+            var adHocTasks = await _context.AdHocTasks
+                .Where(t => t.Date.Date == request.Date.Date)
+                .ToListAsync();
+
+            var dayResponse = await BuildCurrentDayResponse(request.Date, weekSchedule, completions, adHocTasks);
+            return Ok(dayResponse);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpPost("complete-adhoc-task")]
+    public async Task<IActionResult> CompleteAdHocTask([FromBody] CompleteAdHocTaskRequest request)
+    {
+        try
+        {
+            var task = await _context.AdHocTasks.FindAsync(request.TaskId);
+            if (task == null)
+            {
+                return NotFound(new { error = "Task not found" });
+            }
+
+            task.IsCompleted = request.IsCompleted;
+            task.CompletedAt = request.IsCompleted ? DateTime.UtcNow : null;
+            task.Notes = request.Notes ?? task.Notes;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Ad-hoc task updated successfully" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    // In your DisciplineController.cs, update the BuildCurrentDayResponse method signature:
+
+    private async Task<object> BuildCurrentDayResponse(DateTime date, WeekSchedule weekSchedule, List<HabitCompletion> completions, List<AdHocTask> adHocTasks)
     {
         var daySchedule = weekSchedule.DailySchedules.FirstOrDefault(d => d.Date.Date == date.Date);
         if (daySchedule == null)
@@ -136,6 +208,7 @@ public class DisciplineController : ControllerBase
 
         var allHabits = new List<object>();
 
+        // Add regular scheduled habits
         foreach (var scheduledHabit in daySchedule.ScheduledHabits)
         {
             var completion = completions.FirstOrDefault(c => c.HabitId == scheduledHabit.HabitId && c.Date.Date == date.Date);
@@ -161,12 +234,33 @@ public class DisciplineController : ControllerBase
                 priority = scheduledHabit.Priority.ToString(),
                 completedAt = completion?.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss"),
                 hasDeadline = scheduledHabit.HasDeadline,
-                deadlineTime = scheduledHabit.DeadlineTime.ToString("HH:mm"), // Format as "18:00"
-
-                // Optional: You might also want to add these for frontend convenience
+                deadlineTime = scheduledHabit.DeadlineTime.ToString("HH:mm"),
                 isOverdue = scheduledHabit.HasDeadline && date.Date == DateTime.Today &&
-               TimeOnly.FromDateTime(DateTime.Now) > (scheduledHabit?.DeadlineTime ?? TimeOnly.MaxValue) &&
-               !(completion?.IsCompleted ?? false)
+                           TimeOnly.FromDateTime(DateTime.Now) > (scheduledHabit?.DeadlineTime ?? TimeOnly.MaxValue) &&
+                           !(completion?.IsCompleted ?? false),
+                isAdHoc = false // Regular habits are not ad-hoc
+            });
+        }
+
+        // Add ad-hoc tasks
+        foreach (var adHocTask in adHocTasks)
+        {
+            allHabits.Add(new
+            {
+                habitId = 0, // Ad-hoc tasks don't have habit IDs
+                name = adHocTask.Name,
+                description = adHocTask.Description,
+                isCompleted = adHocTask.IsCompleted,
+                isRequired = false, // Ad-hoc tasks are not required for day completion
+                isLocked = false, // Ad-hoc tasks are never locked
+                reason = "Ad-hoc task",
+                priority = "Optional",
+                completedAt = adHocTask.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss"),
+                hasDeadline = false,
+                deadlineTime = (string)null,
+                isOverdue = false,
+                isAdHoc = true, // Mark as ad-hoc
+                adHocId = adHocTask.Id // Include the ad-hoc task ID
             });
         }
 
@@ -258,9 +352,13 @@ public class DisciplineController : ControllerBase
                 .Where(h => h.Date.Date == currentDate.Date || h.Date.Date == tomorrow.Date)
                 .ToListAsync();
 
+            var adHocTasks = await _context.AdHocTasks
+                .Where(t => t.Date.Date == currentDate.Date)
+                .ToListAsync();
+
             // Return both today and tomorrow's updated status
-            var todayResponse = await BuildCurrentDayResponse(currentDate, weekSchedule, completions);
-            var tomorrowResponse = await BuildCurrentDayResponse(tomorrow, weekSchedule, completions);
+            var todayResponse = await BuildCurrentDayResponse(currentDate, weekSchedule, completions, adHocTasks);
+            var tomorrowResponse = await BuildCurrentDayResponse(tomorrow, weekSchedule, completions, adHocTasks);
 
             return Ok(new
             {
@@ -346,4 +444,18 @@ public class CompleteHabitRequest
     public int HabitId { get; set; }
     public string CurrentDate { get; set; } = string.Empty;
     public string Reason { get; set; } = string.Empty;
+}
+
+public class AddAdHocTaskRequest
+{
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; }
+    public DateTime Date { get; set; }
+}
+
+public class CompleteAdHocTaskRequest
+{
+    public int TaskId { get; set; }
+    public bool IsCompleted { get; set; }
+    public string Notes { get; set; }
 }

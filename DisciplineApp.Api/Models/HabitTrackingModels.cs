@@ -157,4 +157,16 @@ namespace DisciplineApp.Api.Models
         public string Date { get; set; } = string.Empty; // YYYY-MM-DD format
         public string Reason { get; set; } = string.Empty;
     }
+
+    public class AdHocTask
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public DateTime Date { get; set; }
+        public bool IsCompleted { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public string Notes { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    }
 }

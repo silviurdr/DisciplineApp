@@ -15,6 +15,7 @@ public class DisciplineDbContext : DbContext
     public DbSet<GraceUsage> GraceUsages { get; set; }
     public DbSet<Reward> Rewards { get; set; }
     public DbSet<TaskDeferral> TaskDeferrals { get; set; }
+    public DbSet<AdHocTask> AdHocTasks { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -85,6 +86,17 @@ public class DisciplineDbContext : DbContext
                   .IsUnique()
                   .HasDatabaseName("IX_HabitCompletions_HabitId_Date");
         });
+
+        modelBuilder.Entity<AdHocTask>(entity =>
+            {
+                entity.HasKey(t => t.Id);
+                entity.Property(t => t.Name).IsRequired().HasMaxLength(200);
+                entity.Property(t => t.Description).HasMaxLength(500);
+                entity.Property(t => t.Date).IsRequired().HasColumnType("date");
+                entity.Property(t => t.CreatedAt).HasColumnType("datetime2").HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(t => t.CompletedAt).HasColumnType("datetime2");
+            });
+
 
         // GraceUsage configuration
         modelBuilder.Entity<GraceUsage>(entity =>
