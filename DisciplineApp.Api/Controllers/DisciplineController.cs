@@ -285,6 +285,7 @@ public class DisciplineController : ControllerBase
                 completedAt = completion?.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss"),
                 hasDeadline = scheduledHabit.HasDeadline,
                 deadlineTime = scheduledHabit.DeadlineTime.ToString("HH:mm"),
+                //here is the logic for overdue and problem with time zone differences
                 isOverdue = scheduledHabit.HasDeadline && date.Date == DateTime.Today &&
                            TimeOnly.FromDateTime(DateTime.Now) > (scheduledHabit?.DeadlineTime ?? TimeOnly.MaxValue) &&
                            !(completion?.IsCompleted ?? false),

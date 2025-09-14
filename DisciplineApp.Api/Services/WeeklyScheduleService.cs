@@ -277,7 +277,7 @@ public class WeeklyScheduleService
                     var availableDays = schedule.DailySchedules
                         .Where(day => !weekDeferrals.Any(d =>
                             d.HabitId == habit.Id &&
-                            d.DeferredToDate.Date == day.Date.Date))
+                            d.OriginalDate.Date == day.Date.Date))
                         .ToList();
 
                     if (availableDays.Any())
@@ -337,7 +337,7 @@ public class WeeklyScheduleService
                     var availableDays = schedule.DailySchedules
                         .Where(day => !weekDeferrals.Any(d =>
                             d.HabitId == habit.Id &&
-                            d.DeferredToDate.Date == day.Date.Date))
+                            d.OriginalDate.Date == day.Date.Date))
                         .ToList();
 
                     if (availableDays.Any())
