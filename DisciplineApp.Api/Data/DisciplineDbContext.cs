@@ -153,6 +153,18 @@ public class DisciplineDbContext : DbContext
                   .HasConstraintName("FK_Rewards_DisciplineEntries");
         });
 
+        modelBuilder.Entity<TaskDeferral>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Reason).HasMaxLength(500);
+            entity.HasOne(e => e.Habit)
+                  .WithMany()
+                  .HasForeignKey(e => e.HabitId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.HabitId, e.OriginalDate }).IsUnique();
+        });
+
         base.OnModelCreating(modelBuilder);
     }
 }

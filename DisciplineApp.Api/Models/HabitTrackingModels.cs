@@ -88,6 +88,9 @@ namespace DisciplineApp.Api.Models
         public DateTime DeferredToDate { get; set; }
         public string Reason { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+
+        // Navigation property
+        public Habit Habit { get; set; } = null!;
     }
 
     // DTOs for API responses

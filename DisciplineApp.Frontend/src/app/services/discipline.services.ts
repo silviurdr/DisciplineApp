@@ -304,8 +304,8 @@ public isOverdue(deadlineTime?: string, isCompleted?: boolean): boolean {
     }));
   }
 
-  moveTaskToTomorrow(request: MoveTaskRequest): Observable<any> {
-  return this.http.post(`${this.apiUrl}/move-task-tomorrow`, request);
+moveTaskToTomorrow(request: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/move-task-tomorrow`, request);
 }
 
   /**

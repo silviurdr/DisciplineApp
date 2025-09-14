@@ -34,17 +34,58 @@ public class WeeklyScheduleService
             });
         }
 
-        // Get recent completion history for smart scheduling
+        // Get recent completion history AND deferrals for smart scheduling
         var recentCompletions = await GetRecentCompletions(weekStart);
+        var weekDeferrals = await GetWeekDeferrals(weekStart); // NEW
 
-        // Assign habits by type
-        await AssignDailyHabits(schedule, habits);
-        await AssignRollingHabits(schedule, habits, recentCompletions);
-        await AssignWeeklyHabits(schedule, habits);
-        await AssignMonthlyHabits(schedule, habits, recentCompletions);
-        await AssignSeasonalHabits(schedule, habits, recentCompletions);
+        // Apply deferred tasks first (highest priority)
+        await ApplyDeferredTasks(schedule, weekDeferrals); // NEW
+
+        // Then assign regular habits by type (excluding already deferred tasks)
+        await AssignDailyHabits(schedule, habits, weekDeferrals);
+        await AssignRollingHabits(schedule, habits, recentCompletions, weekDeferrals);
+        await AssignWeeklyHabits(schedule, habits, weekDeferrals);
+        await AssignMonthlyHabits(schedule, habits, recentCompletions, weekDeferrals);
+        await AssignSeasonalHabits(schedule, habits, recentCompletions, weekDeferrals);
 
         return schedule;
+    }
+
+    private async Task<List<TaskDeferral>> GetWeekDeferrals(DateTime weekStart)
+    {
+        var weekEnd = weekStart.AddDays(6);
+        return await _context.TaskDeferrals
+            .Include(d => d.Habit)
+            .Where(d =>
+    (d.DeferredToDate >= weekStart && d.DeferredToDate <= weekEnd) ||
+    (d.OriginalDate >= weekStart && d.OriginalDate <= weekEnd))
+            .OrderBy(d => d.DeferredToDate)
+            .ToListAsync();
+    }
+
+    // NEW: Apply deferred tasks to their target dates
+    private async Task ApplyDeferredTasks(WeekSchedule schedule, List<TaskDeferral> deferrals)
+    {
+        foreach (var deferral in deferrals)
+        {
+            var targetDay = schedule.DailySchedules
+                .FirstOrDefault(d => d.Date.Date == deferral.DeferredToDate.Date);
+
+            if (targetDay != null && deferral.Habit.IsActive)
+            {
+                targetDay.ScheduledHabits.Add(new ScheduledHabit
+                {
+                    HabitId = deferral.HabitId,
+                    HabitName = deferral.Habit.Name,
+                    Description = deferral.Habit.Description,
+                    IsLocked = deferral.Habit.IsLocked,
+                    HasDeadline = deferral.Habit.HasDeadline,
+                    DeadlineTime = deferral.Habit.DeadlineTime,
+                    Priority = SchedulePriority.Required, // Deferred tasks get high priority
+                    Reason = $"Moved from {deferral.OriginalDate:MMM dd} - {deferral.Reason}"
+                });
+            }
+        }
     }
 
     private async Task<List<HabitCompletion>> GetRecentCompletions(DateTime weekStart)
@@ -55,7 +96,7 @@ public class WeeklyScheduleService
             .ToListAsync();
     }
 
-    private async Task AssignDailyHabits(WeekSchedule schedule, List<Habit> habits)
+    private async Task AssignDailyHabits(WeekSchedule schedule, List<Habit> habits, List<TaskDeferral> deferrals)
     {
         var dailyHabits = habits.Where(h => h.Frequency == HabitFrequency.Daily).ToList();
 
@@ -63,20 +104,29 @@ public class WeeklyScheduleService
         {
             foreach (var habit in dailyHabits)
             {
-                day.ScheduledHabits.Add(new ScheduledHabit
+                // Skip if this habit is already deferred to this day
+                var isAlreadyDeferred = deferrals.Any(d =>
+                    d.HabitId == habit.Id &&
+                    d.DeferredToDate.Date == day.Date.Date);
+
+                if (!isAlreadyDeferred)
                 {
-                    HabitId = habit.Id,
-                    HabitName = habit.Name,
-                    IsLocked   = habit.IsLocked,
-                    HasDeadline = habit.HasDeadline,
-                    DeadlineTime = habit.DeadlineTime,
-                    Description = habit.Description,
-                    Priority = SchedulePriority.Required,
-                    Reason = "Daily habit"
-                });
+                    day.ScheduledHabits.Add(new ScheduledHabit
+                    {
+                        HabitId = habit.Id,
+                        HabitName = habit.Name,
+                        IsLocked = habit.IsLocked,
+                        HasDeadline = habit.HasDeadline,
+                        DeadlineTime = habit.DeadlineTime,
+                        Description = habit.Description,
+                        Priority = SchedulePriority.Required,
+                        Reason = "Daily habit"
+                    });
+                }
             }
         }
     }
+
 
     public async Task DeferTask(int habitId, DateTime fromDate, DateTime toDate, string reason)
     {
@@ -94,7 +144,8 @@ public class WeeklyScheduleService
     }
 
 
-    private async Task AssignRollingHabits(WeekSchedule schedule, List<Habit> habits, List<HabitCompletion> recentCompletions)
+    private async Task AssignRollingHabits(WeekSchedule schedule, List<Habit> habits,
+        List<HabitCompletion> recentCompletions, List<TaskDeferral> deferrals)
     {
         var rollingHabits = habits.Where(h => h.Frequency == HabitFrequency.EveryTwoDays).ToList();
 
@@ -103,63 +154,85 @@ public class WeeklyScheduleService
             var lastCompletion = recentCompletions
                 .FirstOrDefault(c => c.HabitId == habit.Id)?.Date;
 
-            // Determine starting day based on last completion
-            var startDay = CalculateNextRollingDay(lastCompletion, schedule.WeekStart);
-
-            // Schedule every 2 days: Mon, Wed, Fri, Sun pattern
             var rollingDays = new[] { 0, 2, 4, 6 }; // Monday, Wednesday, Friday, Sunday
 
             foreach (var dayIndex in rollingDays)
             {
                 if (dayIndex < schedule.DailySchedules.Count)
                 {
-                    var daysSinceLastCompletion = lastCompletion.HasValue
-                        ? (schedule.DailySchedules[dayIndex].Date - lastCompletion.Value).Days
-                        : 999;
+                    var targetDate = schedule.DailySchedules[dayIndex].Date;
 
-                    if (daysSinceLastCompletion >= 2)
+                    // Skip if already deferred to this day
+                    var isAlreadyDeferred = deferrals.Any(d =>
+                        d.HabitId == habit.Id &&
+                        d.DeferredToDate.Date == targetDate.Date);
+
+                    if (!isAlreadyDeferred)
                     {
-                        schedule.DailySchedules[dayIndex].ScheduledHabits.Add(new ScheduledHabit
+                        var daysSinceLastCompletion = lastCompletion.HasValue
+                            ? (targetDate - lastCompletion.Value).Days
+                            : 999;
+
+                        if (daysSinceLastCompletion >= 2)
                         {
-                            HabitId = habit.Id,
-                            HabitName = habit.Name,
-                            Description = habit.Description,
-                            Priority = SchedulePriority.Required,
-                            Reason = lastCompletion.HasValue
-                                ? $"Last completed {daysSinceLastCompletion} days ago"
-                                : "Never completed"
-                        });
-                        break; // Only schedule once per week
+                            schedule.DailySchedules[dayIndex].ScheduledHabits.Add(new ScheduledHabit
+                            {
+                                HabitId = habit.Id,
+                                HabitName = habit.Name,
+                                Description = habit.Description,
+                                Priority = SchedulePriority.Required,
+                                Reason = lastCompletion.HasValue
+                                    ? $"Last completed {daysSinceLastCompletion} days ago"
+                                    : "Never completed"
+                            });
+                            break; // Only schedule once per week
+                        }
                     }
                 }
             }
         }
     }
 
-    private async Task AssignWeeklyHabits(WeekSchedule schedule, List<Habit> habits)
+    private async Task AssignWeeklyHabits(WeekSchedule schedule, List<Habit> habits, List<TaskDeferral> weekDeferrals)
     {
         var weeklyHabits = habits.Where(h => h.Frequency == HabitFrequency.Weekly).ToList();
 
         foreach (var habit in weeklyHabits)
         {
             var optimalDays = GetOptimalDaysForWeeklyHabit(habit, schedule);
+            int assignedCount = 0;
 
-            for (int i = 0; i < Math.Min(habit.WeeklyTarget, optimalDays.Count); i++)
+            for (int i = 0; i < optimalDays.Count && assignedCount < habit.WeeklyTarget; i++)
             {
                 var dayIndex = optimalDays[i];
-                schedule.DailySchedules[dayIndex].ScheduledHabits.Add(new ScheduledHabit
+                var targetDate = schedule.DailySchedules[dayIndex].Date;
+
+                // Skip if this habit is already deferred to this day
+                var isAlreadyDeferred = weekDeferrals.Any(d =>
+                    d.HabitId == habit.Id &&
+                    d.DeferredToDate.Date == targetDate.Date);
+
+                if (!isAlreadyDeferred)
                 {
-                    HabitId = habit.Id,
-                    HabitName = habit.Name,
-                    Description = habit.Description,
-                    Priority = SchedulePriority.Required,
-                    Reason = $"Weekly target: {i + 1}/{habit.WeeklyTarget}"
-                });
+                    schedule.DailySchedules[dayIndex].ScheduledHabits.Add(new ScheduledHabit
+                    {
+                        HabitId = habit.Id,
+                        HabitName = habit.Name,
+                        Description = habit.Description,
+                        IsLocked = habit.IsLocked,
+                        HasDeadline = habit.HasDeadline,
+                        DeadlineTime = habit.DeadlineTime,
+                        Priority = SchedulePriority.Required,
+                        Reason = $"Weekly target: {assignedCount + 1}/{habit.WeeklyTarget}"
+                    });
+                    assignedCount++;
+                }
             }
         }
     }
 
-    private async Task AssignMonthlyHabits(WeekSchedule schedule, List<Habit> habits, List<HabitCompletion> recentCompletions)
+    private async Task AssignMonthlyHabits(WeekSchedule schedule, List<Habit> habits,
+        List<HabitCompletion> recentCompletions, List<TaskDeferral> weekDeferrals)
     {
         var monthlyHabits = habits.Where(h => h.Frequency == HabitFrequency.Monthly).ToList();
 
@@ -173,64 +246,127 @@ public class WeeklyScheduleService
 
             if (!completedThisMonth)
             {
-                // Schedule on the day with least other tasks (load balancing)
-                var optimalDay = schedule.DailySchedules
-                    .OrderBy(d => d.ScheduledHabits.Count)
-                    .First();
+                // Check if this habit is already deferred to any day this week
+                var isAlreadyDeferredThisWeek = weekDeferrals.Any(d => d.HabitId == habit.Id);
 
-                optimalDay.ScheduledHabits.Add(new ScheduledHabit
+                if (!isAlreadyDeferredThisWeek)
                 {
-                    HabitId = habit.Id,
-                    HabitName = habit.Name,
-                    Description = habit.Description,
-                    Priority = SchedulePriority.Required,
-                    Reason = "Monthly target not yet met"
-                });
-            }
-        }
-    }
+                    // Find available days (not already assigned this habit via deferral)
+                    var availableDays = schedule.DailySchedules
+                        .Where(day => !weekDeferrals.Any(d =>
+                            d.HabitId == habit.Id &&
+                            d.DeferredToDate.Date == day.Date.Date))
+                        .ToList();
 
-    private async Task AssignSeasonalHabits(WeekSchedule schedule, List<Habit> habits, List<HabitCompletion> recentCompletions)
-    {
-        var seasonalHabits = habits.Where(h => h.Frequency == HabitFrequency.Seasonal).ToList();
-
-        foreach (var habit in seasonalHabits)
-        {
-            // Check if we're in the warm season (March-October)
-            var currentMonth = schedule.WeekStart.Month;
-            if (currentMonth >= 3 && currentMonth <= 10)
-            {
-                var seasonStart = new DateTime(schedule.WeekStart.Year, 3, 1);
-                var seasonEnd = new DateTime(schedule.WeekStart.Year, 10, 31);
-
-                var completedThisSeason = recentCompletions
-                    .Count(c => c.HabitId == habit.Id && c.Date >= seasonStart && c.Date <= seasonEnd);
-
-                if (completedThisSeason < habit.SeasonalTarget)
-                {
-                    // Calculate if we need to schedule this week
-                    var remainingWeeksInSeason = GetRemainingWeeksInSeason(schedule.WeekStart);
-                    var remainingCompletions = habit.SeasonalTarget - completedThisSeason;
-
-                    if (remainingCompletions > 0 && ShouldScheduleSeasonalHabitThisWeek(remainingCompletions, remainingWeeksInSeason))
+                    if (availableDays.Any())
                     {
-                        var optimalDay = schedule.DailySchedules
-                            .Where(d => d.Date.DayOfWeek == DayOfWeek.Saturday || d.Date.DayOfWeek == DayOfWeek.Sunday)
+                        // Schedule on the available day with least other tasks (load balancing)
+                        var optimalDay = availableDays
                             .OrderBy(d => d.ScheduledHabits.Count)
-                            .FirstOrDefault() ?? schedule.DailySchedules.OrderBy(d => d.ScheduledHabits.Count).First();
+                            .First();
 
                         optimalDay.ScheduledHabits.Add(new ScheduledHabit
                         {
                             HabitId = habit.Id,
                             HabitName = habit.Name,
                             Description = habit.Description,
+                            IsLocked = habit.IsLocked,
+                            HasDeadline = habit.HasDeadline,
+                            DeadlineTime = habit.DeadlineTime,
                             Priority = SchedulePriority.Required,
-                            Reason = $"Seasonal target: {completedThisSeason + 1}/{habit.SeasonalTarget}"
+                            Reason = "Monthly target not yet met"
                         });
                     }
                 }
             }
         }
+    }
+
+    private async Task AssignSeasonalHabits(WeekSchedule schedule, List<Habit> habits,
+        List<HabitCompletion> recentCompletions, List<TaskDeferral> weekDeferrals)
+    {
+        var seasonalHabits = habits.Where(h => h.Frequency == HabitFrequency.Seasonal).ToList();
+
+        foreach (var habit in seasonalHabits)
+        {
+            // Calculate season boundaries (assuming 4 seasons per year, 3 months each)
+            var currentSeason = GetCurrentSeason(schedule.WeekStart);
+            var seasonStart = currentSeason.Start;
+            var seasonEnd = currentSeason.End;
+
+            // Check if completed this season
+            var completedThisSeason = recentCompletions
+                .Any(c => c.HabitId == habit.Id && c.Date >= seasonStart && c.Date <= seasonEnd);
+
+            // For seasonal habits, also check target (e.g., "Clean Windows" 3x per season)
+            var seasonalCompletions = recentCompletions
+                .Count(c => c.HabitId == habit.Id && c.Date >= seasonStart && c.Date <= seasonEnd);
+
+            var seasonalTarget = habit.SeasonalTarget != 0 ? habit.SeasonalTarget : 1; 
+
+            if (seasonalCompletions < seasonalTarget)
+            {
+                // Check if this habit is already deferred to any day this week
+                var isAlreadyDeferredThisWeek = weekDeferrals.Any(d => d.HabitId == habit.Id);
+
+                if (!isAlreadyDeferredThisWeek)
+                {
+                    // Find available days (not already assigned this habit via deferral)
+                    var availableDays = schedule.DailySchedules
+                        .Where(day => !weekDeferrals.Any(d =>
+                            d.HabitId == habit.Id &&
+                            d.DeferredToDate.Date == day.Date.Date))
+                        .ToList();
+
+                    if (availableDays.Any())
+                    {
+                        // Schedule on the available day with least other tasks (load balancing)
+                        var optimalDay = availableDays
+                            .OrderBy(d => d.ScheduledHabits.Count)
+                            .First();
+
+                        optimalDay.ScheduledHabits.Add(new ScheduledHabit
+                        {
+                            HabitId = habit.Id,
+                            HabitName = habit.Name,
+                            Description = habit.Description,
+                            IsLocked = habit.IsLocked,
+                            HasDeadline = habit.HasDeadline,
+                            DeadlineTime = habit.DeadlineTime,
+                            Priority = SchedulePriority.Required,
+                            Reason = $"Seasonal target: {seasonalCompletions + 1}/{seasonalTarget}"
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    private (DateTime Start, DateTime End) GetCurrentSeason(DateTime date)
+    {
+        var year = date.Year;
+
+        // Define seasons (adjust these dates based on your preference)
+        var seasons = new[]
+        {
+            (Start: new DateTime(year, 12, 21), End: new DateTime(year + 1, 3, 20), Name: "Winter"), // Winter spans year boundary
+            (Start: new DateTime(year, 3, 21), End: new DateTime(year, 6, 20), Name: "Spring"),
+            (Start: new DateTime(year, 6, 21), End: new DateTime(year, 9, 20), Name: "Summer"),
+            (Start: new DateTime(year, 9, 21), End: new DateTime(year, 12, 20), Name: "Fall")
+        };
+
+        // Handle winter spanning year boundary
+        if (date.Month <= 3 && date.Day <= 20)
+        {
+            return (new DateTime(year - 1, 12, 21), new DateTime(year, 3, 20));
+        }
+
+        // Find current season
+        var currentSeason = seasons.FirstOrDefault(s => date >= s.Start && date <= s.End);
+
+        return currentSeason != default
+            ? (currentSeason.Start, currentSeason.End)
+            : (seasons[0].Start, seasons[0].End);
     }
 
     private int CalculateNextRollingDay(DateTime? lastCompletion, DateTime weekStart)

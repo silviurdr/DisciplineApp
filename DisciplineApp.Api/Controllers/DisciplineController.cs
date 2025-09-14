@@ -391,43 +391,48 @@ public class DisciplineController : ControllerBase
     {
         try
         {
+            var tomorrow = DateTime.Today.AddDays(1);
+
+            // Check if habit exists and is active
             var habit = await _context.Habits.FindAsync(request.HabitId);
-            if (habit == null)
+            if (habit == null || !habit.IsActive)
             {
-                return NotFound(new { error = "Habit not found" });
+                return BadRequest("Invalid habit ID or habit is not active");
             }
 
-            var currentDate = DateTime.Parse(request.CurrentDate);
-            var tomorrow = currentDate.AddDays(1);
+            // Parse the current date from the request
+            if (!DateTime.TryParse(request.CurrentDate.ToString(), out var currentDate))
+            {
+                return BadRequest("Invalid current date format");
+            }
 
-            // Remove from current day (mark as deferred, not failed)
-            await _scheduleService.DeferTask(request.HabitId, currentDate, tomorrow, request.Reason);
+            // Check if already deferred from this date
+            var existingDeferral = await _context.TaskDeferrals
+                .FirstOrDefaultAsync(d => d.HabitId == request.HabitId &&
+                                   d.OriginalDate.Date == currentDate.Date);
 
-            // Get updated schedules
-            var weekStart = GetWeekStart(currentDate);
-            var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
-            var completions = await _context.HabitCompletions
-                .Where(h => h.Date.Date == currentDate.Date || h.Date.Date == tomorrow.Date)
-                .ToListAsync();
+            if (existingDeferral != null)
+            {
+                return BadRequest("This task has already been moved from this date");
+            }
 
-            var adHocTasks = await _context.AdHocTasks
-                .Where(t => t.Date.Date == currentDate.Date)
-                .ToListAsync();
-
-            // Return both today and tomorrow's updated status
-            var todayResponse = await BuildCurrentDayResponse(currentDate, weekSchedule, completions, adHocTasks);
-            var tomorrowResponse = await BuildCurrentDayResponse(tomorrow, weekSchedule, completions, adHocTasks);
+            // Create the deferral
+            await _scheduleService.DeferTask(
+                request.HabitId,
+                currentDate,
+                tomorrow,
+                request.Reason ?? "Moved by user request"
+            );
 
             return Ok(new
             {
-                today = todayResponse,
-                tomorrow = tomorrowResponse,
-                message = $"{habit.Name} moved to tomorrow"
+                message = "Task successfully moved to tomorrow",
+                deferredTo = tomorrow.ToString("yyyy-MM-dd")
             });
         }
         catch (Exception ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return StatusCode(500, $"Error moving task: {ex.Message}");
         }
     }
 
@@ -497,12 +502,14 @@ public class CompleteHabitRequest
     public DateTime Date { get; set; }
     public bool IsCompleted { get; set; }
     public string Notes { get; set; } = string.Empty;
-}public class MoveTaskRequest
+}
+public class MoveTaskRequest
 {
     public int HabitId { get; set; }
-    public string CurrentDate { get; set; } = string.Empty;
-    public string Reason { get; set; } = string.Empty;
+    public DateTime CurrentDate { get; set; }
+    public string? Reason { get; set; }
 }
+
 
 public class AddAdHocTaskRequest
 {
