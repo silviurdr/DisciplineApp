@@ -104,12 +104,18 @@ public class WeeklyScheduleService
         {
             foreach (var habit in dailyHabits)
             {
-                // Skip if this habit is already deferred to this day
-                var isAlreadyDeferred = deferrals.Any(d =>
+                // 🔥 CRITICAL FIX: Check if this habit was moved AWAY from this day
+                var wasMovedFromThisDay = deferrals.Any(d =>
+                    d.HabitId == habit.Id &&
+                    d.OriginalDate.Date == day.Date.Date);
+
+                // 🔥 CRITICAL FIX: Also check if already deferred TO this day (to prevent duplicates)
+                var isAlreadyDeferredToThisDay = deferrals.Any(d =>
                     d.HabitId == habit.Id &&
                     d.DeferredToDate.Date == day.Date.Date);
 
-                if (!isAlreadyDeferred)
+                // Only add if NOT moved away AND NOT already deferred to this day
+                if (!wasMovedFromThisDay && !isAlreadyDeferredToThisDay)
                 {
                     day.ScheduledHabits.Add(new ScheduledHabit
                     {
@@ -207,10 +213,10 @@ public class WeeklyScheduleService
                 var dayIndex = optimalDays[i];
                 var targetDate = schedule.DailySchedules[dayIndex].Date;
 
-                // Skip if this habit is already deferred to this day
+                // Skip if this habit is already deferred to this day  // this now removes from weekly assignment
                 var isAlreadyDeferred = weekDeferrals.Any(d =>
                     d.HabitId == habit.Id &&
-                    d.DeferredToDate.Date == targetDate.Date);
+                    d.OriginalDate.Date == targetDate.Date);
 
                 if (!isAlreadyDeferred)
                 {
