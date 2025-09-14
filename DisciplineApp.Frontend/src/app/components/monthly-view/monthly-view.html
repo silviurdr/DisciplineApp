@@ -63,46 +63,86 @@
     </div>
 
     <!-- Calendar Grid -->
-    <div class="calendar-grid">
-      <div 
-        *ngFor="let day of calendarDays" 
-        class="calendar-day"
-        [class.other-month]="!day.isCurrentMonth"
-        [class.today]="day.isToday"
-        [class.future]="day.isFuture"
-        [class]="getDayStatusClass(day)"
-        (click)="onDayClick(day)">
-        
-        <!-- Day Number -->
-        <div class="day-number">{{ day.dayNumber }}</div>
-        
-        <!-- Status Icon -->
-        <div class="day-status" *ngIf="day.isCurrentMonth && !day.isFuture">
-          <span class="status-icon" [class]="getDayStatusClass(day)">
-            {{ getStatusIcon(day) }}
-          </span>
-        </div>
-        
-        <!-- Task Summary -->
-        <div class="task-summary" *ngIf="day.isCurrentMonth && !day.isFuture && day.totalHabits > 0">
-          <div class="task-count">
-            {{ day.completedHabits }}/{{ day.totalHabits }}
-          </div>
-          <div class="completion-bar">
-            <div class="completion-fill" [style.width.%]="day.completionPercentage"></div>
-          </div>
-        </div>
-        
-        <!-- Future Indicator -->
-        <div class="future-indicator" *ngIf="day.isFuture && day.isCurrentMonth">
-          Future
-        </div>
-        
-        <!-- Free Day -->
-        <div class="free-day" *ngIf="day.totalHabits === 0 && !day.isFuture && day.isCurrentMonth">
-          Free
-        </div>
+<div class="calendar-grid">
+  <div 
+    *ngFor="let day of calendarDays" 
+    class="calendar-day"
+    [class.other-month]="!day.isCurrentMonth"
+    [class.today]="day.isToday"
+    [class.future]="day.isFuture"
+    [class.has-reward]="getProjectedReward(day) !== null"
+    [class]="getDayStatusClass(day)"
+    (click)="onDayClick(day)">
+    
+    <!-- Day Number -->
+    <div class="day-number">{{ day.dayNumber }}</div>
+    
+    <!-- Projected Reward Icon -->
+    <div class="projected-reward" *ngIf="getProjectedReward(day) as reward">
+      <div class="reward-icon" 
+           [style.background-color]="reward.tier.color"
+           [title]="getRewardDisplayText(reward)">
+        {{ reward.tier.icon }}
+      </div>
+      <div class="reward-text">
+        Day {{ reward.streakDay }}
       </div>
     </div>
+    
+    <!-- Status Icon -->
+    <div class="day-status" *ngIf="day.isCurrentMonth && !day.isFuture && !getProjectedReward(day)">
+      <span class="status-icon" [class]="getDayStatusClass(day)">
+        {{ getStatusIcon(day) }}
+      </span>
+    </div>
+    
+    <!-- Task Summary -->
+    <div class="task-summary" *ngIf="day.isCurrentMonth && !day.isFuture && day.totalHabits > 0 && !getProjectedReward(day)">
+      <div class="task-count">
+        {{ day.completedHabits }}/{{ day.totalHabits }}
+      </div>
+      <div class="completion-bar">
+        <div class="completion-fill" [style.width.%]="day.completionPercentage"></div>
+      </div>
+    </div>
+    
+    <!-- Future Indicator -->
+    <div class="future-indicator" *ngIf="day.isFuture && day.isCurrentMonth && !getProjectedReward(day)">
+      Future
+    </div>
+    
+    <!-- Free Day -->
+    <div class="free-day" *ngIf="day.totalHabits === 0 && !day.isFuture && day.isCurrentMonth && !getProjectedReward(day)">
+      Free
+    </div>
   </div>
+</div>
+  </div>
+
+  <!-- Add Reward Legend (optional) -->
+<div class="reward-legend" *ngIf="projectedRewards.length > 0">
+  <h4>Upcoming Rewards</h4>
+  <div class="legend-items">
+    <div class="legend-item">
+      <span class="legend-icon tier-1">☕</span>
+      <span>Coffee Reward</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-icon tier-2">📚</span>
+      <span>Book Reward</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-icon tier-3">👕</span>
+      <span>Clothing Reward</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-icon tier-4">🎾</span>
+      <span>Equipment Reward</span>
+    </div>
+  </div>
+</div>
+<button class="debug-btn" (click)="debugRewardsSystem()" 
+        style="background: orange; color: black; padding: 10px; margin: 10px; border: none; border-radius: 4px;">
+  Debug Rewards System
+</button>
 </div>

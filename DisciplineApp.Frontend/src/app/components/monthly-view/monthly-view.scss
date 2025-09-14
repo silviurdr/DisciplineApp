@@ -390,6 +390,204 @@
   }
 }
 
+/* Calendar day with projected reward */
+.calendar-day.has-reward {
+  border: 2px solid #ffc107;
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 152, 0, 0.05) 100%);
+  animation: rewardGlow 2s ease-in-out infinite alternate;
+  
+  &:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(255, 193, 7, 0.3);
+  }
+}
+
+@keyframes rewardGlow {
+  0% {
+    box-shadow: 0 0 5px rgba(255, 193, 7, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(255, 193, 7, 0.6);
+  }
+}
+
+/* Projected reward content */
+.projected-reward {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+}
+
+.reward-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  margin-bottom: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.reward-text {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #ffc107;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Reward Legend */
+.reward-legend {
+  margin-top: 30px;
+  padding: 20px;
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 12px;
+  
+  h4 {
+    margin: 0 0 15px 0;
+    color: #ffc107;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-align: center;
+  }
+}
+
+.legend-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+  }
+  
+  span:last-child {
+    font-size: 0.85rem;
+    color: #e0e0e0;
+    font-weight: 500;
+  }
+}
+
+.legend-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  
+  &.tier-1 {
+    background-color: #8D6E63;
+  }
+  
+  &.tier-2 {
+    background-color: #5C6BC0;
+  }
+  
+  &.tier-3 {
+    background-color: #42A5F5;
+  }
+  
+  &.tier-4 {
+    background-color: #66BB6A;
+  }
+}
+
+/* Special styling for different reward tiers */
+.calendar-day.has-reward {
+  .reward-icon {
+    /* Tier-specific animations */
+    &[style*="#8D6E63"] { /* Tier 1 - Coffee */
+      animation: tier1Pulse 1.5s ease-in-out infinite;
+    }
+    
+    &[style*="#5C6BC0"] { /* Tier 2 - Book */
+      animation: tier2Pulse 1.5s ease-in-out infinite;
+    }
+    
+    &[style*="#42A5F5"] { /* Tier 3 - Clothing */
+      animation: tier3Pulse 1.5s ease-in-out infinite;
+    }
+    
+    &[style*="#66BB6A"] { /* Tier 4 - Equipment */
+      animation: tier4Pulse 1.5s ease-in-out infinite;
+      box-shadow: 0 0 20px rgba(102, 187, 106, 0.6);
+    }
+  }
+}
+
+
+@keyframes tier1Pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes tier2Pulse {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.05) rotate(2deg); }
+}
+
+@keyframes tier3Pulse {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.02) rotate(-1deg); }
+  75% { transform: scale(1.02) rotate(1deg); }
+}
+
+@keyframes tier4Pulse {
+  0%, 100% { transform: scale(1); }
+  33% { transform: scale(1.1) rotate(5deg); }
+  66% { transform: scale(1.05) rotate(-5deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .reward-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+  
+  .reward-text {
+    font-size: 0.6rem;
+  }
+  
+  .legend-items {
+    grid-template-columns: 1fr;
+  }
+  
+  .calendar-day.has-reward {
+    &:hover {
+      transform: none;
+    }
+  }
+}
+
 @media (max-width: 480px) {
   .calendar-day {
     min-height: 60px;

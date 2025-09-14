@@ -1,8 +1,8 @@
-// Updated monthly-view.component.ts
+// Complete monthly-view.component.ts with projected rewards system
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject, forkJoin } from 'rxjs';
-import { takeUntil, map, catchError } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { DisciplineService } from '../../services/discipline.services';
 
 interface MonthlyDayData {
@@ -18,6 +18,7 @@ interface MonthlyDayData {
   tasks: any[];
   completionPercentage: number;
   isFuture: boolean;
+  projectedReward?: ProjectedReward;
 }
 
 interface MonthlyStats {
@@ -26,6 +27,25 @@ interface MonthlyStats {
   completionRate: number;
   currentStreak: number;
   totalHabits: number;
+}
+
+interface RewardTier {
+  tier: 1 | 2 | 3 | 4;
+  icon: string;
+  name: string;
+  color: string;
+}
+
+interface ProjectedReward {
+  date: Date;
+  dateString: string;
+  streakDay: number;
+  tier: RewardTier;
+}
+
+interface StreakInfo {
+  currentStreak: number;
+  lastCompletedDate: Date | null;
 }
 
 @Component({
@@ -41,10 +61,35 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
   
   calendarDays: MonthlyDayData[] = [];
   monthlyStats: MonthlyStats | null = null;
+  projectedRewards: ProjectedReward[] = [];
   loading = false;
   error: string | null = null;
 
   private destroy$ = new Subject<void>();
+
+  // Define reward tiers
+  private rewardTiers: Record<number, RewardTier> = {
+    1: { tier: 1, icon: '☕', name: 'Coffee Reward', color: '#8D6E63' },
+    2: { tier: 2, icon: '📚', name: 'Book Reward', color: '#5C6BC0' },
+    3: { tier: 3, icon: '👕', name: 'Clothing Reward', color: '#42A5F5' },
+    4: { tier: 4, icon: '🎾', name: 'Equipment Reward', color: '#66BB6A' }
+  };
+
+  // Reward schedule based on your requirements
+  private rewardSchedule: Array<{day: number, tier: 1 | 2 | 3 | 4}> = [
+    { day: 7, tier: 1 },   // Tier 1 at 7 days
+    { day: 14, tier: 2 },  // Tier 2 at 14 days
+    { day: 21, tier: 1 },  // Tier 1 at 21 days
+    { day: 30, tier: 3 },  // Tier 3 at 30 days
+    { day: 37, tier: 1 },  // Tier 1 at 37 days
+    { day: 44, tier: 2 },  // Tier 2 at 44 days
+    { day: 51, tier: 1 },  // Tier 1 at 51 days
+    { day: 60, tier: 3 },  // Tier 3 at 60 days
+    { day: 67, tier: 1 },  // Tier 1 at 67 days
+    { day: 74, tier: 2 },  // Tier 2 at 74 days
+    { day: 81, tier: 1 },  // Tier 1 at 81 days
+    { day: 90, tier: 4 }   // Tier 4 at 90 days
+  ];
 
   constructor(private disciplineService: DisciplineService) {
     const today = new Date();
@@ -62,101 +107,90 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
   }
 
   async loadMonthData(): Promise<void> {
-  this.loading = true;
-  this.error = null;
-  
-  try {
-    console.log('🚀 Loading month data...');
+    this.loading = true;
+    this.error = null;
     
-    // Generate calendar grid for the month
-    this.calendarDays = this.generateCalendarGrid();
-    console.log(`📅 Generated ${this.calendarDays.length} calendar days`);
-    
-    // Load data for each week that intersects with this month
-    const weeksInMonth = this.getWeeksInMonth();
-    console.log(`📊 Found ${weeksInMonth.length} weeks in month`);
-    
-    const weekPromises = weeksInMonth.map(async (weekStart, index) => {
-      console.log(`📥 Loading week ${index + 1} starting: ${weekStart.toISOString().split('T')[0]}`);
+    try {
+      // Generate calendar grid for the month
+      this.calendarDays = this.generateCalendarGrid();
       
-      try {
-        const weekData = await this.disciplineService.getWeekData(
+      // Load data for each week that intersects with this month
+      const weekPromises = this.getWeeksInMonth().map(weekStart => 
+        this.disciplineService.getWeekData(
           weekStart.getFullYear(),
           weekStart.getMonth() + 1,
           weekStart.getDate()
-        ).toPromise();
-        
-        console.log(`✅ Week ${index + 1} loaded successfully:`, weekData);
-        return weekData;
-      } catch (error) {
-        console.error(`❌ Failed to load week ${index + 1}:`, error);
-        return null;
-      }
-    });
+        ).toPromise()
+      );
 
-    const weekDataArray = await Promise.all(weekPromises);
-    console.log(`📊 Loaded ${weekDataArray.filter(w => w !== null).length} weeks successfully`);
-    
-    // Process the week data to populate our calendar days
-    this.processWeekData(weekDataArray.filter(w => w !== null));
-    
-    // Calculate monthly statistics
-    this.calculateMonthlyStats();
-    
-    console.log('✅ Month data loading completed');
-    
-  } catch (error) {
-    console.error('❌ Error loading month data:', error);
-    this.error = 'Failed to load monthly data. Please try again.';
-  } finally {
-    this.loading = false;
+      const weekDataArray = await Promise.all(weekPromises);
+      
+      // Process the week data to populate our calendar days
+      this.processWeekData(weekDataArray);
+      
+      // Get current streak information
+      const streakInfo = await this.getCurrentStreakInfo();
+      
+      // Calculate projected rewards
+      this.calculateProjectedRewards(streakInfo);
+      
+      // Apply projected rewards to calendar days
+      this.applyProjectedRewardsToCalendar();
+      
+      // Calculate monthly statistics
+      this.calculateMonthlyStats();
+      
+    } catch (error) {
+      console.error('Error loading month data:', error);
+      this.error = 'Failed to load monthly data. Please try again.';
+    } finally {
+      this.loading = false;
+    }
   }
-}
 
-
- private generateCalendarGrid(): MonthlyDayData[] {
-  const days: MonthlyDayData[] = [];
-  const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-  const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
-  
-  // Calculate start date (might be from previous month to fill the grid)
-  const startDate = new Date(firstDay);
-  startDate.setDate(startDate.getDate() - firstDay.getDay());
-  
-  // Generate 42 days (6 weeks × 7 days)
-  for (let i = 0; i < 42; i++) {
-    const date = new Date(startDate);
-    date.setDate(startDate.getDate() + i);
+  private generateCalendarGrid(): MonthlyDayData[] {
+    const days: MonthlyDayData[] = [];
+    const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+    const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
     
-    const isCurrentMonth = date.getMonth() === this.currentMonth;
-    const today = new Date();
-    const isToday = date.toDateString() === today.toDateString();
-    const isFuture = date > today;
+    // Calculate start date (might be from previous month to fill the grid)
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
     
-    // 🔥 FIX: Use consistent date string format (avoid timezone issues)
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const dateString = `${year}-${month}-${day}`;
+    // Generate 42 days (6 weeks × 7 days)
+    for (let i = 0; i < 42; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      
+      const isCurrentMonth = date.getMonth() === this.currentMonth;
+      const today = new Date();
+      const isToday = date.toDateString() === today.toDateString();
+      const isFuture = date > today;
+      
+      // Use consistent date string format (avoid timezone issues)
+      const year = date.getFullYear();
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      
+      days.push({
+        date: date,
+        dateString: dateString,
+        dayNumber: date.getDate(),
+        isCurrentMonth,
+        isToday,
+        isCompleted: false,
+        isPartiallyCompleted: false,
+        completedHabits: 0,
+        totalHabits: 0,
+        tasks: [],
+        completionPercentage: 0,
+        isFuture
+      });
+    }
     
-    days.push({
-      date: date,
-      dateString: dateString, // Use consistent format
-      dayNumber: date.getDate(),
-      isCurrentMonth,
-      isToday,
-      isCompleted: false,
-      isPartiallyCompleted: false,
-      completedHabits: 0,
-      totalHabits: 0,
-      tasks: [],
-      completionPercentage: 0,
-      isFuture
-    });
+    return days;
   }
-  
-  return days;
-}
 
   private getWeeksInMonth(): Date[] {
     const weeks: Date[] = [];
@@ -179,7 +213,7 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
   }
 
   private processWeekData(weekDataArray: any[]): void {
-    weekDataArray.forEach(weekData => {
+    weekDataArray.forEach((weekData) => {
       if (!weekData?.dayStatuses) return;
       
       weekData.dayStatuses.forEach((dayStatus: any) => {
@@ -194,16 +228,6 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
             : 0;
         }
       });
-      
-      // Also process individual day data to get task lists
-      if (weekData.currentDay && weekData.currentDay.allHabits) {
-        const currentDayData = this.calendarDays.find(d => 
-          d.dateString === weekData.currentDay.date
-        );
-        if (currentDayData) {
-          currentDayData.tasks = weekData.currentDay.allHabits;
-        }
-      }
     });
   }
 
@@ -239,6 +263,62 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
       currentStreak,
       totalHabits
     };
+  }
+
+  // Mock method to get current streak info (replace with actual API call)
+private async getCurrentStreakInfo(): Promise<StreakInfo> {
+  // TODO: Replace this with actual API call to get current streak
+  // For now, always return streak 0 to show upcoming rewards
+  
+  return {
+    currentStreak: 1, // Always start from 0 to show all upcoming rewards
+    lastCompletedDate: new Date() // Use today as the reference point
+  };
+}
+
+  private calculateProjectedRewards(currentStreakInfo: StreakInfo): void {
+    this.projectedRewards = [];
+    
+    if (!currentStreakInfo.lastCompletedDate || currentStreakInfo.currentStreak === 0) {
+      return; // No streak to project from
+    }
+
+    const today = new Date();
+    const startProjectionDate = new Date(today);
+    startProjectionDate.setDate(today.getDate() + 1); // Start projecting from tomorrow
+
+    // Find upcoming reward milestones
+    const upcomingRewards = this.rewardSchedule.filter(reward => 
+      reward.day > currentStreakInfo.currentStreak && 
+      reward.day <= currentStreakInfo.currentStreak + 60 // Project up to 60 days ahead
+    );
+
+    upcomingRewards.forEach(reward => {
+      const daysUntilReward = reward.day - currentStreakInfo.currentStreak;
+      const rewardDate = new Date(startProjectionDate);
+      rewardDate.setDate(startProjectionDate.getDate() + daysUntilReward - 1);
+
+      // Only show rewards within the current month view
+      if (rewardDate.getMonth() === this.currentMonth && rewardDate.getFullYear() === this.currentYear) {
+        this.projectedRewards.push({
+          date: rewardDate,
+          dateString: rewardDate.toISOString().split('T')[0],
+          streakDay: reward.day,
+          tier: this.rewardTiers[reward.tier]
+        });
+      }
+    });
+
+    console.log('Projected rewards for current month:', this.projectedRewards);
+  }
+
+  private applyProjectedRewardsToCalendar(): void {
+    this.projectedRewards.forEach(reward => {
+      const dayData = this.calendarDays.find(d => d.dateString === reward.dateString);
+      if (dayData) {
+        dayData.projectedReward = reward;
+      }
+    });
   }
 
   // Navigation methods
@@ -294,10 +374,63 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
     return '';
   }
 
+  // Reward-related methods
+  getProjectedReward(day: MonthlyDayData): ProjectedReward | null {
+    return day.projectedReward || null;
+  }
+
+  getRewardDisplayText(reward: ProjectedReward): string {
+    return `Day ${reward.streakDay} - ${reward.tier.name}`;
+  }
+
   onDayClick(day: MonthlyDayData): void {
     if (!day.isCurrentMonth || day.isFuture) return;
     
-    // You could implement day detail modal or navigation here
-    console.log('Day clicked:', day);
+    if (day.projectedReward) {
+      console.log('Clicked reward day:', day.projectedReward);
+      // You could implement a modal showing reward details here
+    } else {
+      console.log('Day clicked:', day);
+      // You could implement day detail modal or navigation here
+    }
   }
+
+  debugRewardsSystem(): void {
+  console.log('🔍 REWARDS DEBUG:');
+  console.log('Current month:', this.currentMonth);
+  console.log('Current year:', this.currentYear);
+  console.log('Calendar days generated:', this.calendarDays.length);
+  console.log('Projected rewards:', this.projectedRewards);
+  console.log('Monthly stats:', this.monthlyStats);
+  
+  // Check if any calendar days have projected rewards
+  const daysWithRewards = this.calendarDays.filter(d => d.projectedReward);
+  console.log('Days with projected rewards:', daysWithRewards);
+  
+  // Check completed days
+  const completedDays = this.calendarDays.filter(d => d.isCompleted);
+  console.log('Completed days this month:', completedDays.length);
+  
+  // Mock a higher streak to test rewards
+  this.testHigherStreak();
+}
+
+// Test method with artificial higher streak
+async testHigherStreak(): Promise<void> {
+  console.log('🧪 Testing with artificial streak...');
+  
+  const mockStreakInfo: StreakInfo = {
+    currentStreak: 5, // Change this number to test different scenarios
+    lastCompletedDate: new Date()
+  };
+  
+  console.log('Mock streak info:', mockStreakInfo);
+  
+  this.calculateProjectedRewards(mockStreakInfo);
+  this.applyProjectedRewardsToCalendar();
+  
+  console.log('After test calculation:');
+  console.log('Projected rewards:', this.projectedRewards);
+  console.log('Days with rewards:', this.calendarDays.filter(d => d.projectedReward));
+}
 }
