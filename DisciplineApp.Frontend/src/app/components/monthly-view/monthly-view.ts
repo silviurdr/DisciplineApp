@@ -114,43 +114,49 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
 }
 
 
-  private generateCalendarGrid(): MonthlyDayData[] {
-    const days: MonthlyDayData[] = [];
-    const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-    const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+ private generateCalendarGrid(): MonthlyDayData[] {
+  const days: MonthlyDayData[] = [];
+  const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+  const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+  
+  // Calculate start date (might be from previous month to fill the grid)
+  const startDate = new Date(firstDay);
+  startDate.setDate(startDate.getDate() - firstDay.getDay());
+  
+  // Generate 42 days (6 weeks × 7 days)
+  for (let i = 0; i < 42; i++) {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + i);
     
-    // Calculate start date (might be from previous month to fill the grid)
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    const isCurrentMonth = date.getMonth() === this.currentMonth;
+    const today = new Date();
+    const isToday = date.toDateString() === today.toDateString();
+    const isFuture = date > today;
     
-    // Generate 42 days (6 weeks × 7 days)
-    for (let i = 0; i < 42; i++) {
-      const date = new Date(startDate);
-      date.setDate(startDate.getDate() + i);
-      
-      const isCurrentMonth = date.getMonth() === this.currentMonth;
-      const today = new Date();
-      const isToday = date.toDateString() === today.toDateString();
-      const isFuture = date > today;
-      
-      days.push({
-        date: date,
-        dateString: date.toISOString().split('T')[0],
-        dayNumber: date.getDate(),
-        isCurrentMonth,
-        isToday,
-        isCompleted: false,
-        isPartiallyCompleted: false,
-        completedHabits: 0,
-        totalHabits: 0,
-        tasks: [],
-        completionPercentage: 0,
-        isFuture
-      });
-    }
+    // 🔥 FIX: Use consistent date string format (avoid timezone issues)
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
     
-    return days;
+    days.push({
+      date: date,
+      dateString: dateString, // Use consistent format
+      dayNumber: date.getDate(),
+      isCurrentMonth,
+      isToday,
+      isCompleted: false,
+      isPartiallyCompleted: false,
+      completedHabits: 0,
+      totalHabits: 0,
+      tasks: [],
+      completionPercentage: 0,
+      isFuture
+    });
   }
+  
+  return days;
+}
 
   private getWeeksInMonth(): Date[] {
     const weeks: Date[] = [];
