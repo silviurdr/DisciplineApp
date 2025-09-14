@@ -1,7 +1,6 @@
 ﻿using DisciplineApp.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace DisciplineApp.Api.Data;
 
 public class DisciplineDbContext : DbContext
@@ -15,7 +14,6 @@ public class DisciplineDbContext : DbContext
     public DbSet<HabitCompletion> HabitCompletions { get; set; }
     public DbSet<GraceUsage> GraceUsages { get; set; }
     public DbSet<Reward> Rewards { get; set; }
-
     public DbSet<TaskDeferral> TaskDeferrals { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -24,85 +22,123 @@ public class DisciplineDbContext : DbContext
         modelBuilder.Entity<DisciplineEntry>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Date).IsRequired();
-            entity.HasIndex(e => e.Date).IsUnique();
+            entity.Property(e => e.Date)
+                  .IsRequired()
+                  .HasColumnType("date"); // ✅ Specify SQL Server date type
+            entity.HasIndex(e => e.Date)
+                  .IsUnique()
+                  .HasDatabaseName("IX_DisciplineEntries_Date"); // ✅ Explicit index name
         });
 
         // Habit configuration
         modelBuilder.Entity<Habit>(entity =>
         {
             entity.HasKey(h => h.Id);
-            entity.Property(h => h.Name).IsRequired().HasMaxLength(100);
-            entity.Property(h => h.Description).HasMaxLength(500);
-            entity.Property(h => h.Frequency).IsRequired();
-
-            // Corrected for SQL Server
-            entity.Property(r => r.IsActive).HasDefaultValue(true);
-            entity.Property(h => h.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(h => h.Name)
+                  .IsRequired()
+                  .HasMaxLength(100)
+                  .IsUnicode(false); // ✅ For performance if only ASCII
+            entity.Property(h => h.Description)
+                  .HasMaxLength(500)
+                  .IsUnicode(true); // ✅ Allow Unicode for descriptions
+            entity.Property(h => h.Frequency)
+                  .IsRequired()
+                  .HasConversion<string>(); // ✅ Store enum as string
+            entity.Property(h => h.IsActive)
+                  .IsRequired()
+                  .HasDefaultValue(true);
+            entity.Property(h => h.CreatedAt)
+                  .IsRequired()
+                  .HasColumnType("datetime2") // ✅ Use datetime2 for SQL Server
+                  .HasDefaultValueSql("GETUTCDATE()"); // ✅ SQL Server function
+            entity.Property(h => h.DeadlineTime)
+                  .HasColumnType("time"); // ✅ Specify time type
+            entity.Property(h => h.HasDeadline)
+                  .IsRequired()
+                  .HasDefaultValue(false);
 
             // Configure relationships
             entity.HasMany(h => h.Completions)
                   .WithOne(c => c.Habit)
                   .HasForeignKey(c => c.HabitId)
-                  .OnDelete(DeleteBehavior.Cascade);
+                  .OnDelete(DeleteBehavior.Cascade)
+                  .HasConstraintName("FK_HabitCompletions_Habits"); // ✅ Explicit FK name
         });
 
         // HabitCompletion configuration
         modelBuilder.Entity<HabitCompletion>(entity =>
         {
             entity.HasKey(hc => hc.Id);
-            entity.Property(hc => hc.Date).IsRequired();
-            entity.Property(hc => hc.IsCompleted).IsRequired();
-            entity.Property(hc => hc.Notes).HasMaxLength(1000);
+            entity.Property(hc => hc.Date)
+                  .IsRequired()
+                  .HasColumnType("date");
+            entity.Property(hc => hc.IsCompleted)
+                  .IsRequired();
+            entity.Property(hc => hc.Notes)
+                  .HasMaxLength(1000)
+                  .IsUnicode(true);
+            entity.Property(hc => hc.CompletedAt)
+                  .HasColumnType("datetime2");
 
             // Create unique constraint for HabitId + Date
-            entity.HasIndex(hc => new { hc.HabitId, hc.Date }).IsUnique();
+            entity.HasIndex(hc => new { hc.HabitId, hc.Date })
+                  .IsUnique()
+                  .HasDatabaseName("IX_HabitCompletions_HabitId_Date");
         });
 
         // GraceUsage configuration
         modelBuilder.Entity<GraceUsage>(entity =>
         {
             entity.HasKey(g => g.Id);
-            entity.Property(g => g.UsedDate).IsRequired();
-            entity.Property(g => g.Reason).HasMaxLength(500);
-            entity.Property(g => g.CreatedAt).HasDefaultValue(DateTime.UtcNow);
+            entity.Property(g => g.UsedDate)
+                  .IsRequired()
+                  .HasColumnType("date");
+            entity.Property(g => g.Reason)
+                  .HasMaxLength(500)
+                  .IsUnicode(true);
+            entity.Property(g => g.CreatedAt)
+                  .IsRequired()
+                  .HasColumnType("datetime2")
+                  .HasDefaultValueSql("GETUTCDATE()");
 
             // One grace per day constraint
-            entity.HasIndex(g => g.UsedDate).IsUnique();
-        });
-
-        // TaskDeferral configuration
-        modelBuilder.Entity<TaskDeferral>(entity =>
-        {
-            entity.HasKey(td => td.Id);
-            entity.Property(td => td.OriginalDate).IsRequired();
-            entity.Property(td => td.DeferredToDate).IsRequired();
-            entity.Property(td => td.Reason).HasMaxLength(500);
-            entity.Property(td => td.CreatedAt).HasDefaultValue(DateTime.UtcNow);
-
-            // Configure relationship with Habit
-            entity.HasOne<Habit>()
-                      .WithMany()
-                      .HasForeignKey(td => td.HabitId)
-                      .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(g => g.UsedDate)
+                  .IsUnique()
+                  .HasDatabaseName("IX_GraceUsages_UsedDate");
         });
 
         // Reward configuration
         modelBuilder.Entity<Reward>(entity =>
         {
             entity.HasKey(r => r.Id);
-            entity.Property(r => r.Type).IsRequired().HasMaxLength(50);
-            entity.Property(r => r.Name).HasMaxLength(100);
-            entity.Property(r => r.Description).IsRequired().HasMaxLength(500);
-            entity.Property(r => r.EarnedAt).IsRequired();
-            entity.Property(r => r.IsActive).HasDefaultValue(true);
-            entity.Property(r => r.CreatedAt).HasDefaultValue(DateTime.UtcNow);
+            entity.Property(r => r.Type)
+                  .IsRequired()
+                  .HasMaxLength(50)
+                  .IsUnicode(false);
+            entity.Property(r => r.Name)
+                  .HasMaxLength(100)
+                  .IsUnicode(true);
+            entity.Property(r => r.Description)
+                  .IsRequired()
+                  .HasMaxLength(500)
+                  .IsUnicode(true);
+            entity.Property(r => r.EarnedAt)
+                  .IsRequired()
+                  .HasColumnType("datetime2");
+            entity.Property(r => r.IsActive)
+                  .IsRequired()
+                  .HasDefaultValue(true);
+            entity.Property(r => r.CreatedAt)
+                  .IsRequired()
+                  .HasColumnType("datetime2")
+                  .HasDefaultValueSql("GETUTCDATE()");
 
             // Configure relationship with DisciplineEntry
             entity.HasOne(r => r.DisciplineEntry)
                   .WithMany()
                   .HasForeignKey(r => r.DisciplineEntryId)
-                  .OnDelete(DeleteBehavior.SetNull);
+                  .OnDelete(DeleteBehavior.SetNull)
+                  .HasConstraintName("FK_Rewards_DisciplineEntries");
         });
 
         base.OnModelCreating(modelBuilder);
