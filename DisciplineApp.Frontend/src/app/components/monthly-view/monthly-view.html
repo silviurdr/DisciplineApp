@@ -1,1 +1,108 @@
-<p>monthly-view works!</p>
+<!-- monthly-view.component.html -->
+<div class="monthly-view">
+  <!-- Header -->
+  <div class="month-header">
+    <button class="nav-btn" (click)="previousMonth()" [disabled]="loading">
+      ‹
+    </button>
+    <div class="month-info">
+      <h2>{{ getMonthName(currentMonth) }} {{ currentYear }}</h2>
+      <button class="today-btn" (click)="goToToday()" [disabled]="loading">
+        Today
+      </button>
+    </div>
+    <button class="nav-btn" (click)="nextMonth()" [disabled]="loading">
+      ›
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="loading-spinner"></div>
+    <p>Loading calendar...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-state">
+    <p>{{ error }}</p>
+    <button (click)="loadMonthData()" class="retry-btn">Retry</button>
+  </div>
+
+  <!-- Stats Overview -->
+  <div class="stats-overview" *ngIf="monthlyStats && !loading && !error">
+    <div class="stat-card completion">
+      <div class="stat-value">{{ monthlyStats.completionRate }}%</div>
+      <div class="stat-label">Completion Rate</div>
+      <div class="stat-detail">{{ monthlyStats.completedDays }}/{{ monthlyStats.totalDays }} days</div>
+    </div>
+    
+    <div class="stat-card streak">
+      <div class="stat-value">{{ monthlyStats.currentStreak }}</div>
+      <div class="stat-label">Current Streak</div>
+      <div class="stat-detail">consecutive days</div>
+    </div>
+    
+    <div class="stat-card habits">
+      <div class="stat-value">{{ monthlyStats.totalHabits }}</div>
+      <div class="stat-label">Total Tasks</div>
+      <div class="stat-detail">this month</div>
+    </div>
+  </div>
+
+  <!-- Calendar -->
+  <div class="calendar-container" *ngIf="!loading && !error">
+    <!-- Day Headers -->
+    <div class="calendar-header">
+      <div class="day-header">Sun</div>
+      <div class="day-header">Mon</div>
+      <div class="day-header">Tue</div>
+      <div class="day-header">Wed</div>
+      <div class="day-header">Thu</div>
+      <div class="day-header">Fri</div>
+      <div class="day-header">Sat</div>
+    </div>
+
+    <!-- Calendar Grid -->
+    <div class="calendar-grid">
+      <div 
+        *ngFor="let day of calendarDays" 
+        class="calendar-day"
+        [class.other-month]="!day.isCurrentMonth"
+        [class.today]="day.isToday"
+        [class.future]="day.isFuture"
+        [class]="getDayStatusClass(day)"
+        (click)="onDayClick(day)">
+        
+        <!-- Day Number -->
+        <div class="day-number">{{ day.dayNumber }}</div>
+        
+        <!-- Status Icon -->
+        <div class="day-status" *ngIf="day.isCurrentMonth && !day.isFuture">
+          <span class="status-icon" [class]="getDayStatusClass(day)">
+            {{ getStatusIcon(day) }}
+          </span>
+        </div>
+        
+        <!-- Task Summary -->
+        <div class="task-summary" *ngIf="day.isCurrentMonth && !day.isFuture && day.totalHabits > 0">
+          <div class="task-count">
+            {{ day.completedHabits }}/{{ day.totalHabits }}
+          </div>
+          <div class="completion-bar">
+            <div class="completion-fill" [style.width.%]="day.completionPercentage"></div>
+          </div>
+        </div>
+        
+        <!-- Future Indicator -->
+        <div class="future-indicator" *ngIf="day.isFuture && day.isCurrentMonth">
+          Future
+        </div>
+        
+        <!-- Free Day -->
+        <div class="free-day" *ngIf="day.totalHabits === 0 && !day.isFuture && day.isCurrentMonth">
+          Free
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
