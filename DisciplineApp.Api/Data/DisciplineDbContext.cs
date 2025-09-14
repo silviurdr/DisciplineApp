@@ -1,6 +1,7 @@
 ﻿using DisciplineApp.Api.Models;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace DisciplineApp.Api.Data;
 
 public class DisciplineDbContext : DbContext
@@ -34,8 +35,10 @@ public class DisciplineDbContext : DbContext
             entity.Property(h => h.Name).IsRequired().HasMaxLength(100);
             entity.Property(h => h.Description).HasMaxLength(500);
             entity.Property(h => h.Frequency).IsRequired();
-            entity.Property(h => h.IsActive).HasDefaultValue(true);
-            entity.Property(h => h.CreatedAt).HasDefaultValue(DateTime.UtcNow);
+
+            // Corrected for SQL Server
+            entity.Property(r => r.IsActive).HasDefaultValue(true);
+            entity.Property(h => h.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
 
             // Configure relationships
             entity.HasMany(h => h.Completions)
