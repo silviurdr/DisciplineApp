@@ -588,6 +588,36 @@
         }
       }
 
+      .habit-checkbox {
+  input[type="checkbox"] {
+    cursor: pointer; // Default clickable cursor
+    
+    // Only disable cursor when actually disabled (locked tasks)
+    &:disabled {
+      cursor: default;
+    }
+    
+    // Completed but not disabled should remain clickable
+    &:checked:not(:disabled) {
+      cursor: pointer;
+    }
+  }
+  
+  label {
+    cursor: pointer; // Default clickable cursor
+    
+    // Only disable cursor when input is disabled (locked tasks)
+    &.disabled {
+      cursor: default;
+    }
+    
+    // Ensure completed tasks' labels remain clickable
+    &:not(.disabled) {
+      cursor: pointer;
+    }
+  }
+}
+
       .habit-content {
         flex: 1;
 
@@ -1422,6 +1452,38 @@ h3 {
         background: #666;
         cursor: not-allowed;
         opacity: 0.6;
+      }
+    }
+  }
+}
+
+.habit-item {
+  &.completed {
+    // Remove any cursor overrides that might be affecting the checkbox
+    .habit-checkbox {
+      input[type="checkbox"]:not(:disabled) {
+        cursor: pointer !important;
+      }
+      
+      label:not(.disabled) {
+        cursor: pointer !important;
+      }
+    }
+    
+    // But keep default cursor for the habit content
+    .habit-content {
+      cursor: default;
+    }
+  }
+  
+  &.locked {
+    .habit-checkbox {
+      input[type="checkbox"]:disabled {
+        cursor: default !important;
+      }
+      
+      label.disabled {
+        cursor: default !important;
       }
     }
   }

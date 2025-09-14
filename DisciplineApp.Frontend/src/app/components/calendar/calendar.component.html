@@ -91,7 +91,7 @@
     <!-- All Scheduled Habits -->
     <div class="scheduled-habits" *ngIf="todayData.allHabits && todayData.allHabits.length > 0">
 <div class="habit-item" 
-     *ngFor="let habit of todayData.allHabits"
+     *ngFor="let habit of todayData.allHabits | sortCompleted"
      [class]="getPriorityClass(habit) + ' ' + getCompletionClass(habit)"
      [class.locked]="habit.isLocked"
      [class.urgent]="!habit.isCompleted && habit.timeRemaining && getUrgencyLevel(habit.timeRemaining) === 'urgent'"
