@@ -1,4 +1,7 @@
-﻿using DisciplineApp.Api.Services;
+﻿// Create Controllers/MigrationController.cs
+
+using DisciplineApp.Api.Data;
+using DisciplineApp.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DisciplineApp.Api.Controllers;
@@ -7,23 +10,20 @@ namespace DisciplineApp.Api.Controllers;
 [Route("api/[controller]")]
 public class MigrationController : ControllerBase
 {
-    private readonly DataMigrationService _migrationService;
+    private readonly DisciplineDbContext _context;
 
-    public MigrationController(DataMigrationService migrationService)
+    public MigrationController(DisciplineDbContext context)
     {
-        _migrationService = migrationService;
+        _context = context;
     }
 
-    /// <summary>
-    /// Migrate existing discipline entries to the new habit-based system
-    /// </summary>
-    [HttpPost("migrate-data")]
-    public async Task<IActionResult> MigrateData()
+    [HttpPost("seed-habits")]
+    public async Task<IActionResult> SeedHabits()
     {
         try
         {
-            var result = await _migrationService.MigrateExistingDataAsync();
-            return Ok(new { message = result });
+            await HabitSeedData.SeedHabitsAsync(_context);
+            return Ok(new { message = "Habits seeded successfully!" });
         }
         catch (Exception ex)
         {
@@ -31,20 +31,17 @@ public class MigrationController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Add sample completions for testing the habit system
-    /// </summary>
-    [HttpPost("add-sample-data")]
-    public async Task<IActionResult> AddSampleData()
+    [HttpGet("database-status")]
+    public async Task<IActionResult> GetDatabaseStatus()
     {
-        try
+        var habitCount = _context.Habits.Count();
+        var completionCount = _context.HabitCompletions.Count();
+
+        return Ok(new
         {
-            var result = await _migrationService.AddSampleCompletionsAsync();
-            return Ok(new { message = result });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+            habits = habitCount,
+            completions = completionCount,
+            message = habitCount == 0 ? "Database is empty - run seed-habits endpoint" : "Database has data"
+        });
     }
 }
