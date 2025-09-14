@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DisciplineService } from '../../services/discipline.services';
 import { SoundService } from '../../services/sound.service';
+import { FormsModule } from '@angular/forms';
 
 interface ScheduledHabit {
   habitId: number;
@@ -57,7 +58,7 @@ interface WeekData {
 @Component({
   selector: 'app-calendar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './calendar.component.html',
   styleUrls: ['./calendar.component.scss']
 })
@@ -70,8 +71,8 @@ export class CalendarComponent implements OnInit {
   error: string | null = null;
   selectedDay: any = null;
   showAddTaskDialog = false;
-newTaskName = '';
-newTaskDescription = '';
+  newTaskName = '';
+  newTaskDescription = '';
 
   constructor(private disciplineService: DisciplineService, private soundService: SoundService) {}
 

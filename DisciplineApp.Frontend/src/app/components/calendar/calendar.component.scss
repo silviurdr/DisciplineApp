@@ -380,6 +380,9 @@
         border-color: #64b5f6;
         box-shadow: 0 0 20px rgba(100, 181, 246, 0.3);
       }
+      &.previous-day {
+        opacity: 0.5;
+      }
 
       &.completed {
         background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.1));

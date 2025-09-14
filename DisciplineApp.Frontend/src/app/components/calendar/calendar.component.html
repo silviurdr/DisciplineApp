@@ -37,6 +37,7 @@
            [class.completed]="day.isCompleted"
            [class.partial]="day.isPartiallyCompleted && !day.isCompleted"
            [class.today]="isToday(day.date)"
+           [class.previous-day]="!isToday(day.date)"
            [class.future]="isFuture(day.date)"
            (click)="openDayDetail(day)">
         
@@ -153,7 +154,7 @@
                 ⏰ OVERDUE
               </span>
               
-              <span class="locked-badge" *ngIf="habit.isLocked">
+              <span class="locked-badge" *ngIf="habit.isLocked && !habit.isCompleted">
                 🔒 Deadline Passed
               </span>
               
@@ -271,6 +272,7 @@
         <input 
           id="taskName"
           type="text" 
+          [(ngModel)]="newTaskName"
           placeholder="e.g., Call dentist, Buy groceries..."
           maxlength="200"
           class="task-input">
@@ -281,6 +283,7 @@
         <textarea 
           id="taskDescription"
           placeholder="Additional details..."
+          [(ngModel)]="newTaskDescription"
           maxlength="500"
           rows="3"
           class="task-textarea"></textarea>
