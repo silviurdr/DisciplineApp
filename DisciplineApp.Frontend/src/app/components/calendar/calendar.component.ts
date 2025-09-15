@@ -341,7 +341,18 @@ export class CalendarComponent implements OnInit {
   // ACTION METHODS
   // ===================================
 
-  moveHabitToTomorrow(habit: ScheduledHabit): void {
+ moveTaskToTomorrow(habit: ScheduledHabit): void {
+  // Prevent moving completed tasks
+  if (habit.isCompleted) {
+    console.log('Cannot move completed tasks');
+    return;
+  }
+
+  // Prevent moving daily habits
+  if (this.isDailyHabit(habit)) {
+    alert('Daily habits cannot be moved to tomorrow');
+    return;
+  }
     if (!this.canActuallyMoveHabit(habit)) {
       const flexInfo = this.getFlexibilityInfo(habit);
       const message = flexInfo ? 
@@ -431,9 +442,16 @@ export class CalendarComponent implements OnInit {
     });
   }
 
-  toggleTask(habit: ScheduledHabit): void {
+toggleTask(habit: ScheduledHabit): void {
+  // Prevent toggling locked tasks
   if (habit.isLocked) {
     console.log('Task is locked, cannot toggle');
+    return;
+  }
+
+  // For completed ad-hoc tasks, show a message instead of allowing toggle
+  if (habit.isAdHoc && habit.isCompleted) {
+    console.log('Completed ad-hoc tasks cannot be unchecked');
     return;
   }
 
@@ -475,6 +493,38 @@ export class CalendarComponent implements OnInit {
       this.errorMessage = 'Failed to update task. Please try again.';
     }
   });
+}
+
+shouldDisableActions(habit: ScheduledHabit): boolean {
+  // Ad-hoc tasks should be disabled when completed
+  if (habit.isAdHoc && habit.isCompleted) {
+    return true;
+  }
+  
+  // Locked tasks are always disabled
+  if (habit.isLocked) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * Check if edit button should be shown
+ */
+shouldShowEditButton(habit: ScheduledHabit): boolean {
+  // Only show edit for ad-hoc tasks that are not completed
+  return !!habit.isAdHoc && !habit.isCompleted && !habit.isLocked;
+}
+
+/**
+ * Check if defer button should be shown
+ */
+shouldShowDeferButton(habit: ScheduledHabit): boolean {
+  // Don't show defer for daily habits, completed tasks, or locked tasks
+  return !this.isDailyHabit(habit) && 
+         !habit.isCompleted && 
+         !habit.isLocked;
 }
 
   useGraceDay(): void {
@@ -743,15 +793,17 @@ calculateWeeklyHabitProgress(): {habitName: string, completed: number, total: nu
     this.newTaskDescription = '';
   }
 
-  editAdHocTask(habit: ScheduledHabit): void {
-    this.editingTask = habit;
-    this.editTaskName = habit.name;
-    this.editTaskDescription = habit.description;
-    this.showEditTaskDialog = true;
+editAdHocTask(habit: ScheduledHabit): void {
+  // Prevent editing completed ad-hoc tasks
+  if (habit.isCompleted) {
+    console.log('Cannot edit completed ad-hoc tasks');
+    return;
   }
 
-  refreshAllData(): void {
-    this.loadCurrentWeekData();
-    this.loadFlexibleTasks();
-  }
+  // Proceed with original edit logic
+  this.editingTask = habit;
+  this.editTaskName = habit.name;
+  this.editTaskDescription = habit.description;
+  this.showEditTaskDialog = true;
+}
 }

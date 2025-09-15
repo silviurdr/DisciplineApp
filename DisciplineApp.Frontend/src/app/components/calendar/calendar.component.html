@@ -72,203 +72,133 @@
     </div>
   </div>
 
-  <!-- Today's Smart Schedule -->
-  <div class="smart-schedule" *ngIf="isAnyToday() && todayData">
-    <h2>Today's Smart Schedule</h2>
-
-    <!-- Warnings Section -->
-    <div class="warnings-section" *ngIf="todayData.warnings && todayData.warnings.length > 0">
-      <div *ngFor="let warning of todayData.warnings" class="warning-item">
-        <span class="warning-icon">⚠️</span>
-        <span>{{ warning }}</span>
-      </div>
-    </div>
-
-    <!-- Grace Day Section -->
-    <div class="grace-section" *ngIf="todayData.canUseGrace">
-      <button class="grace-button" (click)="useGraceDay()">
-        Use Grace Day ({{ weeklyProgress?.graceRemaining || 0 }} remaining)
-      </button>
-      <p class="grace-explanation">
-        Skip today's habits without breaking your streak (1 per week)
-      </p>
-    </div>
-
-    <!-- INTEGRATED SCHEDULED HABITS with Flexibility Features -->
-    <div class="scheduled-habits" *ngIf="todayData.allHabits && todayData.allHabits.length > 0">
-      <div class="habit-item" 
-           *ngFor="let habit of todayData.allHabits | sortCompleted"
-           [class]="getHabitClasses(habit)"
-           [class.locked]="habit.isLocked">
-        
-        <!-- Habit Checkbox -->
-        <div class="habit-checkbox">
-          <input type="checkbox" 
-                 [id]="'habit-' + habit.habitId + (habit.adHocId || '')"
-                 [checked]="habit.isCompleted"
-                 [disabled]="habit.isLocked || habit.isCompleted"
-                 (change)="!habit.isLocked && toggleTask(habit)">
-          <label [for]="'habit-' + habit.habitId + (habit.adHocId || '')" 
-                 [class.disabled]="habit.isLocked"></label>
-        </div>
-        
-        <!-- Habit Content -->
-        <div class="habit-content">
-          <div class="habit-header">
-            <div class="habit-name" [class.locked-text]="habit.isLocked">
-              {{ habit.name }}
-            </div>
-            
-            <!-- Enhanced Badges Section -->
-            <div class="habit-badges">
-              <!-- Priority Badge -->
-              <span class="priority-badge" 
-                    [class.required]="habit.isRequired" 
-                    [class.optional]="!habit.isRequired">
-                {{ habit.isRequired ? 'Required' : 'Optional' }}
-              </span>
-              
-              <!-- NEW: Flexibility Badge - shows deferral status -->
-              <span class="flexibility-badge" 
-                    *ngIf="getFlexibilityInfo(habit) as flex"
-                    [style.color]="flex.color"
-                    [class]="'flexibility-' + flex.urgency">
-                {{ flex.icon }} {{ flex.label }}
-              </span>
-              
-              <!-- Time Remaining Badge -->
-              <span class="time-remaining-badge" 
-                    *ngIf="habit.hasDeadline && !habit.isCompleted && habit.timeRemaining"
-                    [class.urgent]="getUrgencyLevel(habit.timeRemaining) === 'urgent'"
-                    [class.critical]="getUrgencyLevel(habit.timeRemaining) === 'critical'">
-                {{ habit.timeRemaining }}
-              </span>
-              
-              <!-- Overdue Badge -->
-              <span class="overdue-badge" *ngIf="habit.isOverdue">
-                OVERDUE
-              </span>
-              
-              <!-- Ad-Hoc Badge -->
-              <span class="ad-hoc-badge" *ngIf="habit.isAdHoc">
-                📝 Today Only
-              </span>
-              <span class="flexibility-badge" 
-                *ngIf="getFlexibilityInfo(habit) as flexInfo"
-                [style.color]="flexInfo.color"
-                [class]="'flexibility-' + flexInfo.urgency">
-                  {{ flexInfo.icon }} {{ flexInfo.label }}
-                </span>
-            </div>
-          </div>
-          
-          <!-- Habit Description -->
-          <div class="habit-description" *ngIf="habit.description">
-            {{ habit.description }}
-          </div>
-          
-          <!-- Habit Reason -->
-          <div class="habit-reason" *ngIf="habit.reason">
-            <em>{{ habit.reason }}</em>
-          </div>
-          
-          <!-- NEW: Flexibility Status Display -->
-<!-- Replace the problematic section with this corrected version -->
-
-<!-- NEW: Flexibility Status Display -->
-<div class="flexibility-status" 
-     *ngIf="getFlexibilityInfo(habit) as flexInfo">
-  <div class="flexibility-details" *ngIf="flexInfo.showDetails">
-    <span class="flexibility-text" [style.color]="flexInfo.color">
-      {{ flexInfo.statusText }}
-    </span>
-    <span class="deferrals-info" *ngIf="flexInfo.maxDeferrals > 0">
-      ({{ flexInfo.remainingDeferrals }} of {{ flexInfo.maxDeferrals }} moves left)
-    </span>
-  </div>
-  
-  <!-- Progress Bar for Deferral Usage -->
-  <div class="deferral-progress" *ngIf="flexInfo.maxDeferrals > 0">
-    <div class="deferral-progress-bar">
-      <div class="deferral-progress-fill" 
-           [style.width.%]="(flexInfo.deferralsUsed / flexInfo.maxDeferrals) * 100"
-           [style.background-color]="flexInfo.color">
-      </div>
-    </div>
-  </div>
-</div>
-        
-        <!-- Enhanced Actions Section -->
-        <div class="habit-actions">
-          <!-- Move to Tomorrow Button - Enhanced with Flexibility Logic -->
-          <button class="move-tomorrow-btn" 
-                  *ngIf="canMoveHabitToTomorrow(habit)"
-                  [disabled]="!canActuallyMoveHabit(habit)"
-                  [class.disabled]="!canActuallyMoveHabit(habit)"
-                  (click)="moveHabitToTomorrow(habit)"
-                  [title]="getMoveButtonTooltip(habit)">
-            📅 {{ getMoveButtonText(habit) }}
-          </button>
-          
-          <!-- Complete Button (for mobile/accessibility) -->
-          <button class="complete-btn" 
-                  *ngIf="!habit.isCompleted && !habit.isLocked"
-                  (click)="toggleTask(habit)"
-                  [class.pulsing]="isUrgentTask(habit)">
-            ✓ Complete
-          </button>
-          
-          <!-- Edit Ad-Hoc Button -->
-          <button class="edit-btn" 
-                  *ngIf="habit.isAdHoc && !habit.isCompleted"
-                  (click)="editAdHocTask(habit)">
-            ✏️ Edit
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Day Status Summary -->
-    <div class="day-status-summary" *ngIf="todayData">
-      <div class="status-header">
-        <h3>Day Status</h3>
-        <span class="completion-percentage">
-          {{ getCompletionPercentage(todayData) }}% Complete
-        </span>
-      </div>
+<!-- Today Smart Schedule Section -->
+<div class="smart-schedule" *ngIf="todayData">
+ <div class="schedule-header">
+    <div class="header-left">
+      <h2>📅 Today's Schedule</h2>
       
-      <div class="status-details">
-        <div class="status-item">
-          <span class="status-label">Required Tasks:</span>
-          <span class="status-value">
-            {{ getRequiredTasksCompleted(todayData) }}/{{ getRequiredTasksTotal(todayData) }}
-          </span>
+      <!-- Inline Stats moved here -->
+      <div class="inline-stats">
+        <div class="stat-chip required">
+          <span class="stat-value">{{ getRequiredTasksCompleted(todayData) }}/{{ getRequiredTasksTotal(todayData) }}</span>
+          <span class="stat-label">Required</span>
         </div>
-        
-        <div class="status-item">
-          <span class="status-label">Optional Tasks:</span>
-          <span class="status-value">
-            {{ getOptionalTasksCompleted(todayData) }}/{{ getOptionalTasksTotal(todayData) }}
-          </span>
+        <div class="stat-chip optional">
+          <span class="stat-value">{{ getOptionalTasksCompleted(todayData) }}/{{ getOptionalTasksTotal(todayData) }}</span>
+          <span class="stat-label">Optional</span>
         </div>
-        
-        <div class="status-item" *ngIf="todayData.canUseGrace">
-          <span class="status-label">Grace Available:</span>
-          <span class="status-value grace-available">Yes</span>
-        </div>
-      </div>
-      
-      <!-- Recommendations -->
-      <div class="recommendations" *ngIf="todayData.recommendations && todayData.recommendations.length > 0">
-        <h4>Recommendations</h4>
-        <div *ngFor="let recommendation of todayData.recommendations" class="recommendation-item">
-          <span class="recommendation-icon">💡</span>
-          <span>{{ recommendation }}</span>
+        <div class="stat-chip grace" *ngIf="todayData.canUseGrace">
+          <span class="stat-value">✨</span>
+          <span class="stat-label">Grace</span>
         </div>
       </div>
     </div>
     
+    <!-- Add Quick Task Button (moved to right side) -->
+    <button class="add-quick-task-btn" (click)="openAddTaskModal()" title="Add a quick task for today">
+      <span class="plus-icon">+</span>
+      <span class="btn-text">Quick Task</span>
+    </button>
   </div>
+
+  <!-- Compact Task List -->
+  <div class="task-grid" *ngIf="todayData.allHabits && todayData.allHabits.length > 0">
+    <div 
+      *ngFor="let habit of todayData.allHabits | sortCompleted" 
+      class="task-card"
+      [class.completed]="habit.isCompleted"
+      [class.urgent]="isUrgentTask(habit)"
+      [class.locked]="habit.isLocked"
+      [class.ad-hoc]="habit.isAdHoc"
+      [class.overdue]="habit.isOverdue">
+      
+      <!-- Task Checkbox -->
+      <div class="task-checkbox">
+        <input 
+          type="checkbox" 
+          [id]="'task-' + (habit.habitId || habit.adHocId)"
+          [checked]="habit.isCompleted" 
+          [disabled]="habit.isLocked || (habit.isAdHoc && habit.isCompleted)"
+          (change)="toggleTask(habit)">
+        <label [for]="'task-' + (habit.habitId || habit.adHocId)" class="checkmark"></label>
+      </div>
+
+      <!-- Task Content -->
+      <div class="task-content" (click)="!habit.isLocked && toggleTask(habit)">
+        <div class="task-main">
+          <h4 class="task-name" [class.completed-text]="habit.isCompleted">
+            {{ habit.name }}
+          </h4>
+          
+          <!-- Task Badges -->
+          <div class="task-badges">
+            <span *ngIf="habit.isRequired" class="badge required">Required</span>
+            <span *ngIf="habit.isAdHoc" class="badge ad-hoc">Quick Task</span>
+            <span *ngIf="habit.priority && habit.priority !== 'Normal'" 
+                  class="badge priority" 
+                  [class.critical]="habit.priority === 'Critical'"
+                  [class.urgent]="habit.priority === 'Urgent'">
+              {{ habit.priority }}
+            </span>
+            <span *ngIf="habit.isOverdue" class="badge overdue">Overdue</span>
+          </div>
+        </div>
+
+        <!-- Task Description (if exists) -->
+        <p *ngIf="habit.description" class="task-description">{{ habit.description }}</p>
+
+        <!-- Time Remaining Badge -->
+        <div *ngIf="habit.hasDeadline && habit.timeRemaining && !habit.isCompleted" 
+             class="time-remaining"
+             [class.critical]="getUrgencyLevel(habit.timeRemaining) === 'critical'"
+             [class.urgent]="getUrgencyLevel(habit.timeRemaining) === 'urgent'">
+          ⏰ {{ habit.timeRemaining }} left
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+<div class="task-actions" *ngIf="!habit.isLocked">
+  <!-- Move to Tomorrow Button -->
+  <button 
+    *ngIf="!isDailyHabit(habit) && !habit.isCompleted" 
+    class="action-btn defer-btn"
+    (click)="moveTaskToTomorrow(habit)"
+    [disabled]="habit.isCompleted"
+    title="Move to tomorrow">
+    ➡️
+  </button>
+  
+  <!-- Edit Button - Only for ad-hoc tasks and only when not completed -->
+  <button 
+    *ngIf="habit.isAdHoc && !habit.isCompleted" 
+    class="action-btn edit-btn"
+    (click)="editAdHocTask(habit)"
+    [disabled]="habit.isCompleted"
+    title="Edit task">
+    ✏️
+  </button>
+</div>
+    </div>
+  </div>
+
+  <!-- No Tasks Message -->
+  <div *ngIf="!todayData.allHabits || todayData.allHabits.length === 0" class="no-tasks">
+    <div class="no-tasks-icon">🎉</div>
+    <h3>All caught up!</h3>
+    <p>No scheduled tasks for today. Enjoy your free time!</p>
+  </div>
+
+  <!-- Recommendations -->
+  <div *ngIf="todayData.recommendations && todayData.recommendations.length > 0" class="recommendations">
+    <h4>💡 Smart Suggestions</h4>
+    <ul class="recommendation-list">
+      <li *ngFor="let recommendation of todayData.recommendations" class="recommendation-item">
+        {{ recommendation }}
+      </li>
+    </ul>
+  </div>
+</div>
 
   <!-- Loading State -->
   <div class="loading-state" *ngIf="loading">
@@ -285,14 +215,6 @@
       Try Again
     </button>
   </div>
-
-  <!-- Add Ad Hoc Task Button -->
-  <div class="add-task-section" *ngIf="isAnyToday()">
-    <button class="add-task-btn" (click)="openAddTaskModal()">
-      ➕ Add Quick Task
-    </button>
-  </div>
-</div>
 
 <!-- Debug Panel (for development) -->
 <div class="debug-panel" *ngIf="false">
