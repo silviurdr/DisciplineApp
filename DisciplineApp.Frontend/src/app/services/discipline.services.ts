@@ -15,6 +15,9 @@ import {
   StreakInfo
 } from '../models/discipline.models';
 
+import { of } from 'rxjs';
+import { delay } from 'rxjs/operators';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -30,23 +33,69 @@ export class DisciplineService {
   /**
    * Get current week data
    */
-  getCurrentWeek(): Observable<WeekData> {
-    return this.http.get<WeekData>(`${this.baseUrl}/current-week`)
-      .pipe(
-        catchError(this.handleError)
-      );
-  }
-  
+// REPLACE getCurrentWeek() method with this:
+getCurrentWeek(): Observable<WeekData> {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth() + 1; // JS months are 0-based
+  const day = today.getDate();
 
-  /**
-   * Get weekly progress
-   */
-  getWeeklyProgress(): Observable<WeeklyProgress> {
-    return this.http.get<WeeklyProgress>(`${this.baseUrl}/weekly-progress`)
-      .pipe(
-        catchError(this.handleError)
-      );
-  }
+  return this.http.get<any>(`${this.baseUrl}/week/${year}/${month}/${day}`)
+    .pipe(
+      map(response => ({
+        weekNumber: response.weekNumber ?? this.getWeekNumber(today),
+        year: response.year ?? year,
+        weekStartDate: response.weekStartDate,
+        weekEndDate: response.weekEndDate,
+        days: [response.currentDay], // Transform to match your interface
+        weeklyStats: {
+          totalDays: 7,
+          completedDays: 0,
+          partialDays: 0,
+          incompleteDays: 0,
+          completionRate: 0,
+          graceUsed: 0,
+          graceRemaining: 1
+        }
+      })),
+      catchError(this.handleError)
+    );
+}
+
+/**
+ * Utility to get ISO week number from a date
+ */
+private getWeekNumber(date: Date): number {
+  const tempDate = new Date(date.getTime());
+  tempDate.setHours(0, 0, 0, 0);
+  tempDate.setDate(tempDate.getDate() + 4 - (tempDate.getDay() || 7));
+  const yearStart = new Date(tempDate.getFullYear(), 0, 1);
+  const weekNo = Math.ceil((((tempDate.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return weekNo;
+}
+
+// REPLACE getWeeklyProgress() method with this:
+getWeeklyProgress(): Observable<WeeklyProgress> {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth() + 1;
+  const day = today.getDate();
+  
+  return this.http.get<any>(`${this.baseUrl}/week/${year}/${month}/${day}`)
+    .pipe(
+      map(response => ({
+        overallProgress: 75, // Calculate from response data
+        graceRemaining: 1,
+        graceUsed: 0,
+        habitProgress: response.weeklyProgress || [],
+        weekStart: response.weekStartDate,
+        weekEnd: response.weekEndDate,
+        isCurrentWeek: true
+      })),
+      catchError(this.handleError)
+    );
+}
+
 
   /**
    * Complete or uncomplete a habit
@@ -383,14 +432,58 @@ export class DisciplineService {
     return 0;
   }
 
-  getMonthData(year: number, month: number): Observable<DayData[]> {
-  return this.http.get<DayData[]>(`${this.baseUrl}/month/${year}/${month}`)
-    .pipe(catchError(this.handleError));
+// Add this method to your DisciplineService
+getMonthData(year: number, month: number): Observable<DayData[]> {
+  // Since you don't have a month endpoint, we can call the week endpoint for each week in the month
+  // Or return mock data for now
+  
+  const mockMonthData: DayData[] = [];
+  const daysInMonth = new Date(year, month, 0).getDate();
+  
+  for (let day = 1; day <= daysInMonth; day++) {
+    mockMonthData.push({
+      date: `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`,
+      isCompleted: Math.random() > 0.5, // Random completion for demo
+      isPartiallyCompleted: Math.random() > 0.7,
+      completedHabits: Math.floor(Math.random() * 5),
+      totalHabits: 5,
+      requiredHabitsCount: 3,
+      completedRequiredCount: Math.floor(Math.random() * 3),
+      optionalHabitsCount: 2,
+      completedOptionalCount: Math.floor(Math.random() * 2),
+      canUseGrace: false,
+      usedGrace: false,
+      allHabits: [],
+      warnings: [],
+      recommendations: [],
+      dayOfWeek: new Date(year, month - 1, day).toLocaleDateString('en-US', { weekday: 'short' }),
+      isToday: false,
+      isFuture: new Date(year, month - 1, day) > new Date(),
+      isPast: new Date(year, month - 1, day) < new Date()
+    });
+  }
+  
+  return of(mockMonthData).pipe(
+    delay(500), // Simulate API delay
+    catchError(this.handleError)
+  );
 }
 
+// Also add the getStreakInfo method if missing:
 getStreakInfo(): Observable<StreakInfo> {
-  return this.http.get<StreakInfo>(`${this.baseUrl}/streak-info`)
-    .pipe(catchError(this.handleError));
+  // Mock data for now
+  return of({
+    currentStreak: 5,
+    longestStreak: 15,
+    totalDays: 45,
+    weeklyRewards: 3,
+    monthlyRewards: 1,
+    nextMilestone: 7,
+    lastUpdate: new Date().toISOString(),
+    lastCompletedDate: new Date()
+  }).pipe(
+    catchError(this.handleError)
+  );
 }
 
   // ===================================
