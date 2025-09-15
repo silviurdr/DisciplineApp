@@ -33,48 +33,99 @@ export class DisciplineService {
   /**
    * Get current week data
    */
-// REPLACE getCurrentWeek() method with this:
 getCurrentWeek(): Observable<WeekData> {
   const today = new Date();
   const year = today.getFullYear();
-  const month = today.getMonth() + 1; // JS months are 0-based
+  const month = today.getMonth() + 1;
   const day = today.getDate();
-
+  
   return this.http.get<any>(`${this.baseUrl}/week/${year}/${month}/${day}`)
     .pipe(
-      map(response => ({
-        weekNumber: response.weekNumber ?? this.getWeekNumber(today),
-        year: response.year ?? year,
-        weekStartDate: response.weekStartDate,
-        weekEndDate: response.weekEndDate,
-        days: [response.currentDay], // Transform to match your interface
-        weeklyStats: {
-          totalDays: 7,
-          completedDays: 0,
-          partialDays: 0,
-          incompleteDays: 0,
-          completionRate: 0,
-          graceUsed: 0,
-          graceRemaining: 1
+      map(response => {
+        const weekStart = new Date(response.weekStartDate);
+        const days: DayData[] = [];
+        const todayString = today.toISOString().split('T')[0];
+        
+        // Create 7 days for the week
+        for (let i = 0; i < 7; i++) {
+          const currentDate = new Date(weekStart);
+          currentDate.setDate(weekStart.getDate() + i);
+          const dateString = currentDate.toISOString().split('T')[0];
+          const isFuture = currentDate > today;
+          const isToday = dateString === todayString;
+          
+          // Use real data for today, mock for past days, empty for future
+          if (isToday && response.currentDay?.date === dateString) {
+            days.push(response.currentDay);
+          } else if (isFuture) {
+            // Future days should be empty/incomplete
+            days.push({
+              date: dateString,
+              isCompleted: false,
+              isPartiallyCompleted: false,
+              completedHabits: 0,
+              totalHabits: 4,
+              requiredHabitsCount: 3,
+              completedRequiredCount: 0,
+              optionalHabitsCount: 1,
+              completedOptionalCount: 0,
+              canUseGrace: false,
+              usedGrace: false,
+              allHabits: [],
+              warnings: [],
+              recommendations: [],
+              dayOfWeek: currentDate.toLocaleDateString('en-US', { weekday: 'short' }),
+              isToday: false,
+              isFuture: true,
+              isPast: false
+            });
+          } else {
+            // Past days can have random completion for demo
+            const completedCount = Math.floor(Math.random() * 4);
+            days.push({
+              date: dateString,
+              isCompleted: completedCount === 4,
+              isPartiallyCompleted: completedCount > 0 && completedCount < 4,
+              completedHabits: completedCount,
+              totalHabits: 4,
+              requiredHabitsCount: 3,
+              completedRequiredCount: Math.min(completedCount, 3),
+              optionalHabitsCount: 1,
+              completedOptionalCount: Math.max(0, completedCount - 3),
+              canUseGrace: false,
+              usedGrace: false,
+              allHabits: [],
+              warnings: [],
+              recommendations: [],
+              dayOfWeek: currentDate.toLocaleDateString('en-US', { weekday: 'short' }),
+              isToday: false,
+              isFuture: false,
+              isPast: true
+            });
+          }
         }
-      })),
+        
+        return {
+          weekStartDate: response.weekStartDate,
+          weekEndDate: response.weekEndDate,
+          weekNumber: this.getWeekNumber(weekStart),
+          year: weekStart.getFullYear(),
+          days: days,
+          weeklyStats: {
+            totalDays: 7,
+            completedDays: days.filter(d => d.isCompleted).length,
+            partialDays: days.filter(d => d.isPartiallyCompleted).length,
+            incompleteDays: days.filter(d => !d.isCompleted && !d.isPartiallyCompleted).length,
+            completionRate: Math.round((days.filter(d => d.isCompleted).length / 7) * 100),
+            graceUsed: 0,
+            graceRemaining: 1
+          }
+        };
+      }),
       catchError(this.handleError)
     );
 }
 
-/**
- * Utility to get ISO week number from a date
- */
-private getWeekNumber(date: Date): number {
-  const tempDate = new Date(date.getTime());
-  tempDate.setHours(0, 0, 0, 0);
-  tempDate.setDate(tempDate.getDate() + 4 - (tempDate.getDay() || 7));
-  const yearStart = new Date(tempDate.getFullYear(), 0, 1);
-  const weekNo = Math.ceil((((tempDate.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-  return weekNo;
-}
-
-// REPLACE getWeeklyProgress() method with this:
 getWeeklyProgress(): Observable<WeeklyProgress> {
   const today = new Date();
   const year = today.getFullYear();
@@ -84,16 +135,33 @@ getWeeklyProgress(): Observable<WeeklyProgress> {
   return this.http.get<any>(`${this.baseUrl}/week/${year}/${month}/${day}`)
     .pipe(
       map(response => ({
-        overallProgress: 75, // Calculate from response data
+        overallProgress: 75,
         graceRemaining: 1,
         graceUsed: 0,
-        habitProgress: response.weeklyProgress || [],
+        habitProgress: response.weeklyProgress?.map((habit: any) => ({
+          habitId: habit.habitId || 0,
+          habitName: habit.name || 'Unknown Habit',
+          completedCount: habit.completions || 0,
+          requiredCount: habit.target || 7,
+          urgency: 'normal',
+          remainingDays: 7,
+          isAchievable: true,
+          isOnTrack: (habit.completions || 0) >= (habit.target || 7) * 0.5,
+          frequency: 'daily'
+        })) || [],
         weekStart: response.weekStartDate,
         weekEnd: response.weekEndDate,
         isCurrentWeek: true
       })),
       catchError(this.handleError)
     );
+}
+
+// Add this helper method
+private getWeekNumber(date: Date): number {
+  const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+  const dayOfYear = Math.floor((date.getTime() - firstDayOfYear.getTime()) / (24 * 60 * 60 * 1000));
+  return Math.ceil((dayOfYear + firstDayOfYear.getDay() + 1) / 7);
 }
 
 
