@@ -38,32 +38,272 @@ public class DisciplineController : ControllerBase
             // Generate the smart schedule for this week
             var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
 
-            // Get actual completion data
+            // Get actual completion data for the entire week
             var completions = await _context.HabitCompletions
                 .Where(h => h.Date >= weekStart && h.Date <= weekStart.AddDays(6))
                 .ToListAsync();
 
-            // ✅ ADD: Get ad-hoc tasks for current day
+            // Get ad-hoc tasks for the entire week
             var adHocTasks = await _context.AdHocTasks
-                .Where(t => t.Date.Date == currentDate.Date)
+                .Where(t => t.Date >= weekStart && t.Date <= weekStart.AddDays(6))
                 .ToListAsync();
 
-            // Build response
+            // Build all 7 days data
+            var allDays = new List<object>();
+
+            foreach (var daySchedule in weekSchedule.DailySchedules)
+            {
+                var dayCompletions = completions.Where(c => c.Date.Date == daySchedule.Date.Date).ToList();
+                var dayAdHocTasks = adHocTasks.Where(t => t.Date.Date == daySchedule.Date.Date).ToList();
+
+                var dayData = await BuildDayResponse(daySchedule.Date, daySchedule, dayCompletions, dayAdHocTasks);
+                allDays.Add(dayData);
+            }
+
+            // Find current day data
+            var currentDayData = allDays.FirstOrDefault(d =>
+                ((dynamic)d).date == currentDate.ToString("yyyy-MM-dd"));
+
+            // Build response with complete week data
             var response = new
             {
                 weekStartDate = weekStart.ToString("yyyy-MM-dd"),
                 weekEndDate = weekStart.AddDays(6).ToString("yyyy-MM-dd"),
-                currentDay = await BuildCurrentDayResponse(currentDate, weekSchedule, completions, adHocTasks), // ✅ ADD adHocTasks parameter
-                weeklyHabitProgress = await BuildWeeklyProgress(weekSchedule, completions),
-                dayStatuses = await BuildDayStatuses(weekSchedule, completions)
+                currentDay = currentDayData,
+                allDays = allDays, // ← This is the key addition!
+                weeklyStats = new
+                {
+                    totalDays = 7,
+                    completedDays = allDays.Count(d => ((dynamic)d).isCompleted == true),
+                    partialDays = allDays.Count(d => ((dynamic)d).isPartiallyCompleted == true),
+                    incompleteDays = allDays.Count(d => ((dynamic)d).isCompleted == false && ((dynamic)d).isPartiallyCompleted == false)
+                }
             };
 
             return Ok(response);
         }
         catch (Exception ex)
         {
-            return BadRequest(new { error = ex.Message });
+            return StatusCode(500, new { error = $"Failed to get week data: {ex.Message}" });
         }
+    }
+
+    // Add this new helper method to build individual day responses
+    private async Task<object> BuildDayResponse(DateTime date, DailySchedule daySchedule, List<HabitCompletion> completions, List<AdHocTask> adHocTasks)
+    {
+        var allHabits = new List<object>();
+
+        // Add regular scheduled habits
+        foreach (var scheduledHabit in daySchedule.ScheduledHabits)
+        {
+            var completion = completions.FirstOrDefault(c => c.HabitId == scheduledHabit.HabitId);
+
+            // Determine if the habit is locked based on the deadline
+            var isLocked = false;
+            if (scheduledHabit.HasDeadline && date.Date == DateTime.Today)
+            {
+                var currentTime = TimeOnly.FromDateTime(DateTime.Now);
+                var deadlineTime = scheduledHabit?.DeadlineTime ?? TimeOnly.MaxValue;
+                isLocked = currentTime > deadlineTime;
+            }
+
+            allHabits.Add(new
+            {
+                habitId = scheduledHabit.HabitId,
+                name = scheduledHabit.HabitName,
+                description = scheduledHabit.Description,
+                isCompleted = completion?.IsCompleted ?? false,
+                isRequired = scheduledHabit.Priority == SchedulePriority.Required,
+                isLocked = isLocked,
+                reason = scheduledHabit.Reason,
+                priority = scheduledHabit.Priority.ToString(),
+                completedAt = completion?.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss"),
+                hasDeadline = scheduledHabit.HasDeadline,
+                deadlineTime = scheduledHabit.DeadlineTime.ToString("HH:mm"),
+                isOverdue = scheduledHabit.HasDeadline && date.Date == DateTime.Today &&
+                           TimeOnly.FromDateTime(DateTime.Now) > (scheduledHabit?.DeadlineTime ?? TimeOnly.MaxValue) &&
+                           !(completion?.IsCompleted ?? false)
+            });
+        }
+
+        // Add ad-hoc tasks
+        foreach (var adHocTask in adHocTasks)
+        {
+            allHabits.Add(new
+            {
+                habitId = -1, // Use negative ID to distinguish ad-hoc tasks
+                adHocId = adHocTask.Id,
+                name = adHocTask.Name,
+                description = adHocTask.Description,
+                isCompleted = adHocTask.IsCompleted,
+                isRequired = false,
+                isLocked = false,
+                isAdHoc = true,
+                completedAt = adHocTask.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss"),
+                hasDeadline = false,
+                deadlineTime = "",
+                isOverdue = false
+            });
+        }
+
+        // Calculate completion statistics
+        var totalHabits = allHabits.Count;
+        var completedHabits = allHabits.Count(h => ((dynamic)h).isCompleted == true);
+        var requiredHabits = allHabits.Where(h => ((dynamic)h).isRequired == true).ToList();
+        var completedRequired = requiredHabits.Count(h => ((dynamic)h).isCompleted == true);
+
+        return new
+        {
+            date = date.ToString("yyyy-MM-dd"),
+            isCompleted = totalHabits > 0 && completedHabits == totalHabits,
+            isPartiallyCompleted = completedHabits > 0 && completedHabits < totalHabits,
+            totalHabits = totalHabits,
+            completedHabits = completedHabits,
+            requiredHabitsCount = requiredHabits.Count,
+            completedRequiredCount = completedRequired,
+            allHabits = allHabits,
+            warnings = new List<string>(),
+            recommendations = new List<string>()
+        };
+    }
+
+    // Add this method to your DisciplineController.cs
+
+    [HttpGet("month/{year}/{month}")]
+    public async Task<IActionResult> GetMonthData(int year, int month)
+    {
+        try
+        {
+            // Calculate month boundaries
+            var monthStart = new DateTime(year, month, 1);
+            var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+            // Get all completion data for the month
+            var completions = await _context.HabitCompletions
+                .Where(h => h.Date >= monthStart && h.Date <= monthEnd)
+                .ToListAsync();
+
+            // Get all ad-hoc tasks for the month
+            var adHocTasks = await _context.AdHocTasks
+                .Where(t => t.Date >= monthStart && t.Date <= monthEnd)
+                .ToListAsync();
+
+            var monthDays = new List<object>();
+
+            // Generate data for each day of the month
+            for (var date = monthStart; date <= monthEnd; date = date.AddDays(1))
+            {
+                // Generate weekly schedule for this day to get the planned habits
+                var weekStart = GetWeekStart(date);
+                var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+
+                // Find the day's schedule
+                var daySchedule = weekSchedule.DailySchedules.FirstOrDefault(d => d.Date.Date == date.Date);
+
+                // Get completions and ad-hoc tasks for this specific day
+                var dayCompletions = completions.Where(c => c.Date.Date == date.Date).ToList();
+                var dayAdHocTasks = adHocTasks.Where(t => t.Date.Date == date.Date).ToList();
+
+                // Build day data
+                var dayData = await BuildDayResponse(date, daySchedule ?? new DailySchedule
+                {
+                    Date = date,
+                    ScheduledHabits = new List<ScheduledHabit>()
+                }, dayCompletions, dayAdHocTasks);
+
+                monthDays.Add(dayData);
+            }
+
+            // Calculate monthly statistics
+            var monthlyStats = CalculateMonthlyStats(monthDays, monthStart, monthEnd);
+
+            var response = new
+            {
+                year = year,
+                month = month,
+                monthStart = monthStart.ToString("yyyy-MM-dd"),
+                monthEnd = monthEnd.ToString("yyyy-MM-dd"),
+                days = monthDays,
+                monthlyStats = monthlyStats
+            };
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { error = $"Failed to get month data: {ex.Message}" });
+        }
+    }
+
+    // Helper method to calculate monthly statistics
+    private object CalculateMonthlyStats(List<object> monthDays, DateTime monthStart, DateTime monthEnd)
+    {
+        var totalDays = monthDays.Count;
+        var completedDays = 0;
+        var partialDays = 0;
+        var totalTasks = 0;
+        var completedTasks = 0;
+
+        foreach (dynamic day in monthDays)
+        {
+            if (day.isCompleted == true) completedDays++;
+            else if (day.isPartiallyCompleted == true) partialDays++;
+
+            totalTasks += (int)(day.totalHabits ?? 0);
+            completedTasks += (int)(day.completedHabits ?? 0);
+        }
+
+        var completionRate = totalDays > 0 ? Math.Round((double)completedDays / totalDays * 100, 1) : 0;
+        var taskCompletionRate = totalTasks > 0 ? Math.Round((double)completedTasks / totalTasks * 100, 1) : 0;
+
+        return new
+        {
+            totalDays = totalDays,
+            completedDays = completedDays,
+            partialDays = partialDays,
+            incompleteDays = totalDays - completedDays - partialDays,
+            completionRate = completionRate,
+            totalTasks = totalTasks,
+            completedTasks = completedTasks,
+            taskCompletionRate = taskCompletionRate,
+            currentStreak = CalculateCurrentStreak(monthDays),
+            monthName = monthStart.ToString("MMMM"),
+            averageTasksPerDay = totalDays > 0 ? Math.Round((double)totalTasks / totalDays, 1) : 0
+        };
+    }
+
+    // Helper method to calculate current streak from month data
+    private int CalculateCurrentStreak(List<object> monthDays)
+    {
+        int streak = 0;
+        var today = DateTime.Today;
+
+        // Convert to array and reverse it to count backwards from the last day
+        var reversedDays = monthDays.ToArray().Reverse();
+
+        foreach (var dayObj in reversedDays)
+        {
+            // Cast to dynamic to access properties
+            dynamic day = dayObj;
+
+            // Parse the date string safely
+            if (DateTime.TryParse((string)day.date, out var dayDate))
+            {
+                // Only count days up to today
+                if (dayDate > today) continue;
+
+                if (day.isCompleted == true)
+                {
+                    streak++;
+                }
+                else
+                {
+                    break; // Streak is broken
+                }
+            }
+        }
+
+        return streak;
     }
 
     [HttpPost("complete-habit")]

@@ -46,82 +46,97 @@ getCurrentWeek(): Observable<WeekData> {
         const days: DayData[] = [];
         const todayString = today.toISOString().split('T')[0];
         
-        // Create 7 days for the week
-        for (let i = 0; i < 7; i++) {
-          const currentDate = new Date(weekStart);
-          currentDate.setDate(weekStart.getDate() + i);
-          const dateString = currentDate.toISOString().split('T')[0];
-          const isFuture = currentDate > today;
-          const isToday = dateString === todayString;
+        // Use the complete week data from backend instead of creating mock data
+        if (response.allDays && response.allDays.length === 7) {
+          // Map each day from the backend response
+          response.allDays.forEach((apiDay: any) => {
+            const dayDate = new Date(apiDay.date);
+            const dateString = apiDay.date;
+            const isToday = dateString === todayString;
+            const isFuture = dayDate > today;
+            const isPast = dayDate < today && !isToday;
+            
+            days.push({
+              date: dateString,
+              isCompleted: apiDay.isCompleted || false,
+              isPartiallyCompleted: apiDay.isPartiallyCompleted || false,
+              completedHabits: apiDay.completedHabits || 0,
+              totalHabits: apiDay.totalHabits || 0,
+              requiredHabitsCount: apiDay.requiredHabitsCount || 0,
+              completedRequiredCount: apiDay.completedRequiredCount || 0,
+              optionalHabitsCount: (apiDay.totalHabits || 0) - (apiDay.requiredHabitsCount || 0),
+              completedOptionalCount: (apiDay.completedHabits || 0) - (apiDay.completedRequiredCount || 0),
+              canUseGrace: false,
+              usedGrace: false,
+              allHabits: apiDay.allHabits || [],
+              warnings: apiDay.warnings || [],
+              recommendations: apiDay.recommendations || [],
+              dayOfWeek: dayDate.toLocaleDateString('en-US', { weekday: 'short' }),
+              isToday: isToday,
+              isFuture: isFuture,
+              isPast: isPast
+            });
+          });
+        } else {
+          // Fallback: if backend doesn't return allDays, create basic structure
+          console.warn('Backend did not return complete week data, using fallback');
           
-          // Use real data for today, mock for past days, empty for future
-if (isToday && response.currentDay?.date === dateString) {
-  const todayData = { ...response.currentDay };
-  
-  // Calculate the correct values from allHabits array
-  if (todayData.allHabits && todayData.allHabits.length > 0) {
-    todayData.totalHabits = todayData.allHabits.length;
-    todayData.completedHabits = todayData.allHabits.filter((habit: ScheduledHabit) => habit.isCompleted).length;
-    
-    // Also fix the required/optional counts
-    const requiredHabits: ScheduledHabit[] = todayData.allHabits.filter((h: ScheduledHabit) => h.isRequired);
-    const completedRequired = requiredHabits.filter(h => h.isCompleted);
-    
-    todayData.requiredHabitsCount = requiredHabits.length;
-    todayData.completedRequiredCount = completedRequired.length;
-    
-    // Calculate completion status
-    todayData.isCompleted = todayData.completedHabits === todayData.totalHabits;
-    todayData.isPartiallyCompleted = todayData.completedHabits > 0 && !todayData.isCompleted;
-  }
-  
-  console.log('Fixed today data:', todayData);
-  days.push(todayData);
-} else if (isFuture) {
-            // Future days should be empty/incomplete
-            days.push({
-              date: dateString,
-              isCompleted: false,
-              isPartiallyCompleted: false,
-              completedHabits: 0,
-              totalHabits: 4,
-              requiredHabitsCount: 3,
-              completedRequiredCount: 0,
-              optionalHabitsCount: 1,
-              completedOptionalCount: 0,
-              canUseGrace: false,
-              usedGrace: false,
-              allHabits: [],
-              warnings: [],
-              recommendations: [],
-              dayOfWeek: currentDate.toLocaleDateString('en-US', { weekday: 'short' }),
-              isToday: false,
-              isFuture: true,
-              isPast: false
-            });
-          } else {
-            // Past days can have random completion for demo
-            const completedCount = Math.floor(Math.random() * 4);
-            days.push({
-              date: dateString,
-              isCompleted: completedCount === 4,
-              isPartiallyCompleted: completedCount > 0 && completedCount < 4,
-              completedHabits: completedCount,
-              totalHabits: 4,
-              requiredHabitsCount: 3,
-              completedRequiredCount: Math.min(completedCount, 3),
-              optionalHabitsCount: 1,
-              completedOptionalCount: Math.max(0, completedCount - 3),
-              canUseGrace: false,
-              usedGrace: false,
-              allHabits: [],
-              warnings: [],
-              recommendations: [],
-              dayOfWeek: currentDate.toLocaleDateString('en-US', { weekday: 'short' }),
-              isToday: false,
-              isFuture: false,
-              isPast: true
-            });
+          for (let i = 0; i < 7; i++) {
+            const currentDate = new Date(weekStart);
+            currentDate.setDate(weekStart.getDate() + i);
+            const dateString = currentDate.toISOString().split('T')[0];
+            const isFuture = currentDate > today;
+            const isToday = dateString === todayString;
+            
+            if (isToday && response.currentDay) {
+              // Use real data for today
+              const todayData = { ...response.currentDay };
+              
+              // Calculate the correct values from allHabits array
+              if (todayData.allHabits && todayData.allHabits.length > 0) {
+                todayData.totalHabits = todayData.allHabits.length;
+                todayData.completedHabits = todayData.allHabits.filter((habit: any) => habit.isCompleted).length;
+                
+                const requiredHabits = todayData.allHabits.filter((h: any) => h.isRequired);
+                const completedRequired = requiredHabits.filter((h: any) => h.isCompleted);
+                
+                todayData.requiredHabitsCount = requiredHabits.length;
+                todayData.completedRequiredCount = completedRequired.length;
+                
+                todayData.isCompleted = todayData.completedHabits === todayData.totalHabits;
+                todayData.isPartiallyCompleted = todayData.completedHabits > 0 && !todayData.isCompleted;
+              }
+              
+              days.push({
+                ...todayData,
+                dayOfWeek: currentDate.toLocaleDateString('en-US', { weekday: 'short' }),
+                isToday: true,
+                isFuture: false,
+                isPast: false
+              });
+            } else {
+              // For other days, create empty structure
+              days.push({
+                date: dateString,
+                isCompleted: false,
+                isPartiallyCompleted: false,
+                completedHabits: 0,
+                totalHabits: 0,
+                requiredHabitsCount: 0,
+                completedRequiredCount: 0,
+                optionalHabitsCount: 0,
+                completedOptionalCount: 0,
+                canUseGrace: false,
+                usedGrace: false,
+                allHabits: [],
+                warnings: [],
+                recommendations: [],
+                dayOfWeek: currentDate.toLocaleDateString('en-US', { weekday: 'short' }),
+                isToday: false,
+                isFuture: isFuture,
+                isPast: !isFuture && !isToday
+              });
+            }
           }
         }
         
@@ -145,7 +160,6 @@ if (isToday && response.currentDay?.date === dateString) {
       catchError(this.handleError)
     );
 }
-
 getWeeklyProgress(): Observable<WeeklyProgress> {
   const today = new Date();
   const year = today.getFullYear();
@@ -199,6 +213,58 @@ private getWeekNumber(date: Date): number {
         catchError(this.handleError)
       );
   }
+
+  getMonthData(year: number, month: number): Observable<DayData[]> {
+  return this.http.get<any>(`${this.baseUrl}/month/${year}/${month}`)
+    .pipe(
+      map(response => {
+        // Map the API response to DayData array
+        if (response.days && Array.isArray(response.days)) {
+          return response.days.map((apiDay: any) => {
+            const dayDate = new Date(apiDay.date);
+            const today = new Date();
+            const isToday = dayDate.toDateString() === today.toDateString();
+            const isFuture = dayDate > today;
+            const isPast = dayDate < today && !isToday;
+
+            return {
+              date: apiDay.date,
+              isCompleted: apiDay.isCompleted || false,
+              isPartiallyCompleted: apiDay.isPartiallyCompleted || false,
+              completedHabits: apiDay.completedHabits || 0,
+              totalHabits: apiDay.totalHabits || 0,
+              requiredHabitsCount: apiDay.requiredHabitsCount || 0,
+              completedRequiredCount: apiDay.completedRequiredCount || 0,
+              optionalHabitsCount: (apiDay.totalHabits || 0) - (apiDay.requiredHabitsCount || 0),
+              completedOptionalCount: (apiDay.completedHabits || 0) - (apiDay.completedRequiredCount || 0),
+              canUseGrace: false,
+              usedGrace: false,
+              allHabits: apiDay.allHabits || [],
+              warnings: apiDay.warnings || [],
+              recommendations: apiDay.recommendations || [],
+              dayOfWeek: dayDate.toLocaleDateString('en-US', { weekday: 'short' }),
+              isToday: isToday,
+              isFuture: isFuture,
+              isPast: isPast
+            } as DayData;
+          });
+        }
+        return [];
+      }),
+      catchError(this.handleError)
+    );
+}
+
+/**
+ * Get monthly statistics
+ */
+getMonthlyStats(year: number, month: number): Observable<any> {
+  return this.http.get<any>(`${this.baseUrl}/month/${year}/${month}`)
+    .pipe(
+      map(response => response.monthlyStats || {}),
+      catchError(this.handleError)
+    );
+}
 
   /**
    * Use grace day
@@ -520,42 +586,6 @@ private getWeekNumber(date: Date): number {
     return 0;
   }
 
-// Add this method to your DisciplineService
-getMonthData(year: number, month: number): Observable<DayData[]> {
-  // Since you don't have a month endpoint, we can call the week endpoint for each week in the month
-  // Or return mock data for now
-  
-  const mockMonthData: DayData[] = [];
-  const daysInMonth = new Date(year, month, 0).getDate();
-  
-  for (let day = 1; day <= daysInMonth; day++) {
-    mockMonthData.push({
-      date: `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`,
-      isCompleted: Math.random() > 0.5, // Random completion for demo
-      isPartiallyCompleted: Math.random() > 0.7,
-      completedHabits: Math.floor(Math.random() * 5),
-      totalHabits: 5,
-      requiredHabitsCount: 3,
-      completedRequiredCount: Math.floor(Math.random() * 3),
-      optionalHabitsCount: 2,
-      completedOptionalCount: Math.floor(Math.random() * 2),
-      canUseGrace: false,
-      usedGrace: false,
-      allHabits: [],
-      warnings: [],
-      recommendations: [],
-      dayOfWeek: new Date(year, month - 1, day).toLocaleDateString('en-US', { weekday: 'short' }),
-      isToday: false,
-      isFuture: new Date(year, month - 1, day) > new Date(),
-      isPast: new Date(year, month - 1, day) < new Date()
-    });
-  }
-  
-  return of(mockMonthData).pipe(
-    delay(500), // Simulate API delay
-    catchError(this.handleError)
-  );
-}
 
 // Also add the getStreakInfo method if missing:
 getStreakInfo(): Observable<StreakInfo> {
