@@ -1,17 +1,16 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject, Observable, of, forkJoin } from 'rxjs';
-import { takeUntil, map, catchError } from 'rxjs/operators';
-import { DisciplineService } from '../../services/discipline.services'; // Fixed import
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { DisciplineService } from '../../services/discipline.services'; // Correct import with 's'
 import { 
-  MonthlyStats, 
-  ProjectedReward, 
+  MonthlyStats,  
   StreakInfo,
   DayData,
   HabitWithFlexibility,
-  ScheduledHabit
-} from '../../models/discipline.models'; // Updated imports
-
+  ScheduledHabit,
+  WeekData
+} from '../../models/discipline.models';
 
 interface MonthlyDayData {
   date: Date;
@@ -25,11 +24,22 @@ interface MonthlyDayData {
   totalHabits: number;
   requiredHabitsCount: number;
   completedRequiredCount: number;
-  tasks: HabitWithFlexibility[]; // Updated to use flexible tasks
+  tasks: ScheduledHabit[]; // Changed back to ScheduledHabit[] to match your actual structure
   completionPercentage: number;
   isFuture: boolean;
   projectedReward?: ProjectedReward;
   flexibilityUsage?: FlexibilityDayInfo;
+}
+
+interface ProjectedReward {
+  day: number;
+  daysUntil: number;  // This property was missing
+  tier: number;       // This should be number, not RewardTier
+  icon: string;
+  name: string;
+  color: string;
+  isAchievable: boolean;
+  description: string;
 }
 
 interface FlexibilityDayInfo {
@@ -89,7 +99,6 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
     const today = new Date();
     this.currentMonth = today.getMonth();
     this.currentYear = today.getFullYear();
-    
   }
 
   ngOnInit(): void {
@@ -105,611 +114,250 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
   // DATA LOADING METHODS
   // ===================================
 
-loadMonthData(): void {
-  this.loading = true;
-  this.error = null;
+  loadMonthData(): void {
+    this.loading = true;
+    this.error = null;
 
-  // For now, let's use a simpler approach that definitely works
-  // Get today's real-time data and use mock data for other days
-  const today = new Date();
-  const isCurrentMonth = today.getMonth() === this.currentMonth && today.getFullYear() === this.currentYear;
-
-  if (isCurrentMonth) {
-    // Get today's real-time data from the weekly view API
-    this.disciplineService.getCurrentWeek()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (weekData) => {
-          // Find today's data in the week response
-          const todayData = weekData.days.find(day => 
-            new Date(day.date).toDateString() === today.toDateString()
-          );
-
-          // Generate the calendar grid with today's real data
-          this.generateCalendarWithTodayData(todayData || null);
-          this.calculateProjectedRewards();
-          this.loading = false;
-        },
-        error: (error) => {
-          console.error('Error loading today data:', error);
-          // Fallback to generating calendar without real-time data
-          this.generateCalendarWithTodayData(null);
-          this.loading = false;
-        }
-      });
-  } else {
-    // For past/future months, generate calendar without real-time data
-    this.generateCalendarWithTodayData(null);
-    this.loading = false;
-  }
-
-  // Load monthly stats (keep this as is)
-  this.loadMonthlyStats();
-}
-
-private generateCalendarWithTodayData(todayData: DayData | null | undefined): void {
-  const calendar: MonthlyDayData[] = [];
-  const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-  const today = new Date();
-
-  // Calculate the first Monday to display (may be from previous month)
-  const startDate = new Date(firstDay);
-  const dayOfWeek = firstDay.getDay();
-  const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday = 0 to Monday = 0
-  startDate.setDate(firstDay.getDate() - mondayOffset);
-
-  // Generate 42 days (6 weeks) for the calendar grid
-  for (let i = 0; i < 42; i++) {
-    const currentDate = new Date(startDate);
-    currentDate.setDate(startDate.getDate() + i);
-    
-    const dateString = currentDate.toISOString().split('T')[0];
-    const isCurrentMonth = currentDate.getMonth() === this.currentMonth;
-    const isToday = currentDate.toDateString() === today.toDateString();
-    const isFuture = currentDate > today;
-
-    let dayData: DayData;
-
-    // Use real data for today, mock data for other days
-    if (isToday && todayData) {
-      dayData = todayData;
-    } else {
-      // Create mock/empty data for other days
-      dayData = {
-        date: dateString,
-        isCompleted: false,
-        isPartiallyCompleted: false,
-        completedHabits: 0,
-        totalHabits: 0,
-        requiredHabitsCount: 0,
-        completedRequiredCount: 0,
-        optionalHabitsCount: 0,
-        completedOptionalCount: 0,
-        canUseGrace: false,
-        usedGrace: false,
-        allHabits: [],
-        warnings: [],
-        recommendations: [],
-        dayOfWeek: currentDate.toLocaleDateString('en-US', { weekday: 'short' }),
-        isToday: isToday,
-        isFuture: isFuture,
-        isPast: currentDate < today && !isToday
-      };
-    }
-
-    // Calculate completion metrics
-    const completedHabits = dayData.completedHabits || 0;
-    const totalHabits = dayData.totalHabits || 0;
-    const requiredHabitsCount = dayData.requiredHabitsCount || 0;
-    const completedRequiredCount = dayData.completedRequiredCount || 0;
-
-    const completionPercentage = totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
-    
-    // Determine completion status
-    const isCompleted = requiredHabitsCount > 0 ? 
-      completedRequiredCount === requiredHabitsCount : 
-      completedHabits === totalHabits;
-    
-    const isPartiallyCompleted = completedHabits > 0 && !isCompleted;
-
-    // Convert to HabitWithFlexibility[] with proper typing
-    const tasks: HabitWithFlexibility[] = (dayData.allHabits || []).map((habit: any) => ({
-      // Required ScheduledHabit properties
-      habitId: habit.habitId || 0,
-      name: habit.name || '',
-      description: habit.description || '',
-      isCompleted: habit.isCompleted || false,
-      isRequired: habit.isRequired || false,
-      isLocked: habit.isLocked || false,
-      reason: habit.reason || '',
-      priority: habit.priority || 'Normal',
-      completedAt: habit.completedAt || null,
-      hasDeadline: habit.hasDeadline || false,
-      deadlineTime: habit.deadlineTime || null,
-      isOverdue: habit.isOverdue || false,
-      isAdHoc: habit.isAdHoc || false,
-      adHocId: habit.adHocId || null,
-      timeRemaining: habit.timeRemaining || null,
-      
-      // Required HabitWithFlexibility properties
-      maxDeferrals: 0,
-      deferredCount: 0,
-      canDefer: false,
-      urgencyLevel: 'Normal' as const,
-      statusLabel: '',
-      wasDeferred: false,
-      daysRemaining: 0,
-      flexibilityIcon: '',
-      flexibilityColor: ''
-    }));
-
-    calendar.push({
-      date: currentDate,
-      dateString,
-      dayNumber: currentDate.getDate(),
-      isCurrentMonth,
-      isToday,
-      isCompleted,
-      isPartiallyCompleted,
-      completedHabits,
-      totalHabits,
-      requiredHabitsCount,
-      completedRequiredCount,
-      tasks: tasks, // Now correctly typed
-      completionPercentage: Math.round(completionPercentage),
-      isFuture,
-      projectedReward: undefined,
-      flexibilityUsage: {
-        totalDeferrals: 0,
-        criticalTasks: 0,
-        urgentTasks: 0,
-        tasksSavedByFlexibility: 0
-      }
-    });
-  }
-
-  this.calendarDays = calendar;
-  this.calculateMonthlyStats();
-}
-
-private loadMonthlyStats(): void {
-  this.disciplineService.getMonthlyStats(this.currentYear, this.currentMonth + 1)
-    .pipe(takeUntil(this.destroy$))
-    .subscribe({
-      next: (stats) => {
-        this.monthlyStats = {
-          completedDays: stats.completedDays || 0,
-          totalDays: stats.totalDays || 0,
-          completionRate: stats.completionRate || 0,
-          currentStreak: stats.currentStreak || 0,
-          totalHabits: stats.totalTasks || 0,
-          averageCompletionRate: stats.taskCompletionRate || 0
-        };
-      },
-      error: (error) => {
-        console.error('Error loading monthly stats:', error);
-      }
-    });
-}
-
-
-private loadMonthDataUsingDailyRequests(): void {
-  // Generate all 42 days for the calendar grid
-  const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-  const startDate = new Date(firstDay);
-  const dayOfWeek = firstDay.getDay();
-  const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  startDate.setDate(firstDay.getDate() - mondayOffset);
-
-  const dayRequests: Observable<DayData>[] = [];
-  const dates: Date[] = [];
-
-  // Create requests for 42 days
-  for (let i = 0; i < 42; i++) {
-    const currentDate = new Date(startDate);
-    currentDate.setDate(startDate.getDate() + i);
-    dates.push(new Date(currentDate));
-    
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth() + 1;
-    const day = currentDate.getDate();
-    
-    // For today, get real-time data using the weekly API
+    // Get today's real-time data and use mock data for other days
     const today = new Date();
-    if (currentDate.toDateString() === today.toDateString()) {
-      // Get today's real-time data from weekly view
-      const todayRequest = this.disciplineService.getCurrentWeek().pipe(
-        map(weekData => {
-          const todayData = weekData.days.find(day => 
-            new Date(day.date).toDateString() === today.toDateString()
-          );
-          return todayData || this.createEmptyDayData(currentDate);
-        }),
-        catchError(() => of(this.createEmptyDayData(currentDate)))
-      );
-      dayRequests.push(todayRequest);
+    const isCurrentMonth = today.getMonth() === this.currentMonth && today.getFullYear() === this.currentYear;
+
+    if (isCurrentMonth) {
+      // Get today's real-time data from the weekly view API
+      this.disciplineService.getCurrentWeek()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (weekData: WeekData) => {
+            // Find today's data in the week response
+            const todayData = weekData.days.find(day => 
+              new Date(day.date).toDateString() === today.toDateString()
+            );
+
+            // Generate the calendar grid with today's real data
+            this.generateCalendarWithTodayData(todayData || null);
+            this.calculateProjectedRewards();
+            this.loading = false;
+          },
+          error: (error) => {
+            console.error('Error loading today data:', error);
+            // Fallback to generating calendar without real-time data
+            this.generateCalendarWithTodayData(null);
+            this.loading = false;
+          }
+        });
     } else {
-      // For other days, create mock/empty data for now
-      // In a full implementation, you'd call individual day APIs or cache previous data
-      dayRequests.push(of(this.createEmptyDayData(currentDate)));
-    }
-  }
-
-  // Execute all requests
-  forkJoin(dayRequests).pipe(
-    takeUntil(this.destroy$)
-  ).subscribe({
-    next: (daysData) => {
-      console.log('Month data loaded with real-time today:', daysData);
-      this.processMonthDataFromDays(daysData, dates);
-      this.calculateProjectedRewards();
-      this.loading = false;
-    },
-    error: (error) => {
-      console.error('Error loading month data:', error);
-      this.error = 'Failed to load month data. Please try again.';
+      // For past/future months, generate calendar without real-time data
+      this.generateCalendarWithTodayData(null);
       this.loading = false;
     }
-  });
-}
 
-private createEmptyDayData(date: Date): DayData {
-  const dateString = date.toISOString().split('T')[0];
-  const today = new Date();
-  
-  return {
-    date: dateString,
-    isCompleted: false,
-    isPartiallyCompleted: false,
-    completedHabits: 0,
-    totalHabits: 0,
-    requiredHabitsCount: 0,
-    completedRequiredCount: 0,
-    optionalHabitsCount: 0,
-    completedOptionalCount: 0,
-    canUseGrace: false,
-    usedGrace: false,
-    allHabits: [],
-    warnings: [],
-    recommendations: [],
-    dayOfWeek: date.toLocaleDateString('en-US', { weekday: 'short' }),
-    isToday: date.toDateString() === today.toDateString(),
-    isFuture: date > today,
-    isPast: date < today && date.toDateString() !== today.toDateString()
-  };
-}
-
-private processMonthDataFromDays(daysData: DayData[], dates: Date[]): void {
-  const monthlyDays: MonthlyDayData[] = [];
-
-  daysData.forEach((dayData, index) => {
-    const date = dates[index];
-    const isCurrentMonth = date.getMonth() === this.currentMonth;
-    
-    monthlyDays.push({
-      date: date,
-      dateString: dayData.date,
-      dayNumber: date.getDate(),
-      isCurrentMonth,
-      isToday: dayData.isToday,
-      isCompleted: dayData.isCompleted,
-      isPartiallyCompleted: dayData.isPartiallyCompleted,
-      completedHabits: dayData.completedHabits,
-      totalHabits: dayData.totalHabits,
-      requiredHabitsCount: dayData.requiredHabitsCount,
-      completedRequiredCount: dayData.completedRequiredCount,
-      tasks: dayData.allHabits || [],
-      completionPercentage: this.calculateCompletionPercentageFromData(dayData),
-      isFuture: dayData.isFuture,
-      flexibilityUsage: {
-        totalDeferrals: 0,
-        criticalTasks: 0,
-        urgentTasks: 0,
-        tasksSavedByFlexibility: 0
-      }
-    });
-  });
-
-  this.calendarDays = monthlyDays;
-  this.calculateMonthlyStats();
-}
-
-private calculateCompletionPercentageFromData(dayData: DayData): number {
-  if (!dayData || dayData.totalHabits === 0) return 0;
-  return Math.round((dayData.completedHabits / dayData.totalHabits) * 100);
-}
-
-private loadCurrentMonthWithRealTimeData(): void {
-  // Get the current week data (which has real-time info)
-  this.disciplineService.getCurrentWeek()
-    .pipe(takeUntil(this.destroy$))
-    .subscribe({
-      next: (weekData) => {
-        // Extract today's real-time data
-        const today = new Date();
-        const todayData = weekData.days.find(day => 
-          new Date(day.date).toDateString() === today.toDateString()
-        );
-
-        // Now get the month data and merge with real-time today data
-        this.disciplineService.getMonthData(this.currentYear, this.currentMonth + 1)
-          .pipe(takeUntil(this.destroy$))
-          .subscribe({
-            next: (monthData: DayData[]) => {
-              // Replace today's data with real-time data from weekly view
-              if (todayData) {
-                const todayString = today.toISOString().split('T')[0];
-                const todayIndex = monthData.findIndex(day => day.date.split('T')[0] === todayString);
-                
-                if (todayIndex !== -1) {
-                  // Replace with real-time data
-                  monthData[todayIndex] = {
-                    ...monthData[todayIndex],
-                    isCompleted: todayData.isCompleted,
-                    isPartiallyCompleted: todayData.isPartiallyCompleted,
-                    completedHabits: todayData.completedHabits,
-                    totalHabits: todayData.totalHabits,
-                    requiredHabitsCount: todayData.requiredHabitsCount || 0,
-                    completedRequiredCount: todayData.completedRequiredCount || 0,
-                    allHabits: todayData.allHabits || []
-                  };
-                }
-              }
-
-              this.processMonthData(monthData);
-              this.calculateProjectedRewards();
-              this.loading = false;
-            },
-            error: (error) => {
-              console.error('Error loading month data:', error);
-              this.error = 'Failed to load month data. Please try again.';
-              this.loading = false;
-            }
-          });
-      },
-      error: (error) => {
-        console.error('Error loading current week data:', error);
-        // Fallback to month data only
-        this.loadHistoricalMonthData();
-      }
-    });
-}
-
-private loadHistoricalMonthData(): void {
-  // Use original month endpoint for non-current months
-  this.disciplineService.getMonthData(this.currentYear, this.currentMonth + 1)
-    .pipe(takeUntil(this.destroy$))
-    .subscribe({
-      next: (monthData: DayData[]) => {
-        this.processMonthData(monthData);
-        this.calculateProjectedRewards();
-        this.loading = false;
-      },
-      error: (error) => {
-        console.error('Error loading month data:', error);
-        this.error = 'Failed to load month data. Please try again.';
-        this.loading = false;
-      }
-    });
-
-  // Load monthly stats
-  this.disciplineService.getMonthlyStats(this.currentYear, this.currentMonth + 1)
-    .pipe(takeUntil(this.destroy$))
-    .subscribe({
-      next: (stats) => {
-        this.monthlyStats = {
-          completedDays: stats.completedDays || 0,
-          totalDays: stats.totalDays || 0,
-          completionRate: stats.completionRate || 0,
-          currentStreak: stats.currentStreak || 0,
-          totalHabits: stats.totalTasks || 0,
-          averageCompletionRate: stats.taskCompletionRate || 0
-        };
-      },
-      error: (error) => {
-        console.error('Error loading monthly stats:', error);
-      }
-    });
-}
-
-  private processMonthData(monthData: DayData[]): void {
-    this.calendarDays = this.generateCalendarGrid(monthData);
-    this.calculateMonthlyStats();
+    // Load monthly stats
+    this.loadMonthlyStats();
   }
 
-  private generateCalendarGrid(monthData: DayData[]): MonthlyDayData[] {
+  private generateCalendarWithTodayData(todayData: DayData | null): void {
+    const calendar: MonthlyDayData[] = [];
     const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-    const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+    const today = new Date();
+
+    // Calculate the first Monday to display (may be from previous month)
     const startDate = new Date(firstDay);
-    
-    // Adjust to start on Sunday
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
-    
-    const days: MonthlyDayData[] = [];
-    const currentDate = new Date(startDate);
-    
-    // Generate 42 days (6 weeks) for a complete calendar grid
+    const dayOfWeek = firstDay.getDay();
+    const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday = 0 to Monday = 0
+    startDate.setDate(firstDay.getDate() - mondayOffset);
+
+    // Generate 42 days (6 weeks) for the calendar grid
     for (let i = 0; i < 42; i++) {
+      const currentDate = new Date(startDate);
+      currentDate.setDate(startDate.getDate() + i);
+      
       const dateString = currentDate.toISOString().split('T')[0];
       const isCurrentMonth = currentDate.getMonth() === this.currentMonth;
+      const isToday = currentDate.toDateString() === today.toDateString();
+      const isFuture = currentDate > today;
+
+      let dayData: DayData;
+
+      // Use real data for today, mock data for other days
+      if (isToday && todayData) {
+        dayData = todayData;
+      } else {
+        // Create mock/empty data for other days
+        dayData = {
+          date: dateString,
+          isCompleted: false,
+          isPartiallyCompleted: false,
+          completedHabits: 0,
+          totalHabits: 0,
+          requiredHabitsCount: 0,
+          completedRequiredCount: 0,
+          optionalHabitsCount: 0,
+          completedOptionalCount: 0,
+          canUseGrace: false,
+          usedGrace: false,
+          allHabits: [],
+          warnings: [],
+          recommendations: [],
+          dayOfWeek: currentDate.toLocaleDateString('en-US', { weekday: 'short' }),
+          isToday: isToday,
+          isFuture: isFuture,
+          isPast: currentDate < today && !isToday
+        };
+      }
+
+      // Calculate completion metrics
+      const completedHabits = dayData.completedHabits || 0;
+      const totalHabits = dayData.totalHabits || 0;
+      const requiredHabitsCount = dayData.requiredHabitsCount || 0;
+      const completedRequiredCount = dayData.completedRequiredCount || 0;
+
+      const completionPercentage = totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
       
-      // Find matching day data
-      const dayData = monthData.find(d => d.date === dateString);
+      // Determine completion status
+      const isCompleted = requiredHabitsCount > 0 ? 
+        completedRequiredCount === requiredHabitsCount : 
+        completedHabits === totalHabits;
       
-      days.push({
-        date: new Date(currentDate),
+      const isPartiallyCompleted = completedHabits > 0 && !isCompleted;
+
+      calendar.push({
+        date: currentDate,
         dateString,
         dayNumber: currentDate.getDate(),
         isCurrentMonth,
-        isToday: this.isToday(currentDate),
-        isCompleted: dayData?.isCompleted || false,
-        isPartiallyCompleted: dayData?.isPartiallyCompleted || false,
-        completedHabits: dayData?.completedHabits || 0,
-        totalHabits: dayData?.totalHabits || 0,
-        requiredHabitsCount: dayData?.requiredHabitsCount || 0,
-        completedRequiredCount: dayData?.completedRequiredCount || 0,
-        tasks: [], // Will be populated with flexible tasks if needed
-        completionPercentage: this.calculateCompletionPercentage(dayData),
-        isFuture: currentDate > new Date(),
-        flexibilityUsage: this.calculateFlexibilityUsage(dayData)
+        isToday,
+        isCompleted,
+        isPartiallyCompleted,
+        completedHabits,
+        totalHabits,
+        requiredHabitsCount,
+        completedRequiredCount,
+        tasks: dayData.allHabits || [], // Use ScheduledHabit[] directly
+        completionPercentage: Math.round(completionPercentage),
+        isFuture,
+        projectedReward: undefined,
+        flexibilityUsage: this.calculateFlexibilityUsage(dayData.allHabits || [])
       });
-      
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-    
-    return days;
-  }
-
-  private calculateCompletionPercentage(dayData: DayData | undefined): number {
-    if (!dayData || dayData.totalHabits === 0) return 0;
-    return Math.round((dayData.completedHabits / dayData.totalHabits) * 100);
-  }
-
-  private calculateFlexibilityUsage(dayData: DayData | undefined): FlexibilityDayInfo {
-    if (!dayData || !dayData.allHabits) {
-      return {
-        totalDeferrals: 0,
-        criticalTasks: 0,
-        urgentTasks: 0,
-        tasksSavedByFlexibility: 0
-      };
     }
 
-    const flexibleTasks = dayData.allHabits.filter(h => h.maxDeferrals && h.maxDeferrals > 0);
-    
+    this.calendarDays = calendar;
+    this.calculateMonthlyStats();
+  }
+
+  private calculateFlexibilityUsage(tasks: ScheduledHabit[]): FlexibilityDayInfo {
     return {
-      totalDeferrals: flexibleTasks.reduce((sum, task) => sum + (task.deferralsUsed || 0), 0),
-      criticalTasks: flexibleTasks.filter(task => 
-        task.deferralsUsed === task.maxDeferrals
-      ).length,
-      urgentTasks: flexibleTasks.filter(task => 
-        task.deferralsUsed && task.maxDeferrals && 
-        (task.deferralsUsed / task.maxDeferrals) >= 0.66
-      ).length,
-      tasksSavedByFlexibility: flexibleTasks.filter(task => 
-        task.deferralsUsed && task.deferralsUsed > 0 && task.isCompleted
-      ).length
+      totalDeferrals: 0, // You can calculate this from tasks if needed
+      criticalTasks: tasks.filter(task => task.priority === 'Critical').length,
+      urgentTasks: tasks.filter(task => task.priority === 'Urgent').length,
+      tasksSavedByFlexibility: 0 // You can calculate this from tasks if needed
     };
   }
 
+  private loadMonthlyStats(): void {
+    this.disciplineService.getMonthlyStats(this.currentYear, this.currentMonth + 1)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (stats) => {
+          this.monthlyStats = {
+            completedDays: stats.completedDays || 0,
+            totalDays: stats.totalDays || 0,
+            completionRate: stats.completionRate || 0,
+            currentStreak: stats.currentStreak || 0,
+            totalHabits: stats.totalTasks || 0,
+            averageCompletionRate: stats.taskCompletionRate || 0
+          };
+        },
+        error: (error) => {
+          console.error('Error loading monthly stats:', error);
+        }
+      });
+  }
+
+  // ===================================
+  // STATISTICS CALCULATION METHODS
+  // ===================================
+
   private calculateMonthlyStats(): void {
-    const currentMonthDays = this.calendarDays.filter(d => 
-      d.isCurrentMonth && !d.isFuture
-    );
-    
-    const completedDays = currentMonthDays.filter(d => d.isCompleted).length;
+    const currentMonthDays = this.calendarDays.filter(day => day.isCurrentMonth && !day.isFuture);
+    const completedDays = currentMonthDays.filter(day => day.isCompleted).length;
     const totalDays = currentMonthDays.length;
-    const completionRate = totalDays > 0 ? Math.round((completedDays / totalDays) * 100) : 0;
-    
-    // Calculate current streak
-    let currentStreak = 0;
-    const today = new Date();
-    for (let i = currentMonthDays.length - 1; i >= 0; i--) {
-      const day = currentMonthDays[i];
-      if (day.date > today) continue;
-      
-      if (day.isCompleted) {
-        currentStreak++;
-      } else {
-        break;
-      }
-    }
     
     const totalHabits = currentMonthDays.reduce((sum, day) => sum + day.totalHabits, 0);
+    const completedHabits = currentMonthDays.reduce((sum, day) => sum + day.completedHabits, 0);
     
     this.monthlyStats = {
       completedDays,
       totalDays,
-      completionRate,
-      currentStreak,
-      totalHabits
+      completionRate: totalDays > 0 ? (completedDays / totalDays) * 100 : 0,
+      currentStreak: this.calculateCurrentStreak(),
+      totalHabits,
+      averageCompletionRate: totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0
     };
   }
 
-  // ===================================
-  // PROJECTED REWARDS CALCULATION
-  // ===================================
-
-  private async calculateProjectedRewards(): Promise<void> {
-    try {
-      const currentStreakInfo = await this.getCurrentStreakInfo();
-      this.projectedRewards = [];
+  private calculateCurrentStreak(): number {
+    let streak = 0;
+    const today = new Date();
+    
+    // Start from today and work backwards
+    for (let i = this.calendarDays.length - 1; i >= 0; i--) {
+      const day = this.calendarDays[i];
       
-      if (!currentStreakInfo.lastCompletedDate || currentStreakInfo.currentStreak === 0) {
-        return;
-      }
-
-      const today = new Date();
-      const startProjectionDate = new Date(today);
-      startProjectionDate.setDate(today.getDate() + 1);
-
-      // Find upcoming reward milestones - INCREASED TO 120 DAYS
-      const upcomingRewards = this.rewardSchedule.filter(reward => 
-        reward.day > currentStreakInfo.currentStreak && 
-        reward.day <= currentStreakInfo.currentStreak + 120 // Extended range
-      );
-
-      upcomingRewards.forEach(reward => {
-        const daysUntilReward = reward.day - currentStreakInfo.currentStreak;
-        const rewardDate = new Date(startProjectionDate);
-        rewardDate.setDate(startProjectionDate.getDate() + daysUntilReward - 1);
-
-        // Only show rewards within the current month view
-        if (rewardDate.getMonth() === this.currentMonth && rewardDate.getFullYear() === this.currentYear) {
-          this.projectedRewards.push({
-            date: rewardDate,
-            dateString: rewardDate.toISOString().split('T')[0],
-            streakDay: reward.day,
-            tier: this.rewardTiers[reward.tier]
-          });
-        }
-      });
-
-      this.applyProjectedRewardsToCalendar();
-    } catch (error) {
-      console.error('Error calculating projected rewards:', error);
+      if (day.date > today || !day.isCurrentMonth) continue;
+      if (!day.isCompleted) break;
+      
+      streak++;
     }
+    
+    return streak;
   }
 
-private async getCurrentStreakInfo(): Promise<StreakInfo> {
-  return new Promise((resolve) => {
-    this.disciplineService.getStreakInfo()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (streakInfo) => {
-          resolve({
-            currentStreak: streakInfo.currentStreak || 1,
-            longestStreak: streakInfo.longestStreak || 0,
-            totalDays: streakInfo.totalDays || 0,
-            weeklyRewards: streakInfo.weeklyRewards || 0,
-            monthlyRewards: streakInfo.monthlyRewards || 0,
-            nextMilestone: streakInfo.nextMilestone,
-            lastUpdate: streakInfo.lastUpdate,
-            lastCompletedDate: new Date()
-          });
-        },
-        error: () => {
-          // Fallback object that matches StreakInfo interface
-          resolve({
-            currentStreak: 1,
-            longestStreak: 0,
-            totalDays: 0,
-            weeklyRewards: 0,
-            monthlyRewards: 0,
-            lastCompletedDate: new Date()
-          });
-        }
+  // ===================================
+  // REWARD CALCULATION METHODS
+  // ===================================
+
+private calculateProjectedRewards(): void {
+  this.projectedRewards = [];
+  const currentStreak = this.calculateCurrentStreak();
+  
+  for (const reward of this.rewardSchedule) {
+    if (currentStreak < reward.day) {
+      const daysUntilReward = reward.day - currentStreak;
+      const rewardTier = this.rewardTiers[reward.tier];
+      
+      this.projectedRewards.push({
+        day: reward.day,
+        daysUntil: daysUntilReward, // Make sure this property exists in ProjectedReward interface
+        tier: reward.tier, // Use reward.tier (number) instead of rewardTier.tier
+        icon: rewardTier.icon,
+        name: rewardTier.name,
+        color: rewardTier.color,
+        isAchievable: daysUntilReward <= 31, // Within current month
+        description: this.getRewardDescription(reward.day, rewardTier.name)
       });
-  });
+    }
+  }
+  
+  // Sort by days until reward
+  this.projectedRewards.sort((a, b) => a.daysUntil - b.daysUntil);
+  
+  // Take only the next 3 rewards
+  this.projectedRewards = this.projectedRewards.slice(0, 3);
 }
 
-  private applyProjectedRewardsToCalendar(): void {
-    this.projectedRewards.forEach(reward => {
-      const dayData = this.calendarDays.find(d => d.dateString === reward.dateString);
-      if (dayData) {
-        dayData.projectedReward = reward;
-      }
-    });
+  private getRewardDescription(day: number, rewardName: string): string {
+    const descriptions: Record<number, string> = {
+      7: 'Enjoy a premium coffee or tea of your choice',
+      14: 'Pick out a new book or audiobook to enjoy',
+      30: 'Treat yourself to some new clothes or accessories',
+      60: 'A bigger milestone reward - something you\'ve been wanting',
+      90: 'Tennis racket, quality headphones, or similar hobby item',
+      120: 'Another significant milestone reward',
+      180: 'Music festival, concert, or entertainment experience',
+      365: 'A special trip or major experience reward'
+    };
+    
+    return descriptions[day] || `Enjoy your ${rewardName}!`;
   }
 
   // ===================================
@@ -744,88 +392,54 @@ private async getCurrentStreakInfo(): Promise<StreakInfo> {
   }
 
   // ===================================
-  // UTILITY METHODS
-  // ===================================
-
-  getMonthName(month: number): string {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return months[month];
-  }
-
-  getDayStatusClass(day: MonthlyDayData): string {
-    const classes = [];
-    
-    if (day.isFuture) classes.push('future');
-    if (day.isCompleted) classes.push('completed');
-    if (day.isPartiallyCompleted) classes.push('partial');
-    if (day.totalHabits > 0 && day.completedHabits === 0) classes.push('missed');
-    
-    // Add flexibility classes
-    if (day.flexibilityUsage) {
-      if (day.flexibilityUsage.criticalTasks > 0) classes.push('has-critical-tasks');
-      if (day.flexibilityUsage.urgentTasks > 0) classes.push('has-urgent-tasks');
-      if (day.flexibilityUsage.tasksSavedByFlexibility > 0) classes.push('flexibility-saved');
-    }
-    
-    return classes.join(' ');
-  }
-
-  getStatusIcon(day: MonthlyDayData): string {
-    if (day.isFuture) return '';
-    if (day.isCompleted) return '✓';
-    if (day.isPartiallyCompleted) return '◐';
-    if (day.totalHabits > 0 && day.completedHabits === 0) return '✗';
-    return '';
-  }
-
-  getProjectedReward(day: MonthlyDayData): ProjectedReward | null {
-    return day.projectedReward || null;
-  }
-
-  getRewardDisplayText(reward: ProjectedReward): string {
-    return `Day ${reward.streakDay} - ${reward.tier.name}`;
-  }
-
-  private isToday(date: Date): boolean {
-    const today = new Date();
-    return date.getFullYear() === today.getFullYear() &&
-           date.getMonth() === today.getMonth() &&
-           date.getDate() === today.getDate();
-  }
-
-  // ===================================
-  // EVENT HANDLERS
+  // UI INTERACTION METHODS
   // ===================================
 
   onDayClick(day: MonthlyDayData): void {
-    if (!day.isCurrentMonth || day.isFuture) return;
+    if (day.isFuture || !day.isCurrentMonth) return;
     
-    if (day.projectedReward) {
-      console.log('Clicked reward day:', day.projectedReward);
-    } else {
-      console.log('Day clicked:', day);
-    }
+    console.log('Day clicked:', day);
+    // You can implement day detail modal or navigation here
   }
 
   // ===================================
-  // DEBUG METHODS
+  // UTILITY METHODS
   // ===================================
 
-  debugRewardsSystem(): void {
-    console.log('🔍 REWARDS DEBUG:');
-    console.log('Current month:', this.currentMonth);
-    console.log('Current year:', this.currentYear);
-    console.log('Calendar days generated:', this.calendarDays.length);
-    console.log('Projected rewards:', this.projectedRewards);
-    console.log('Monthly stats:', this.monthlyStats);
-    
-    const daysWithRewards = this.calendarDays.filter(d => d.projectedReward);
-    console.log('Days with projected rewards:', daysWithRewards);
-    
-    const completedDays = this.calendarDays.filter(d => d.isCompleted);
-    console.log('Completed days this month:', completedDays.length);
+  getMonthName(): string {
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return monthNames[this.currentMonth];
+  }
+
+  getDayCompletionClass(day: MonthlyDayData): string {
+    if (!day.isCurrentMonth) return 'other-month';
+    if (day.isFuture) return 'future-day';
+    if (day.isToday) return day.isCompleted ? 'today completed' : 'today';
+    if (day.isCompleted) return 'completed';
+    if (day.isPartiallyCompleted) return 'partial';
+    return 'incomplete';
+  }
+
+  getCompletionPercentage(day: MonthlyDayData): number {
+    return Math.round(day.completionPercentage);
+  }
+
+  // Week day headers
+  getWeekDays(): string[] {
+    return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  }
+
+  // Helper methods for projected rewards
+  getProjectedReward(day: MonthlyDayData): ProjectedReward | undefined {
+    return day.projectedReward;
+  }
+
+  // Helper method for checking if day is today
+  isToday(date: Date): boolean {
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
   }
 }

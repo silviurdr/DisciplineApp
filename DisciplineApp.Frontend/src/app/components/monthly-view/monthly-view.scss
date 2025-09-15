@@ -1,604 +1,592 @@
-/* monthly-view.component.scss */
+/* ===================================
+   MONTHLY VIEW COMPONENT STYLES
+   =================================== */
+
 .monthly-view {
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
-  background: #0a0a0a;
-  color: #ffffff;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
   min-height: 100vh;
+  color: #e3f2fd;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Header */
+/* ===================================
+   HEADER SECTION
+   =================================== */
+
 .month-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 30px;
   padding: 0 10px;
-}
 
-.nav-btn {
-  background: rgba(100, 181, 246, 0.2);
-  border: 1px solid rgba(100, 181, 246, 0.4);
-  color: #64b5f6;
-  width: 50px;
-  height: 50px;
-  border-radius: 12px;
-  font-size: 1.8rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover:not(:disabled) {
-    background: rgba(100, 181, 246, 0.3);
-    border-color: rgba(100, 181, 246, 0.6);
-    transform: scale(1.05);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.month-info {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-
-  h2 {
-    margin: 0;
-    font-size: 2.2rem;
-    font-weight: 700;
+  .nav-btn {
+    background: rgba(100, 181, 246, 0.2);
+    border: 1px solid rgba(100, 181, 246, 0.4);
     color: #64b5f6;
+    border-radius: 8px;
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover:not(:disabled) {
+      background: rgba(100, 181, 246, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(100, 181, 246, 0.3);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  .month-info {
     text-align: center;
+    flex: 1;
+
+    h2 {
+      color: #64b5f6;
+      margin: 0 0 10px 0;
+      font-size: 2rem;
+      font-weight: 600;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .today-btn {
+      background: linear-gradient(135deg, #4caf50, #66bb6a);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+
+      &:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
   }
 }
 
-.today-btn {
-  background: rgba(76, 175, 80, 0.2);
-  border: 1px solid rgba(76, 175, 80, 0.4);
-  color: #4caf50;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
+/* ===================================
+   LOADING AND ERROR STATES
+   =================================== */
 
-  &:hover:not(:disabled) {
-    background: rgba(76, 175, 80, 0.3);
-    transform: translateY(-1px);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-/* Loading and Error States */
-.loading-state, .error-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
+.loading-state {
   text-align: center;
+  padding: 60px 20px;
+
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(100, 181, 246, 0.3);
+    border-top: 4px solid #64b5f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+  }
 
   p {
-    margin: 20px 0 0 0;
+    color: #90caf9;
     font-size: 1.1rem;
-    color: #64b5f6;
   }
 }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid rgba(100, 181, 246, 0.2);
-  border-top: 3px solid #64b5f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+.error-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #ef5350;
+
+  .retry-btn {
+    background: #f44336;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    margin-top: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: #d32f2f;
+      transform: translateY(-1px);
+    }
+  }
 }
+
+/* ===================================
+   STATS OVERVIEW
+   =================================== */
+
+.stats-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+
+  .stat-card {
+    background: rgba(20, 20, 40, 0.8);
+    border: 1px solid rgba(100, 181, 246, 0.2);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-color: rgba(100, 181, 246, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      color: #90caf9;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+    }
+
+    .stat-detail {
+      color: #aaa;
+      font-size: 0.8rem;
+    }
+
+    &.completion .stat-value {
+      color: #4caf50;
+    }
+
+    &.streak .stat-value {
+      color: #ff9800;
+    }
+
+    &.habits .stat-value {
+      color: #64b5f6;
+    }
+  }
+}
+
+/* ===================================
+   CALENDAR CONTAINER
+   =================================== */
+
+.calendar-container {
+  background: rgba(20, 20, 40, 0.6);
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid rgba(100, 181, 246, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.calendar-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+
+  .day-header {
+    text-align: center;
+    padding: 12px 8px;
+    font-weight: 600;
+    color: #64b5f6;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+/* ===================================
+   CALENDAR GRID
+   =================================== */
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+
+  .calendar-day {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 80px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+
+    &:hover:not(.other-month) {
+      border-color: rgba(100, 181, 246, 0.4);
+      background: rgba(255, 255, 255, 0.08);
+      transform: translateY(-1px);
+    }
+
+    // Day states
+    &.other-month {
+      opacity: 0.3;
+      cursor: default;
+
+      &:hover {
+        transform: none;
+        border-color: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.05);
+      }
+    }
+
+    &.today {
+      border: 2px solid #2196f3;
+      background: rgba(33, 150, 243, 0.15);
+      box-shadow: 0 0 15px rgba(33, 150, 243, 0.3);
+    }
+
+    &.future {
+      opacity: 0.6;
+    }
+
+    &.completed {
+      background: rgba(76, 175, 80, 0.2);
+      border-color: rgba(76, 175, 80, 0.5);
+    }
+
+    &.partial {
+      background: rgba(255, 152, 0, 0.2);
+      border-color: rgba(255, 152, 0, 0.5);
+    }
+
+    &.incomplete {
+      background: rgba(244, 67, 54, 0.1);
+      border-color: rgba(244, 67, 54, 0.3);
+    }
+
+    .day-number {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .projected-reward {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+
+      .reward-icon {
+        font-size: 1.5rem;
+        padding: 4px;
+        border-radius: 50%;
+        background: rgba(255, 215, 0, 0.2);
+        border: 2px solid #ffd700;
+        animation: rewardPulse 2s ease-in-out infinite;
+      }
+    }
+
+    .day-status {
+      .status-icon {
+        font-size: 1.2rem;
+        
+        &.completed {
+          color: #4caf50;
+        }
+        
+        &.partial {
+          color: #ff9800;
+        }
+        
+        &.incomplete {
+          color: #666;
+        }
+      }
+    }
+
+    .task-summary {
+      text-align: center;
+      width: 100%;
+
+      .task-count {
+        font-size: 0.8rem;
+        color: #ccc;
+        margin-bottom: 4px;
+      }
+
+      .completion-bar {
+        width: 100%;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 2px;
+        overflow: hidden;
+
+        .completion-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #4caf50, #66bb6a);
+          transition: width 0.3s ease;
+        }
+      }
+    }
+
+    .future-indicator,
+    .free-day {
+      font-size: 0.7rem;
+      color: #888;
+      text-align: center;
+      opacity: 0.7;
+    }
+
+    .free-day {
+      color: #4caf50;
+      font-weight: 500;
+    }
+  }
+}
+
+/* ===================================
+   PROJECTED REWARDS SECTION
+   =================================== */
+
+.projected-rewards {
+  margin-top: 30px;
+  background: rgba(20, 20, 40, 0.6);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(100, 181, 246, 0.2);
+
+  h4 {
+    color: #64b5f6;
+    margin: 0 0 16px 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+  }
+
+  .rewards-list {
+    display: grid;
+    gap: 12px;
+
+    .reward-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(100, 181, 246, 0.3);
+      }
+
+      .reward-icon {
+        font-size: 1.5rem;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 215, 0, 0.2);
+        border-radius: 50%;
+        border: 2px solid #ffd700;
+      }
+
+      .reward-info {
+        flex: 1;
+
+        .reward-name {
+          font-weight: 600;
+          color: #fff;
+          margin-bottom: 4px;
+        }
+
+        .reward-description {
+          font-size: 0.9rem;
+          color: #ccc;
+          margin-bottom: 4px;
+        }
+
+        .reward-progress {
+          font-size: 0.8rem;
+          color: #64b5f6;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+}
+
+/* ===================================
+   REWARD LEGEND
+   =================================== */
+
+.reward-legend {
+  margin-top: 20px;
+  background: rgba(20, 20, 40, 0.4);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid rgba(100, 181, 246, 0.1);
+
+  h4 {
+    color: #90caf9;
+    margin: 0 0 12px 0;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  .legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: #ccc;
+
+      .legend-icon {
+        font-size: 1rem;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: 1px solid;
+
+        &.tier-1 {
+          background: rgba(139, 110, 99, 0.2);
+          border-color: #8D6E63;
+        }
+
+        &.tier-2 {
+          background: rgba(92, 107, 192, 0.2);
+          border-color: #5C6BC0;
+        }
+
+        &.tier-3 {
+          background: rgba(102, 187, 106, 0.2);
+          border-color: #66BB6A;
+        }
+
+        &.tier-4 {
+          background: rgba(255, 167, 38, 0.2);
+          border-color: #FFA726;
+        }
+      }
+    }
+  }
+}
+
+/* ===================================
+   ANIMATIONS
+   =================================== */
 
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
-.retry-btn {
-  background: rgba(244, 67, 54, 0.2);
-  border: 1px solid rgba(244, 67, 54, 0.4);
-  color: #f44336;
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-top: 15px;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background: rgba(244, 67, 54, 0.3);
+@keyframes rewardPulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7);
+  }
+  50% { 
+    transform: scale(1.05);
+    box-shadow: 0 0 0 8px rgba(255, 215, 0, 0);
   }
 }
 
-/* Stats Overview */
-.stats-overview {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-}
+/* ===================================
+   RESPONSIVE DESIGN
+   =================================== */
 
-.stat-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 20px;
-  text-align: center;
-  transition: all 0.2s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-  }
-
-  &.completion {
-    border-color: rgba(76, 175, 80, 0.4);
-    background: rgba(76, 175, 80, 0.1);
-  }
-
-  &.streak {
-    border-color: rgba(255, 193, 7, 0.4);
-    background: rgba(255, 193, 7, 0.1);
-  }
-
-  &.habits {
-    border-color: rgba(100, 181, 246, 0.4);
-    background: rgba(100, 181, 246, 0.1);
-  }
-}
-
-.stat-value {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 8px;
-  
-  .completion & { color: #4caf50; }
-  .streak & { color: #ffc107; }
-  .habits & { color: #64b5f6; }
-}
-
-.stat-label {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #ffffff;
-  margin-bottom: 4px;
-}
-
-.stat-detail {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-/* Calendar */
-.calendar-container {
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 12px;
-  padding: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.calendar-header {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
-  margin-bottom: 10px;
-}
-
-.day-header {
-  text-align: center;
-  font-weight: 600;
-  color: #64b5f6;
-  padding: 12px 8px;
-  font-size: 0.9rem;
-  background: rgba(100, 181, 246, 0.1);
-  border-radius: 8px;
-}
-
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 2px;
-}
-
-.calendar-day {
-  min-height: 100px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-
-  &:hover {
-    border-color: rgba(100, 181, 246, 0.5);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  }
-
-  &.other-month {
-    opacity: 0.3;
-    background: rgba(255, 255, 255, 0.01);
-  }
-
-  &.today {
-    border-color: #64b5f6;
-    box-shadow: 0 0 15px rgba(100, 181, 246, 0.4);
-    background: rgba(100, 181, 246, 0.1);
-  }
-
-  &.completed {
-    background: rgba(76, 175, 80, 0.2);
-    border-color: rgba(76, 175, 80, 0.6);
-  }
-
-  &.partial {
-    background: rgba(255, 193, 7, 0.2);
-    border-color: rgba(255, 193, 7, 0.6);
-  }
-
-  &.missed {
-    background: rgba(244, 67, 54, 0.2);
-    border-color: rgba(244, 67, 54, 0.6);
-  }
-
-  &.future {
-    opacity: 0.6;
-    cursor: default;
-    
-    &:hover {
-      transform: none;
-      box-shadow: none;
-      border-color: rgba(255, 255, 255, 0.1);
-    }
-  }
-}
-
-.day-number {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #ffffff;
-  margin-bottom: 8px;
-  
-  .today & {
-    color: #64b5f6;
-    font-weight: 700;
-  }
-}
-
-.day-status {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 8px;
-}
-
-.status-icon {
-  font-size: 1.2rem;
-  font-weight: bold;
-  
-  &.completed { color: #4caf50; }
-  &.partial { color: #ffc107; }
-  &.missed { color: #f44336; }
-}
-
-.task-summary {
-  margin-top: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.task-count {
-  font-size: 0.8rem;
-  text-align: center;
-  color: #64b5f6;
-  font-weight: 500;
-}
-
-.completion-bar {
-  height: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.completion-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #4caf50, #66bb6a);
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-.free-day, .future-indicator {
-  font-size: 0.7rem;
-  color: rgba(144, 202, 249, 0.7);
-  text-align: center;
-  font-style: italic;
-  margin-top: auto;
-  padding: 4px;
-  background: rgba(144, 202, 249, 0.1);
-  border-radius: 4px;
-}
-
-.future-indicator {
-  color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-/* Responsive Design */
 @media (max-width: 768px) {
   .monthly-view {
     padding: 15px;
   }
 
   .month-header {
-    margin-bottom: 20px;
-    
-    .month-info h2 {
-      font-size: 1.8rem;
-    }
-  }
+    flex-direction: column;
+    gap: 15px;
 
-  .nav-btn {
-    width: 40px;
-    height: 40px;
-    font-size: 1.4rem;
+    .month-info h2 {
+      font-size: 1.5rem;
+    }
   }
 
   .stats-overview {
     grid-template-columns: 1fr;
     gap: 15px;
-    margin-bottom: 20px;
   }
 
-  .stat-card {
-    padding: 15px;
+  .calendar-container {
+    padding: 16px;
   }
 
-  .stat-value {
-    font-size: 2rem;
-  }
+  .calendar-grid {
+    gap: 4px;
 
-  .calendar-day {
-    min-height: 80px;
-    padding: 6px;
-  }
+    .calendar-day {
+      min-height: 60px;
+      padding: 8px;
 
-  .day-number {
-    font-size: 1rem;
-  }
+      .day-number {
+        font-size: 1rem;
+      }
 
-  .task-count {
-    font-size: 0.7rem;
-  }
-}
-
-/* Calendar day with projected reward */
-.calendar-day.has-reward {
-  border: 2px solid #ffc107;
-  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 152, 0, 0.05) 100%);
-  animation: rewardGlow 2s ease-in-out infinite alternate;
-  
-  &:hover {
-    transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 8px 25px rgba(255, 193, 7, 0.3);
-  }
-}
-
-@keyframes rewardGlow {
-  0% {
-    box-shadow: 0 0 5px rgba(255, 193, 7, 0.3);
-  }
-  100% {
-    box-shadow: 0 0 20px rgba(255, 193, 7, 0.6);
-  }
-}
-
-/* Projected reward content */
-.projected-reward {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-}
-
-.reward-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-  margin-bottom: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  transition: all 0.2s ease;
-  
-  &:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-}
-
-.reward-text {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: #ffc107;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Reward Legend */
-.reward-legend {
-  margin-top: 30px;
-  padding: 20px;
-  background: rgba(255, 193, 7, 0.1);
-  border: 1px solid rgba(255, 193, 7, 0.3);
-  border-radius: 12px;
-  
-  h4 {
-    margin: 0 0 15px 0;
-    color: #ffc107;
-    font-size: 1.1rem;
-    font-weight: 600;
-    text-align: center;
-  }
-}
-
-.legend-items {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 15px;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateY(-1px);
-  }
-  
-  span:last-child {
-    font-size: 0.85rem;
-    color: #e0e0e0;
-    font-weight: 500;
-  }
-}
-
-.legend-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  
-  &.tier-1 {
-    background-color: #8D6E63;
-  }
-  
-  &.tier-2 {
-    background-color: #5C6BC0;
-  }
-  
-  &.tier-3 {
-    background-color: #42A5F5;
-  }
-  
-  &.tier-4 {
-    background-color: #66BB6A;
-  }
-}
-
-/* Special styling for different reward tiers */
-.calendar-day.has-reward {
-  .reward-icon {
-    /* Tier-specific animations */
-    &[style*="#8D6E63"] { /* Tier 1 - Coffee */
-      animation: tier1Pulse 1.5s ease-in-out infinite;
-    }
-    
-    &[style*="#5C6BC0"] { /* Tier 2 - Book */
-      animation: tier2Pulse 1.5s ease-in-out infinite;
-    }
-    
-    &[style*="#42A5F5"] { /* Tier 3 - Clothing */
-      animation: tier3Pulse 1.5s ease-in-out infinite;
-    }
-    
-    &[style*="#66BB6A"] { /* Tier 4 - Equipment */
-      animation: tier4Pulse 1.5s ease-in-out infinite;
-      box-shadow: 0 0 20px rgba(102, 187, 106, 0.6);
+      .task-summary .task-count {
+        font-size: 0.7rem;
+      }
     }
   }
-}
 
-
-@keyframes tier1Pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-
-@keyframes tier2Pulse {
-  0%, 100% { transform: scale(1) rotate(0deg); }
-  50% { transform: scale(1.05) rotate(2deg); }
-}
-
-@keyframes tier3Pulse {
-  0%, 100% { transform: scale(1); }
-  25% { transform: scale(1.02) rotate(-1deg); }
-  75% { transform: scale(1.02) rotate(1deg); }
-}
-
-@keyframes tier4Pulse {
-  0%, 100% { transform: scale(1); }
-  33% { transform: scale(1.1) rotate(5deg); }
-  66% { transform: scale(1.05) rotate(-5deg); }
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .reward-icon {
-    width: 32px;
-    height: 32px;
-    font-size: 1rem;
-  }
-  
-  .reward-text {
-    font-size: 0.6rem;
-  }
-  
-  .legend-items {
-    grid-template-columns: 1fr;
-  }
-  
-  .calendar-day.has-reward {
-    &:hover {
-      transform: none;
-    }
+  .reward-legend .legend-items {
+    flex-direction: column;
+    gap: 8px;
   }
 }
 
 @media (max-width: 480px) {
-  .calendar-day {
-    min-height: 60px;
-    padding: 4px;
+  .calendar-grid {
+    gap: 2px;
+
+    .calendar-day {
+      min-height: 50px;
+      padding: 6px;
+
+      .day-number {
+        font-size: 0.9rem;
+        margin-bottom: 4px;
+      }
+
+      .projected-reward .reward-icon {
+        font-size: 1.2rem;
+      }
+    }
   }
 
-  .day-number {
-    font-size: 0.9rem;
-  }
-
-  .status-icon {
-    font-size: 1rem;
+  .calendar-header .day-header {
+    padding: 8px 4px;
+    font-size: 0.8rem;
   }
 }
