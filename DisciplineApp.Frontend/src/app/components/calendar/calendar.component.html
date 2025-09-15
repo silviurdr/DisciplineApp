@@ -1,11 +1,34 @@
 <div class="calendar-container">
   <!-- Header -->
-  <div class="header">
-    <h1 class="title">Discipline Calendar</h1>
-    <div class="week-title" *ngIf="weekData">
-      Current Week: {{ weekData.weekStartDate | date:'MMMM d' }} - {{ weekData.weekEndDate | date:'d, y' }}
+<!-- Replace your header section in calendar.component.html with this -->
+
+<div class="header">
+  <div class="header-content">
+    <!-- App Title Section -->
+    <div class="app-title-section">
+      <div class="week-info">Current Week: {{ getCurrentWeekRange() }}</div>
+    </div>
+
+    <!-- Progress Overview Only -->
+    <div class="progress-overview">
+      <div class="week-progress">
+        <div class="progress-header">
+          <h3 class="progress-title">Week Progress</h3>
+          <div class="progress-percentage">{{ getWeekProgressPercentage() }}%</div>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar" [style.width.%]="getWeekProgressPercentage()"></div>
+        </div>
+      </div>
+
+      <div class="grace-info" *ngIf="weeklyProgress">
+        <span class="grace-icon">✨</span>
+        <div class="grace-count">{{ weeklyProgress.graceRemaining || 1 }}/{{ (weeklyProgress.graceUsed || 0) + (weeklyProgress.graceRemaining || 1) }}</div>
+        <div class="grace-label">Grace Days</div>
+      </div>
     </div>
   </div>
+</div>
 
   <!-- Weekly Progress Overview -->
 <!-- Weekly Progress Overview -->

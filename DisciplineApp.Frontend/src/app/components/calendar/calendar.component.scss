@@ -2419,3 +2419,678 @@ button:focus {
     }
   }
 }
+
+/* ===================================
+   IMPROVED HEADER SECTION
+   =================================== */
+
+.header {
+  background: linear-gradient(135deg, 
+    rgba(33, 150, 243, 0.15) 0%, 
+    rgba(63, 81, 181, 0.15) 35%,
+    rgba(103, 58, 183, 0.15) 70%,
+    rgba(156, 39, 176, 0.15) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(100, 181, 246, 0.2);
+  border-radius: 20px;
+  padding: 30px;
+  margin-bottom: 30px;
+  position: relative;
+  overflow: hidden;
+
+  // Animated background elements
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(100, 181, 246, 0.1) 0%, transparent 70%);
+    animation: floatBackground 20s ease-in-out infinite;
+    z-index: -1;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(156, 39, 176, 0.08) 0%, transparent 70%);
+    animation: floatBackground 25s ease-in-out infinite reverse;
+    z-index: -1;
+  }
+
+  .header-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .app-title-section {
+    text-align: center;
+    margin-bottom: 25px;
+
+    .app-title {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 8px;
+
+      .app-icon {
+        font-size: 2.5rem;
+        background: linear-gradient(135deg, #64b5f6, #42a5f5);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 2px 4px rgba(100, 181, 246, 0.3));
+      }
+
+      h1 {
+        font-size: 2.2rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #64b5f6 0%, #90caf9 50%, #bbdefb 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
+        text-shadow: 0 2px 8px rgba(100, 181, 246, 0.3);
+        letter-spacing: -0.5px;
+      }
+    }
+
+    .week-info {
+      color: #90caf9;
+      font-size: 1rem;
+      font-weight: 500;
+      opacity: 0.9;
+      margin-bottom: 20px;
+    }
+  }
+
+  .navigation-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 25px;
+
+    .nav-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      color: #ccc;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        border-color: rgba(100, 181, 246, 0.4);
+      }
+
+      &.active {
+        background: linear-gradient(135deg, rgba(100, 181, 246, 0.3), rgba(63, 81, 181, 0.3));
+        color: #fff;
+        border-color: rgba(100, 181, 246, 0.5);
+        box-shadow: 0 4px 15px rgba(100, 181, 246, 0.3);
+
+        &:hover {
+          transform: translateY(-1px);
+        }
+      }
+
+      .tab-icon {
+        font-size: 1.1rem;
+      }
+    }
+  }
+
+  .progress-overview {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    align-items: center;
+
+    .week-progress {
+      .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 12px;
+
+        .progress-title {
+          font-size: 1.3rem;
+          font-weight: 600;
+          color: #64b5f6;
+          margin: 0;
+        }
+
+        .progress-percentage {
+          font-size: 2rem;
+          font-weight: 700;
+          background: linear-gradient(135deg, #4caf50, #66bb6a);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          margin: 0;
+        }
+      }
+
+      .progress-bar-container {
+        position: relative;
+        height: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+
+        .progress-bar {
+          height: 100%;
+          background: linear-gradient(90deg, #4caf50, #66bb6a, #81c784);
+          border-radius: 8px;
+          transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          overflow: hidden;
+
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+          }
+        }
+      }
+    }
+
+    .grace-info {
+      text-align: center;
+      padding: 16px 20px;
+      background: rgba(76, 175, 80, 0.15);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+
+      .grace-icon {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+        display: block;
+      }
+
+      .grace-count {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #66bb6a;
+        margin: 0 0 4px 0;
+      }
+
+      .grace-label {
+        font-size: 0.85rem;
+        color: #a5d6a7;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+  }
+}
+
+/* ===================================
+   ANIMATIONS
+   =================================== */
+
+@keyframes floatBackground {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.5;
+  }
+  33% {
+    transform: translateY(-20px) rotate(1deg);
+    opacity: 0.7;
+  }
+  66% {
+    transform: translateY(10px) rotate(-1deg);
+    opacity: 0.6;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* ===================================
+   RESPONSIVE DESIGN
+   =================================== */
+
+@media (max-width: 768px) {
+  .header {
+    padding: 20px;
+    border-radius: 16px;
+
+    .app-title-section {
+      .app-title {
+        flex-direction: column;
+        gap: 8px;
+
+        h1 {
+          font-size: 1.8rem;
+        }
+      }
+    }
+
+    .navigation-tabs {
+      flex-wrap: wrap;
+      gap: 8px;
+
+      .nav-tab {
+        padding: 10px 16px;
+        font-size: 0.9rem;
+      }
+    }
+
+    .progress-overview {
+      grid-template-columns: 1fr;
+      gap: 15px;
+      text-align: center;
+
+      .grace-info {
+        max-width: 200px;
+        margin: 0 auto;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 16px;
+
+    .app-title-section {
+      .app-title h1 {
+        font-size: 1.6rem;
+      }
+
+      .week-info {
+        font-size: 0.9rem;
+      }
+    }
+
+    .navigation-tabs {
+      .nav-tab {
+        flex: 1;
+        justify-content: center;
+        min-width: 0;
+
+        .tab-text {
+          display: none;
+        }
+      }
+    }
+
+    .progress-overview {
+      .week-progress {
+        .progress-header {
+          flex-direction: column;
+          gap: 8px;
+          text-align: center;
+
+          .progress-percentage {
+            font-size: 1.6rem;
+          }
+        }
+      }
+    }
+  }
+}
+
+
+/* ===================================
+   UPDATED HEADER SECTION - FIXED
+   =================================== */
+
+.header {
+  background: linear-gradient(135deg, 
+    rgba(33, 150, 243, 0.15) 0%, 
+    rgba(63, 81, 181, 0.15) 35%,
+    rgba(103, 58, 183, 0.15) 70%,
+    rgba(156, 39, 176, 0.15) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(100, 181, 246, 0.2);
+  border-radius: 20px;
+  padding: 30px;
+  margin-bottom: 30px;
+  position: relative;
+  overflow: hidden;
+
+  // Animated background elements
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(100, 181, 246, 0.1) 0%, transparent 70%);
+    animation: floatBackground 20s ease-in-out infinite;
+    z-index: -1;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(156, 39, 176, 0.08) 0%, transparent 70%);
+    animation: floatBackground 25s ease-in-out infinite reverse;
+    z-index: -1;
+  }
+
+  .header-content {
+    position: relative;
+    z-index: 2; // Increased z-index to ensure content is visible
+  }
+
+  .app-title-section {
+    text-align: center;
+    margin-bottom: 30px; // Increased margin
+
+    .app-title {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 12px;
+
+      .app-icon {
+        font-size: 2.8rem;
+        background: linear-gradient(135deg, #64b5f6, #42a5f5);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 2px 4px rgba(100, 181, 246, 0.3));
+        flex-shrink: 0;
+      }
+
+      h1 {
+        font-size: 2.8rem; // Increased font size
+        font-weight: 700;
+        color: #ffffff; // Use solid white color instead of gradient
+        text-shadow: 0 3px 12px rgba(100, 181, 246, 0.4);
+        margin: 0;
+        letter-spacing: -0.5px;
+        line-height: 1.1;
+        position: relative;
+        z-index: 3; // High z-index for visibility
+      }
+    }
+
+    .week-info {
+      color: #b3e5fc;
+      font-size: 1.1rem;
+      font-weight: 500;
+      opacity: 0.95;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  .progress-overview {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 25px;
+    align-items: center;
+
+    .week-progress {
+      .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 12px;
+
+        .progress-title {
+          font-size: 1.4rem;
+          font-weight: 600;
+          color: #81d4fa;
+          margin: 0;
+          text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .progress-percentage {
+          font-size: 2.2rem;
+          font-weight: 700;
+          color: #66bb6a; // Use solid green color
+          margin: 0;
+          text-shadow: 0 2px 8px rgba(102, 187, 106, 0.4);
+        }
+      }
+
+      .progress-bar-container {
+        position: relative;
+        height: 14px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+
+        .progress-bar {
+          height: 100%;
+          background: linear-gradient(90deg, #4caf50, #66bb6a, #81c784);
+          border-radius: 10px;
+          transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          overflow: hidden;
+
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+          }
+        }
+      }
+    }
+
+    .grace-info {
+      text-align: center;
+      padding: 18px 22px;
+      background: rgba(76, 175, 80, 0.18);
+      border: 1px solid rgba(76, 175, 80, 0.35);
+      border-radius: 14px;
+      backdrop-filter: blur(12px);
+      min-width: 100px;
+
+      .grace-icon {
+        font-size: 1.6rem;
+        margin-bottom: 8px;
+        display: block;
+        filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.3));
+      }
+
+      .grace-count {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #81c784;
+        margin: 0 0 4px 0;
+        text-shadow: 0 2px 6px rgba(129, 199, 132, 0.4);
+      }
+
+      .grace-label {
+        font-size: 0.85rem;
+        color: #c8e6c9;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+/* Remove navigation tabs since they're already at the top */
+
+/* ===================================
+   ANIMATIONS (keep existing)
+   =================================== */
+
+@keyframes floatBackground {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.5;
+  }
+  33% {
+    transform: translateY(-20px) rotate(1deg);
+    opacity: 0.7;
+  }
+  66% {
+    transform: translateY(10px) rotate(-1deg);
+    opacity: 0.6;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* ===================================
+   RESPONSIVE DESIGN
+   =================================== */
+
+@media (max-width: 768px) {
+  .header {
+    padding: 22px;
+    border-radius: 16px;
+
+    .app-title-section {
+      margin-bottom: 25px;
+
+      .app-title {
+        flex-direction: column;
+        gap: 10px;
+
+        h1 {
+          font-size: 2.2rem;
+        }
+      }
+
+      .week-info {
+        font-size: 1rem;
+      }
+    }
+
+    .progress-overview {
+      grid-template-columns: 1fr;
+      gap: 20px;
+      text-align: center;
+
+      .grace-info {
+        max-width: 200px;
+        margin: 0 auto;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 18px;
+
+    .app-title-section {
+      .app-title {
+        h1 {
+          font-size: 1.9rem;
+        }
+
+        .app-icon {
+          font-size: 2.4rem;
+        }
+      }
+
+      .week-info {
+        font-size: 0.95rem;
+      }
+    }
+
+    .progress-overview {
+      .week-progress {
+        .progress-header {
+          flex-direction: column;
+          gap: 8px;
+          text-align: center;
+
+          .progress-percentage {
+            font-size: 1.8rem;
+          }
+        }
+      }
+    }
+  }
+}
+
+.weekly-overview {
+  // Hide the progress card since it's now in the header
+  .progress-card {
+    display: none;
+  }
+
+  // Keep only the habit summary
+  .habit-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    
+    // Remove margin-top since there's no progress card above it now
+    margin-top: 0;
+
+    .habit-progress {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      
+      &.on-track {
+        border-left: 3px solid #4caf50;
+      }
+      
+      &.behind {
+        border-left: 3px solid #f44336;
+      }
+
+      .habit-name {
+        font-size: 0.9rem;
+        color: #ccc;
+      }
+
+      .habit-count {
+        font-weight: bold;
+        color: #fff;
+      }
+    }
+  }
+}

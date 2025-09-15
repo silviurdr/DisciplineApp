@@ -441,7 +441,34 @@ export class CalendarComponent implements OnInit {
       }
     });
   }
+// Add these methods to your calendar.component.ts
 
+getCurrentWeekRange(): string {
+  if (!this.weekData) return 'Loading...';
+  
+  const startDate = new Date(this.weekData.days[0].date);
+  const endDate = new Date(this.weekData.days[6].date);
+  
+  const formatOptions: Intl.DateTimeFormatOptions = { 
+    month: 'long', 
+    day: 'numeric' 
+  };
+  
+  const start = startDate.toLocaleDateString('en-US', formatOptions);
+  const end = endDate.toLocaleDateString('en-US', formatOptions);
+  const year = endDate.getFullYear();
+  
+  return `${start} - ${end}, ${year}`;
+}
+
+getWeekProgressPercentage(): number {
+  if (!this.weekData) return 0;
+  
+  const totalTasks = this.weekData.days.reduce((sum, day) => sum + (day.totalHabits || 0), 0);
+  const completedTasks = this.weekData.days.reduce((sum, day) => sum + (day.completedHabits || 0), 0);
+  
+  return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+}
 toggleTask(habit: ScheduledHabit): void {
   // Prevent toggling locked tasks
   if (habit.isLocked) {
