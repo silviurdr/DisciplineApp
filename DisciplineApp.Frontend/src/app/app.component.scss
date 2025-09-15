@@ -1,5 +1,5 @@
 /* ===================================
-   MODERN TOP NAVIGATION DESIGN
+   APP CONTAINER
    =================================== */
 
 .app-container {
@@ -23,6 +23,10 @@
   }
 }
 
+/* ===================================
+   NAVIGATION
+   =================================== */
+
 .main-nav {
   background: rgba(15, 15, 35, 0.95);
   backdrop-filter: blur(20px);
@@ -40,758 +44,39 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 80px;
+  height: 70px;
   position: relative;
 }
+
+/* ===================================
+   BRAND TITLE
+   =================================== */
 
 .nav-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
 
   h1 {
     margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
     font-size: 1.8rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, #64b5f6 0%, #90caf9 50%, #bbdefb 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: 0 2px 10px rgba(100, 181, 246, 0.3);
-    letter-spacing: -0.5px;
-    position: relative;
-
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: -2px;
-      left: 0;
-      width: 100%;
-      height: 2px;
-      background: linear-gradient(90deg, #64b5f6, transparent);
-      border-radius: 1px;
-    }
-  }
-}
-
-.nav-links {
-  display: flex;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 6px;
-  backdrop-filter: blur(10px);
-}
-
-.nav-link {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-  color: #90caf9;
-  padding: 14px 24px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid transparent;
-  overflow: hidden;
-
-  .tab-icon {
-    font-size: 1.2rem;
-    transition: transform 0.3s ease;
-  }
-
-  .tab-text {
-    position: relative;
-    z-index: 2;
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(100, 181, 246, 0.1), rgba(63, 81, 181, 0.1));
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    border-radius: inherit;
-  }
-
-  &:hover {
-    color: #ffffff;
-    transform: translateY(-2px);
-    border-color: rgba(100, 181, 246, 0.3);
-    box-shadow: 
-      0 8px 25px rgba(100, 181, 246, 0.2),
-      0 4px 10px rgba(0, 0, 0, 0.3);
-
-    &::before {
-      opacity: 1;
-    }
-
-    .tab-icon {
-      transform: scale(1.1);
-    }
-  }
-
-  &.active {
-    color: #ffffff;
-    background: linear-gradient(135deg, rgba(100, 181, 246, 0.25), rgba(63, 81, 181, 0.25));
-    border-color: rgba(100, 181, 246, 0.5);
-    box-shadow: 
-      0 4px 15px rgba(100, 181, 246, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
-
-    &::before {
-      opacity: 0;
-    }
-
-    .tab-icon {
-      filter: drop-shadow(0 2px 4px rgba(100, 181, 246, 0.4));
-    }
-
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: 
-        0 6px 20px rgba(100, 181, 246, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
-    }
-  }
-}
-
-.main-content {
-  min-height: calc(100vh - 80px);
-  padding: 30px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-/* ===================================
-   RESPONSIVE DESIGN
-   =================================== */
-
-@media (max-width: 1024px) {
-  .nav-content {
-    padding: 0 25px;
-    height: 75px;
-  }
-
-  .nav-brand h1 {
-    font-size: 1.6rem;
-  }
-
-  .nav-links {
-    gap: 6px;
-    padding: 5px;
-  }
-
-  .nav-link {
-    padding: 12px 20px;
-    font-size: 0.9rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .nav-content {
-    flex-direction: column;
-    height: auto;
-    padding: 20px 25px;
-    gap: 20px;
-  }
-
-  .nav-brand h1 {
-    font-size: 1.5rem;
-  }
-
-  .nav-links {
-    width: 100%;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    padding: 8px;
-  }
-
-  .nav-link {
-    flex: 1;
-    justify-content: center;
-    padding: 12px 16px;
-    font-size: 0.85rem;
-  }
-
-  .main-content {
-    min-height: calc(100vh - 120px);
-    padding: 20px;
-  }
-}
-
-@media (max-width: 480px) {
-  .nav-content {
-    padding: 15px 20px;
-    gap: 15px;
-  }
-
-  .nav-brand h1 {
-    font-size: 1.3rem;
-  }
-
-  .nav-links {
-    gap: 4px;
-    padding: 6px;
-  }
-
-  .nav-link {
-    padding: 10px 12px;
-    gap: 6px;
-
-    .tab-text {
-      display: none; // Hide text on very small screens, show only icons
-    }
-
-    .tab-icon {
-      font-size: 1.3rem;
-    }
-  }
-
-  .main-content {
-    padding: 15px;
-  }
-}
-
-/* ===================================
-   ANIMATIONS
-   =================================== */
-
-@keyframes navGlow {
-  0%, 100% {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  }
-  50% {
-    box-shadow: 
-      0 4px 20px rgba(0, 0, 0, 0.3),
-      0 0 30px rgba(100, 181, 246, 0.1);
-  }
-}
-
-.main-nav {
-  animation: navGlow 4s ease-in-out infinite;
-}
-
-
-/* ===================================
-   DISCIPLINE TITLE STYLING
-   =================================== */
-
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  h1 {
-    margin: 0;
-    font-family: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 2.2rem;
-    font-weight: 700;
-    color: #f5f5f5; // White-smoke color
-    letter-spacing: -0.02em;
-    position: relative;
-    text-transform: lowercase;
-
-    // Add subtle text shadow for depth
-    text-shadow: 
-      0 2px 4px rgba(0, 0, 0, 0.3),
-      0 1px 2px rgba(0, 0, 0, 0.2);
-
-    // Modern styling to match the image
-    &::after {
-      content: '.';
-      color: #64b5f6; // Blue accent dot
-      font-weight: 900;
-    }
-
-    // Optional: Add a subtle glow effect
-    filter: drop-shadow(0 0 10px rgba(245, 245, 245, 0.1));
-  }
-}
-
-/* Alternative version with even more minimal styling */
-.nav-brand-minimal {
-  h1 {
-    margin: 0;
-    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
-    font-size: 2.4rem;
     font-weight: 800;
-    color: #ffffff;
-    letter-spacing: -0.03em;
+    color: #f5f5f5;
+    letter-spacing: normal;
     text-transform: lowercase;
-    
-    // Clean, crisp text
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
 
     &::after {
       content: '.';
-      color: #90caf9; // Lighter blue dot
-      font-weight: 900;
+      color: #f5f5f5;
+      font-weight: 800;
     }
-  }
-}
-
-/* Responsive adjustments */
-@media (max-width: 1024px) {
-  .nav-brand h1 {
-    font-size: 2rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .nav-brand h1 {
-    font-size: 1.8rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .nav-brand h1 {
-    font-size: 1.6rem;
   }
 }
 
 /* ===================================
-   MINIMALIST DISCIPLINE TITLE
+   NAVIGATION LINKS
    =================================== */
-
-.nav-brand {
-  display: flex;
-  align-items: center;
-  padding: 8px 0; // Add vertical padding for better height visibility
-
-  h1 {
-    margin: 0;
-    padding: 4px 0; // Additional padding for text height
-    font-family: 'Inter', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 1.8rem;
-    font-weight: 600; // Slightly lighter weight for minimalist look
-    color: #f5f5f5; // Pure white-smoke color
-    letter-spacing: -0.01em;
-    text-transform: lowercase;
-    line-height: 1.2; // Better line height for visibility
-
-    // Remove all effects for minimalist approach
-    text-shadow: none;
-    filter: none;
-
-    // Clean blue dot
-    &::after {
-      content: '.';
-      color: #64b5f6;
-      font-weight: 700;
-    }
-  }
-}
-
-/* Alternative version with even more minimal styling */
-.nav-brand-minimal {
-  h1 {
-    margin: 0;
-    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
-    font-size: 2.4rem;
-    font-weight: 800;
-    color: #ffffff;
-    letter-spacing: -0.03em;
-    text-transform: lowercase;
-    
-    // Clean, crisp text
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-
-    &::after {
-      content: '.';
-      color: #90caf9; // Lighter blue dot
-      font-weight: 900;
-    }
-  }
-}
-
-/* Responsive adjustments */
-@media (max-width: 1024px) {
-  .nav-brand h1 {
-    font-size: 1.6rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .nav-brand h1 {
-    font-size: 1.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .nav-brand h1 {
-    font-size: 1.4rem;
-  }
-}
-
-/* ===================================
-   MODERN TOP NAVIGATION DESIGN
-   =================================== */
-
-.app-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #0f0f23, #1a1a2e, #16213e);
-  color: #e3f2fd;
-  position: relative;
-
-  &::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: 
-      radial-gradient(circle at 20% 20%, rgba(100, 181, 246, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(156, 39, 176, 0.08) 0%, transparent 50%);
-    pointer-events: none;
-    z-index: -1;
-  }
-}
-
-.main-nav {
-  background: rgba(15, 15, 35, 0.95);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(100, 181, 246, 0.2);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-}
-
-.nav-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 30px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 70px; // Reduced height for minimalist approach
-  position: relative;
-}
-
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  h1 {
-    margin: 0;
-    font-size: 1.8rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, #64b5f6 0%, #90caf9 50%, #bbdefb 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: 0 2px 10px rgba(100, 181, 246, 0.3);
-    letter-spacing: -0.5px;
-    position: relative;
-
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: -2px;
-      left: 0;
-      width: 100%;
-      height: 2px;
-      background: linear-gradient(90deg, #64b5f6, transparent);
-      border-radius: 1px;
-    }
-  }
-}
-
-.nav-links {
-  display: flex;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  padding: 6px;
-  backdrop-filter: blur(10px);
-}
-
-.nav-link {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-  color: #90caf9;
-  padding: 14px 24px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.95rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid transparent;
-  overflow: hidden;
-
-  .tab-icon {
-    font-size: 1.2rem;
-    transition: transform 0.3s ease;
-  }
-
-  .tab-text {
-    position: relative;
-    z-index: 2;
-  }
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(100, 181, 246, 0.1), rgba(63, 81, 181, 0.1));
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    border-radius: inherit;
-  }
-
-  &:hover {
-    color: #ffffff;
-    transform: translateY(-2px);
-    border-color: rgba(100, 181, 246, 0.3);
-    box-shadow: 
-      0 8px 25px rgba(100, 181, 246, 0.2),
-      0 4px 10px rgba(0, 0, 0, 0.3);
-
-    &::before {
-      opacity: 1;
-    }
-
-    .tab-icon {
-      transform: scale(1.1);
-    }
-  }
-
-  &.active {
-    color: #ffffff;
-    background: linear-gradient(135deg, rgba(100, 181, 246, 0.25), rgba(63, 81, 181, 0.25));
-    border-color: rgba(100, 181, 246, 0.5);
-    box-shadow: 
-      0 4px 15px rgba(100, 181, 246, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
-
-    &::before {
-      opacity: 0;
-    }
-
-    .tab-icon {
-      filter: drop-shadow(0 2px 4px rgba(100, 181, 246, 0.4));
-    }
-
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: 
-        0 6px 20px rgba(100, 181, 246, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
-    }
-  }
-}
-
-.main-content {
-  min-height: calc(100vh - 80px);
-  padding: 30px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-/* ===================================
-   RESPONSIVE DESIGN
-   =================================== */
-
-@media (max-width: 1024px) {
-  .nav-content {
-    padding: 0 25px;
-    height: 75px;
-  }
-
-  .nav-brand h1 {
-    font-size: 1.6rem;
-  }
-
-  .nav-links {
-    gap: 6px;
-    padding: 5px;
-  }
-
-  .nav-link {
-    padding: 12px 20px;
-    font-size: 0.9rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .nav-content {
-    flex-direction: column;
-    height: auto;
-    padding: 20px 25px;
-    gap: 20px;
-  }
-
-  .nav-brand h1 {
-    font-size: 1.5rem;
-  }
-
-  .nav-links {
-    width: 100%;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
-    padding: 8px;
-  }
-
-  .nav-link {
-    flex: 1;
-    justify-content: center;
-    padding: 12px 16px;
-    font-size: 0.85rem;
-  }
-
-  .main-content {
-    min-height: calc(100vh - 120px);
-    padding: 20px;
-  }
-}
-
-@media (max-width: 480px) {
-  .nav-content {
-    padding: 15px 20px;
-    gap: 15px;
-  }
-
-  .nav-brand h1 {
-    font-size: 1.3rem;
-  }
-
-  .nav-links {
-    gap: 4px;
-    padding: 6px;
-  }
-
-  .nav-link {
-    padding: 10px 12px;
-    gap: 6px;
-
-    .tab-text {
-      display: none; // Hide text on very small screens, show only icons
-    }
-
-    .tab-icon {
-      font-size: 1.3rem;
-    }
-  }
-
-  .main-content {
-    padding: 15px;
-  }
-}
-
-/* ===================================
-   ANIMATIONS
-   =================================== */
-
-@keyframes navGlow {
-  0%, 100% {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  }
-  50% {
-    box-shadow: 
-      0 4px 20px rgba(0, 0, 0, 0.3),
-      0 0 30px rgba(100, 181, 246, 0.1);
-  }
-}
-
-.main-nav {
-  animation: navGlow 4s ease-in-out infinite;
-}
-
-/* ===================================
-   MODERN TOP NAVIGATION DESIGN
-   =================================== */
-
-.app-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #0f0f23, #1a1a2e, #16213e);
-  color: #e3f2fd;
-  position: relative;
-
-  &::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: 
-      radial-gradient(circle at 20% 20%, rgba(100, 181, 246, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(156, 39, 176, 0.08) 0%, transparent 50%);
-    pointer-events: none;
-    z-index: -1;
-  }
-}
-
-.main-nav {
-  background: rgba(15, 15, 35, 0.95);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(100, 181, 246, 0.2);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-}
-
-.nav-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 30px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 70px; // Reduced height for minimalist approach
-  position: relative;
-}
-
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  h1 {
-    margin: 0;
-    font-size: 1.8rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, #64b5f6 0%, #90caf9 50%, #bbdefb 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    text-shadow: 0 2px 10px rgba(100, 181, 246, 0.3);
-    letter-spacing: -0.5px;
-    position: relative;
-
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: -2px;
-      left: 0;
-      width: 100%;
-      height: 2px;
-      background: linear-gradient(90deg, #64b5f6, transparent);
-      border-radius: 1px;
-    }
-  }
-}
 
 .nav-links {
   display: flex;
@@ -846,11 +131,21 @@
   }
 }
 
+/* ===================================
+   MAIN CONTENT
+   =================================== */
+
 .main-content {
-  min-height: calc(100vh - 80px);
-  padding: 30px;
-  max-width: 1400px;
-  margin: 0 auto;
+  min-height: calc(100vh - 70px);
+  padding: 0; // Remove padding to let each component handle its own
+  width: 100%;
+  
+  // Ensure all child components have consistent width
+  > * {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 30px;
+  }
 }
 
 /* ===================================
@@ -860,7 +155,7 @@
 @media (max-width: 1024px) {
   .nav-content {
     padding: 0 25px;
-    height: 75px;
+    height: 65px;
   }
 
   .nav-brand h1 {
@@ -868,13 +163,12 @@
   }
 
   .nav-links {
-    gap: 6px;
-    padding: 5px;
+    gap: 15px;
   }
 
   .nav-link {
-    padding: 12px 20px;
-    font-size: 0.9rem;
+    padding: 10px 14px;
+    font-size: 0.7rem;
   }
 }
 
@@ -903,7 +197,10 @@
 
   .main-content {
     min-height: calc(100vh - 110px);
-    padding: 20px;
+    
+    > * {
+      padding: 20px;
+    }
   }
 }
 
@@ -923,7 +220,7 @@
 
   .nav-link {
     padding: 8px 10px;
-    font-size: 0.7rem;
+    font-size: 0.65rem;
 
     .tab-icon {
       font-size: 1.2rem;
@@ -931,96 +228,8 @@
   }
 
   .main-content {
-    padding: 15px;
-  }
-}
-
-/* ===================================
-   ANIMATIONS
-   =================================== */
-
-@keyframes navGlow {
-  0%, 100% {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-  }
-  50% {
-    box-shadow: 
-      0 4px 20px rgba(0, 0, 0, 0.3),
-      0 0 30px rgba(100, 181, 246, 0.1);
-  }
-}
-
-.main-nav {
-  animation: navGlow 4s ease-in-out infinite;
-}
-
-
-
-/* ===================================
-   ULTRA MINIMAL DISCIPLINE TITLE
-   =================================== */
-
-.nav-brand {
-  display: flex;
-  align-items: center;
-
-  h1 {
-    margin: 0;
-    padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    font-size: 1.8rem;
-    font-weight: 800;
-    color: #f5f5f5;
-    letter-spacing: normal;
-    text-transform: lowercase;
-
-    &::after {
-      content: '.';
-      color: #f5f5f5;
-      font-weight: 800;
+    > * {
+      padding: 15px;
     }
-  }
-}
-
-/* Alternative version with even more minimal styling */
-.nav-brand-minimal {
-  h1 {
-    margin: 0;
-    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
-    font-size: 2.4rem;
-    font-weight: 800;
-    color: #ffffff;
-    letter-spacing: -0.03em;
-    text-transform: lowercase;
-    
-    // Clean, crisp text
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-
-    &::after {
-      content: '.';
-      color: #90caf9; // Lighter blue dot
-      font-weight: 900;
-    }
-  }
-}
-
-/* Responsive adjustments */
-@media (max-width: 1024px) {
-  .nav-brand h1 {
-    font-size: 1.6rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .nav-brand h1 {
-    font-size: 1.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .nav-brand h1 {
-    font-size: 1.4rem;
   }
 }
