@@ -431,6 +431,35 @@ export class CalendarComponent implements OnInit {
     });
   }
 
+  toggleAdHocTask(habit: ScheduledHabit): void {
+  if (!habit.isAdHoc || !habit.adHocId) {
+    console.error('Invalid ad-hoc task', habit);
+    return;
+  }
+
+  this.disciplineService.completeAdHocTask({
+    taskId: habit.adHocId,
+    isCompleted: !habit.isCompleted,
+    notes: ''
+  }).subscribe({
+    next: (response) => {
+      console.log('Ad-hoc task toggled successfully:', response);
+      
+      // Refresh all data to update counters and status
+      this.loadCurrentWeekData();
+      
+      // Play completion sound if task was completed
+      if (!habit.isCompleted) {
+        this.soundService.playTaskCompleted();
+      }
+    },
+    error: (error) => {
+      console.error('Error toggling ad-hoc task:', error);
+      this.errorMessage = 'Failed to update task. Please try again.';
+    }
+  });
+}
+
   useGraceDay(): void {
     if (!this.todayData?.canUseGrace) return;
 
@@ -469,6 +498,84 @@ export class CalendarComponent implements OnInit {
     
     return habit.isOverdue;
   }
+
+  // ===================================
+// ADD TASK MODAL METHODS
+// ===================================
+
+addAdHocTask(): void {
+  if (!this.newTaskName.trim()) {
+    this.errorMessage = 'Task name is required';
+    return;
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  
+  this.disciplineService.addAdHocTask({
+    name: this.newTaskName.trim(),
+    description: this.newTaskDescription.trim(),
+    date: today
+  }).subscribe({
+    next: (response) => {
+      console.log('Ad-hoc task added successfully:', response);
+      this.showAddTaskDialog = false;
+      this.newTaskName = '';
+      this.newTaskDescription = '';
+      this.errorMessage = '';
+      
+      // Refresh the data to show the new task
+      this.loadCurrentWeekData();
+    },
+    error: (error) => {
+      console.error('Error adding ad-hoc task:', error);
+      this.errorMessage = 'Failed to add task. Please try again.';
+    }
+  });
+}
+
+saveEditedTask(): void {
+  if (!this.editingTask || !this.editTaskName.trim()) {
+    this.errorMessage = 'Task name is required';
+    return;
+  }
+
+  this.disciplineService.editAdHocTask({
+    adHocId: this.editingTask.adHocId!,
+    name: this.editTaskName.trim(),
+    description: this.editTaskDescription.trim()
+  }).subscribe({
+    next: (response) => {
+      console.log('Ad-hoc task edited successfully:', response);
+      this.showEditTaskDialog = false;
+      this.editingTask = null;
+      this.editTaskName = '';
+      this.editTaskDescription = '';
+      this.errorMessage = '';
+      
+      // Refresh the data to show the updated task
+      this.loadCurrentWeekData();
+    },
+    error: (error) => {
+      console.error('Error editing ad-hoc task:', error);
+      this.errorMessage = 'Failed to update task. Please try again.';
+    }
+  });
+}
+
+cancelAddTask(): void {
+  this.showAddTaskDialog = false;
+  this.newTaskName = '';
+  this.newTaskDescription = '';
+  this.errorMessage = '';
+}
+
+cancelEditTask(): void {
+  this.showEditTaskDialog = false;
+  this.editingTask = null;
+  this.editTaskName = '';
+  this.editTaskDescription = '';
+  this.errorMessage = '';
+}
 
   isDailyHabit(habit: ScheduledHabit): boolean {
     if (habit.frequency && habit.frequency.toLowerCase().includes('daily')) return true;

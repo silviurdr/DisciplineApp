@@ -267,6 +267,7 @@
         </div>
       </div>
     </div>
+    
   </div>
 
   <!-- Loading State -->
@@ -297,4 +298,96 @@
 <div class="debug-panel" *ngIf="false">
   <h4>Debug Info</h4>
   <pre>{{ { todayData, flexibleTasks, weeklyProgress } | json }}</pre>
+</div>
+
+
+<!-- Add Task Modal -->
+<div class="modal-overlay" *ngIf="showAddTaskDialog" (click)="cancelAddTask()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Add Quick Task</h3>
+      <button class="close-btn" (click)="cancelAddTask()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="taskName">Task Name *</label>
+        <input 
+          type="text" 
+          id="taskName"
+          [(ngModel)]="newTaskName" 
+          placeholder="Enter task name (e.g., 'Take out trash')"
+          maxlength="100"
+          class="form-input"
+          #taskNameInput>
+      </div>
+      
+      <div class="form-group">
+        <label for="taskDescription">Description (optional)</label>
+        <textarea 
+          id="taskDescription"
+          [(ngModel)]="newTaskDescription" 
+          placeholder="Add any additional details..."
+          maxlength="500"
+          rows="3"
+          class="form-textarea"></textarea>
+      </div>
+      
+      <div class="error-message" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="cancel-btn" (click)="cancelAddTask()">Cancel</button>
+      <button class="save-btn" (click)="addAdHocTask()" [disabled]="!newTaskName.trim()">
+        Add Task
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Task Modal -->
+<div class="modal-overlay" *ngIf="showEditTaskDialog" (click)="cancelEditTask()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Edit Task</h3>
+      <button class="close-btn" (click)="cancelEditTask()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="editTaskName">Task Name *</label>
+        <input 
+          type="text" 
+          id="editTaskName"
+          [(ngModel)]="editTaskName" 
+          placeholder="Enter task name"
+          maxlength="100"
+          class="form-input">
+      </div>
+      
+      <div class="form-group">
+        <label for="editTaskDescription">Description (optional)</label>
+        <textarea 
+          id="editTaskDescription"
+          [(ngModel)]="editTaskDescription" 
+          placeholder="Add any additional details..."
+          maxlength="500"
+          rows="3"
+          class="form-textarea"></textarea>
+      </div>
+      
+      <div class="error-message" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="cancel-btn" (click)="cancelEditTask()">Cancel</button>
+      <button class="save-btn" (click)="saveEditedTask()" [disabled]="!editTaskName.trim()">
+        Save Changes
+      </button>
+    </div>
+  </div>
 </div>

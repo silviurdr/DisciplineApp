@@ -604,6 +604,18 @@ getStreakInfo(): Observable<StreakInfo> {
   );
 }
 
+completeAdHocTask(request: { 
+  taskId: number; 
+  isCompleted: boolean; 
+  notes: string 
+}): Observable<any> {
+  return this.http.post(`${this.baseUrl}/complete-adhoc-task`, request)
+    .pipe(
+      catchError(this.handleError)
+    );
+}
+
+
   // ===================================
   // ERROR HANDLING
   // ===================================
