@@ -103,44 +103,114 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
   // ===================================
 
 loadMonthData(): void {
-    this.loading = true;
-    this.error = null;
+  this.loading = true;
+  this.error = null;
 
-    // Use the new getMonthData method
-    this.disciplineService.getMonthData(this.currentYear, this.currentMonth + 1)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (monthData: DayData[]) => {
-          this.processMonthData(monthData);
-          this.calculateProjectedRewards();
-          this.loading = false;
-        },
-        error: (error) => {
-          console.error('Error loading month data:', error);
-          this.error = 'Failed to load month data. Please try again.';
-          this.loading = false;
-        }
-      });
+  // Use the same approach as weekly view for current data
+  const today = new Date();
+  const isCurrentMonth = today.getMonth() === this.currentMonth && today.getFullYear() === this.currentYear;
 
-    // Also load monthly stats separately if needed
-    this.disciplineService.getMonthlyStats(this.currentYear, this.currentMonth + 1)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (stats) => {
-          this.monthlyStats = {
-            completedDays: stats.completedDays || 0,
-            totalDays: stats.totalDays || 0,
-            completionRate: stats.completionRate || 0,
-            currentStreak: stats.currentStreak || 0,
-            totalHabits: stats.totalTasks || 0,
-            averageCompletionRate: stats.taskCompletionRate || 0
-          };
-        },
-        error: (error) => {
-          console.error('Error loading monthly stats:', error);
-        }
-      });
+  if (isCurrentMonth) {
+    // For current month, get real-time data using the weekly endpoint
+    this.loadCurrentMonthWithRealTimeData();
+  } else {
+    // For past/future months, use the month endpoint
+    this.loadHistoricalMonthData();
   }
+}
+
+private loadCurrentMonthWithRealTimeData(): void {
+  // Get the current week data (which has real-time info)
+  this.disciplineService.getCurrentWeek()
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (weekData) => {
+        // Extract today's real-time data
+        const today = new Date();
+        const todayData = weekData.days.find(day => 
+          new Date(day.date).toDateString() === today.toDateString()
+        );
+
+        // Now get the month data and merge with real-time today data
+        this.disciplineService.getMonthData(this.currentYear, this.currentMonth + 1)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: (monthData: DayData[]) => {
+              // Replace today's data with real-time data from weekly view
+              if (todayData) {
+                const todayString = today.toISOString().split('T')[0];
+                const todayIndex = monthData.findIndex(day => day.date.split('T')[0] === todayString);
+                
+                if (todayIndex !== -1) {
+                  // Replace with real-time data
+                  monthData[todayIndex] = {
+                    ...monthData[todayIndex],
+                    isCompleted: todayData.isCompleted,
+                    isPartiallyCompleted: todayData.isPartiallyCompleted,
+                    completedHabits: todayData.completedHabits,
+                    totalHabits: todayData.totalHabits,
+                    requiredHabitsCount: todayData.requiredHabitsCount || 0,
+                    completedRequiredCount: todayData.completedRequiredCount || 0,
+                    allHabits: todayData.allHabits || []
+                  };
+                }
+              }
+
+              this.processMonthData(monthData);
+              this.calculateProjectedRewards();
+              this.loading = false;
+            },
+            error: (error) => {
+              console.error('Error loading month data:', error);
+              this.error = 'Failed to load month data. Please try again.';
+              this.loading = false;
+            }
+          });
+      },
+      error: (error) => {
+        console.error('Error loading current week data:', error);
+        // Fallback to month data only
+        this.loadHistoricalMonthData();
+      }
+    });
+}
+
+private loadHistoricalMonthData(): void {
+  // Use original month endpoint for non-current months
+  this.disciplineService.getMonthData(this.currentYear, this.currentMonth + 1)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (monthData: DayData[]) => {
+        this.processMonthData(monthData);
+        this.calculateProjectedRewards();
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading month data:', error);
+        this.error = 'Failed to load month data. Please try again.';
+        this.loading = false;
+      }
+    });
+
+  // Load monthly stats
+  this.disciplineService.getMonthlyStats(this.currentYear, this.currentMonth + 1)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (stats) => {
+        this.monthlyStats = {
+          completedDays: stats.completedDays || 0,
+          totalDays: stats.totalDays || 0,
+          completionRate: stats.completionRate || 0,
+          currentStreak: stats.currentStreak || 0,
+          totalHabits: stats.totalTasks || 0,
+          averageCompletionRate: stats.taskCompletionRate || 0
+        };
+      },
+      error: (error) => {
+        console.error('Error loading monthly stats:', error);
+      }
+    });
+}
 
   private processMonthData(monthData: DayData[]): void {
     this.calendarDays = this.generateCalendarGrid(monthData);

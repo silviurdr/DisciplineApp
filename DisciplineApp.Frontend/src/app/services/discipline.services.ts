@@ -17,6 +17,7 @@ import {
 
 import { of } from 'rxjs';
 import { delay } from 'rxjs/operators';
+import { forkJoin } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -386,6 +387,63 @@ getMonthlyStats(year: number, month: number): Observable<any> {
         catchError(this.handleError)
       );
   }
+
+  /**
+ * Get current day real-time data - same as used by weekly view
+ */
+getCurrentDayData(): Observable<DayData> {
+  return this.getCurrentWeek().pipe(
+    map(weekData => {
+      const today = new Date();
+      const todayData = weekData.days.find(day => 
+        new Date(day.date).toDateString() === today.toDateString()
+      );
+      
+      if (!todayData) {
+        throw new Error('Today data not found in week response');
+      }
+      
+      return todayData;
+    }),
+    catchError(this.handleError)
+  );
+}
+
+/**
+ * Get month data with real-time current day
+ */
+getMonthDataWithRealTimeToday(year: number, month: number): Observable<DayData[]> {
+  const today = new Date();
+  const isCurrentMonth = today.getMonth() === (month - 1) && today.getFullYear() === year;
+
+  if (!isCurrentMonth) {
+    // For non-current months, return historical data
+    return this.getMonthData(year, month);
+  }
+
+  // For current month, merge historical data with real-time today
+  return forkJoin({
+    monthData: this.getMonthData(year, month),
+    todayData: this.getCurrentDayData()
+  }).pipe(
+    map(({ monthData, todayData }) => {
+      const todayString = today.toISOString().split('T')[0];
+      const todayIndex = monthData.findIndex(day => day.date.split('T')[0] === todayString);
+      
+      if (todayIndex !== -1) {
+        // Replace today's data with real-time data
+        monthData[todayIndex] = {
+          ...monthData[todayIndex],
+          ...todayData,
+          date: monthData[todayIndex].date // Keep original date format
+        };
+      }
+      
+      return monthData;
+    }),
+    catchError(this.handleError)
+  );
+}
 
   // ===================================
   // HABIT MANAGEMENT METHODS
