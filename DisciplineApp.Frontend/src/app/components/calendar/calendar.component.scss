@@ -1021,3 +1021,44 @@ button:focus {
     font-weight: bold;
   }
 }
+
+.habit-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 10px;
+  margin-top: 15px;
+
+  .habit-progress {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    
+    &.on-track {
+      border-left: 3px solid #4caf50;
+    }
+    
+    &.behind {
+      border-left: 3px solid #f44336;
+    }
+
+    .habit-name {
+      font-size: 0.9rem;
+      color: #ccc;
+      flex: 1;
+    }
+
+    .habit-count {
+      font-weight: bold;
+      color: #fff;
+      margin-right: 8px;
+    }
+    
+    .habit-percentage {
+      font-size: 0.8rem;
+      color: #aaa;
+    }
+  }
+}

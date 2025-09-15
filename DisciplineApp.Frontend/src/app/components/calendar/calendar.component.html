@@ -8,26 +8,28 @@
   </div>
 
   <!-- Weekly Progress Overview -->
-  <div class="weekly-overview" *ngIf="weeklyProgress">
-    <div class="progress-card">
-      <h3>Week Progress: {{ weeklyProgress.overallProgress }}%</h3>
-      <div class="grace-info">
-        <span class="grace-remaining">Grace Days: {{ weeklyProgress.graceRemaining }}/1</span>
-        <span class="grace-used" *ngIf="weeklyProgress.graceUsed > 0">Used: {{ weeklyProgress.graceUsed }}</span>
-      </div>
-    </div>
-    
-    <!-- Habit Progress Summary -->
-    <div class="habit-summary">
-      <div *ngFor="let habit of weeklyProgress.habitProgress"
-           class="habit-progress"
-           [class.on-track]="habit.isOnTrack"
-           [class.behind]="!habit.isOnTrack">
-        <span class="habit-name">{{ habit.habitName }}</span>
-        <span class="habit-count">{{ habit.completedCount }}/{{ habit.requiredCount }}</span>
-      </div>
+<!-- Weekly Progress Overview -->
+<div class="weekly-overview" *ngIf="weeklyProgress">
+  <div class="progress-card">
+    <h3>Week Progress: {{ calculateWeekProgress() }}%</h3>
+    <div class="grace-info">
+      <span class="grace-remaining">Grace Days: {{ weeklyProgress.graceRemaining }}/1</span>
+      <span class="grace-used" *ngIf="weeklyProgress.graceUsed > 0">Used: {{ weeklyProgress.graceUsed }}</span>
     </div>
   </div>
+  
+  <!-- Individual Habit Progress Summary -->
+  <div class="habit-summary">
+    <div *ngFor="let habit of calculateWeeklyHabitProgress()"
+         class="habit-progress"
+         [class.on-track]="habit.percentage >= 50"
+         [class.behind]="habit.percentage < 50">
+      <span class="habit-name">{{ habit.habitName }}</span>
+      <span class="habit-count">{{ habit.completed }}/{{ habit.total }}</span>
+      <span class="habit-percentage">({{ habit.percentage }}%)</span>
+    </div>
+  </div>
+</div>
 
   <!-- Weekly Calendar Grid -->
   <div class="weekly-calendar" *ngIf="currentWeekDays && currentWeekDays.length > 0">

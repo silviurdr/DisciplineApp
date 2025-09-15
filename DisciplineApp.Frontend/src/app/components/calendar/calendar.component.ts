@@ -528,6 +528,61 @@ export class CalendarComponent implements OnInit {
     return '⭕';
   }
 
+calculateWeekProgress(): number {
+  if (!this.currentWeekDays) return 0;
+  
+  let totalTasksCompleted = 0;
+  let totalTasksForEntireWeek = 0;
+  
+  this.currentWeekDays.forEach(day => {
+    // Count ALL tasks from ALL days (past, present, and future)
+    totalTasksForEntireWeek += day.totalHabits || 0;
+    
+    // Only count completed tasks from past and current days
+    if (!day.isFuture) {
+      totalTasksCompleted += day.completedHabits || 0;
+    }
+  });
+  
+  return totalTasksForEntireWeek > 0 
+    ? Math.round((totalTasksCompleted / totalTasksForEntireWeek) * 100)
+    : 0;
+}
+
+calculateWeeklyHabitProgress(): {habitName: string, completed: number, total: number, percentage: number}[] {
+  if (!this.currentWeekDays) return [];
+  
+  const habitStats = new Map<string, {completed: number, total: number}>();
+  
+  this.currentWeekDays.forEach(day => {
+    if (day.allHabits) {
+      day.allHabits.forEach(habit => {
+        const habitName = habit.name;
+        
+        if (!habitStats.has(habitName)) {
+          habitStats.set(habitName, {completed: 0, total: 0});
+        }
+        
+        const stats = habitStats.get(habitName)!;
+        stats.total += 1; // This habit appears on this day
+        
+        // Only count as completed if it's not a future day
+        if (!day.isFuture && habit.isCompleted) {
+          stats.completed += 1;
+        }
+      });
+    }
+  });
+  
+  // Convert to array and calculate percentages
+  return Array.from(habitStats.entries()).map(([habitName, stats]) => ({
+    habitName,
+    completed: stats.completed,
+    total: stats.total,
+    percentage: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
+  }));
+}
+
   getCompletionPercentage(day: DayData): number {
     if (!day.totalHabits || day.totalHabits === 0) return 0;
     return Math.round((day.completedHabits / day.totalHabits) * 100);
