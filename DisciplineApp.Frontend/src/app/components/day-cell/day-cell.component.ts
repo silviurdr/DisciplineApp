@@ -13,11 +13,11 @@ import { CalendarDay, StreakColor } from '../../models/discipline.models';
       [class.completed]="day.isCompleted"
       [class.in-streak]="day.dayInStreak > 0"
       [class.special-day]="day.isSpecial"
-      [class.streak-blue]="day.color === StreakColor.Blue"
-      [class.streak-green]="day.color === StreakColor.Green"
-      [class.streak-orange]="day.color === StreakColor.Orange"
-      [class.streak-red]="day.color === StreakColor.Red"
-      [class.streak-special]="day.color === StreakColor.Special"
+  [class.streak-salmon]="day.color === StreakColor.Salmon"
+  [class.streak-orange]="day.color === StreakColor.Orange"
+  [class.streak-yellow]="day.color === StreakColor.Yellow"
+  [class.streak-white]="day.color === StreakColor.White"
+  [class.streak-none]="day.color === StreakColor.None"
       (click)="onDayClick()"
       [title]="getDayTitle()">
       

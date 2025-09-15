@@ -1,113 +1,103 @@
+// ===================================
+// 1. MODELS FILE - src/app/models/discipline.models.ts
+// ===================================
+
+export interface CalendarDay {
+  date: string; // YYYY-MM-DD format
+  dayOfMonth: number;
+  isCompleted: boolean;
+  isSpecial: boolean;
+  dayInStreak: number;
+  color: StreakColor;
+  rewards: Reward[];
+}
+
+export interface MonthData {
+  month: number;
+  year: number;
+  monthName: string;
+  days: CalendarDay[];
+}
+
+export interface YearCalendar {
+  year: number;
+  months: MonthData[];
+  streakInfo: StreakInfo;
+}
+
+export interface StreakInfo {
+  currentStreak: number;
+  longestStreak: number;
+  totalDays: number;
+  weeklyRewards: number;
+  monthlyRewards: number;
+  nextMilestone?: number;
+  lastUpdate?: string;
+}
+
+export interface Reward {
+  id: number;
+  type: string;
+  description: string;
+  earnedAt: string;
+}
+
+
+export interface HabitProgress {
+  habitName: string;
+  completedCount: number;
+  requiredCount: number;
+  urgency: string;
+  remainingDays: number;
+  isAchievable: boolean;
+  isOnTrack: boolean;
+}
+
+export enum StreakColor {
+  None = 0,
+  Salmon = 1,
+  Orange = 2,
+  Yellow = 3,
+  White = 4
+}
+
+// ===================================
+// 2. COMPONENT TYPESCRIPT - calendar.component.ts
+// ===================================
+
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { DisciplineService } from '../../services/discipline.services';
 import { SoundService } from '../../services/sound.service';
-import { FormsModule } from '@angular/forms';
-import { SortCompletedPipe } from "../../sort.completed.pipe";
+import { 
+  WeekData, 
+  DayData, 
+  WeeklyProgress, 
+  ScheduledHabit, 
+  HabitWithFlexibility 
+} from '../../models/discipline.models';
 
-interface ScheduledHabit {
-  habitId: number;
-  name: string;
-  description: string;
-  isCompleted: boolean;
-  isRequired: boolean;
-  reason: string;
-  isLocked? : boolean;
-  priority: string;
-  completedAt?: string;
-  timeRemaining?: string;
-  hasDeadline?: boolean;
-  deadlineTime?: string;
-  isOverdue?: boolean;
-  isAdHoc?: boolean; // New property to distinguish ad-hoc tasks
-  adHocId?: number;  // ID for ad-hoc tasks
-}
+// Pipe for sorting habits
+import { Pipe, PipeTransform } from '@angular/core';
 
-interface DayData {
-  date: string;
-  allHabits: ScheduledHabit[];
-  warnings: string[];
-  recommendations: string[];
-  canUseGrace: boolean;
-  isCompleted: boolean;
-  isPartiallyCompleted: boolean;
-}
-
-interface WeeklyProgress {
-  habitId: number;
-  name: string;
-  completions: number;
-  target: number;
-  percentage: number;
-}
-
-
-interface AddAdHocTaskRequest {
-  name: string;
-  description?: string;
-  date: string; // Format: "YYYY-MM-DD"
-}
-
-interface EditAdHocTaskRequest {
-  name: string;
-  description?: string;
-}
-
-interface WeekData {
-  weekStartDate: string;
-  weekEndDate: string;
-  currentDay: DayData;
-  weeklyHabitProgress: WeeklyProgress[];
-  dayStatuses: any[];
-}
-
-interface HabitWithFlexibility {
-  // Basic habit info
-  habitId: number;
-  name: string;
-  description: string;
-  frequency: string; // 'Daily', 'Weekly', 'Monthly', 'Seasonal', 'EveryTwoDays'
-  
-  // Date tracking
-  originalScheduledDate: string; // ISO date string like '2025-09-15'
-  currentDueDate: string;        // ISO date string like '2025-09-16'
-  
-  // Flexibility tracking
-  deferralsUsed: number;         // How many times this task has been moved
-  maxDeferrals: number;          // Maximum allowed deferrals (0 for daily, 2 for weekly, etc.)
-  daysRemaining: number;         // Days left in the completion window
-  canStillBeDeferred: boolean;   // Can this task still be moved to tomorrow?
-  
-  // Status and urgency
-  urgencyLevel: 'safe' | 'warning' | 'urgent' | 'critical';
-  statusLabel: string;           // Human-readable status like "Can move 2 more times"
-  
-  // Visual indicators
-  flexibilityIcon: string;       // Emoji icon like '✅', '⚠️', '🔥', '🚨'
-  flexibilityColor: string;      // CSS color like '#28a745', '#ffc107', etc.
-  
-  // Completion status
-  isCompleted: boolean;          // Has this task been completed?
-  isRequired: boolean;           // Is this task required today?
-  isLocked: boolean;             // Is this task locked (can't be modified)?
-  
-  // Deadline info (if applicable)
-  hasDeadline: boolean;          // Does this task have a time deadline?
-  deadlineTime: string;          // Time string like '18:00:00'
-}
-
-
-interface DeferTaskRequest {
-  habitId: number;
-  fromDate: string;    // ISO date string
-  reason?: string;     // Optional reason for deferral
-}
-
-// Response interface for deferral operations
-interface DeferTaskResponse {
-  success: boolean;
-  message: string;
-  updatedTask: HabitWithFlexibility;
+@Pipe({
+  name: 'sortCompleted',
+  standalone: true
+})
+export class SortCompletedPipe implements PipeTransform {
+  transform(habits: ScheduledHabit[]): ScheduledHabit[] {
+    if (!habits) return [];
+    return habits.sort((a, b) => {
+      if (a.isCompleted !== b.isCompleted) {
+        return a.isCompleted ? 1 : -1; // Incomplete first
+      }
+      if (a.isRequired !== b.isRequired) {
+        return a.isRequired ? -1 : 1; // Required first
+      }
+      return 0;
+    });
+  }
 }
 
 @Component({
@@ -120,11 +110,12 @@ interface DeferTaskResponse {
 export class CalendarComponent implements OnInit {
   weekData: WeekData | null = null;
   todayData: DayData | null = null;
-  weeklyProgress: any = {};
-  currentWeekDays: any[] = [];
+  weeklyProgress: WeeklyProgress | null = null;
+  currentWeekDays: DayData[] = [];
+  flexibleTasks: HabitWithFlexibility[] = [];
   loading = true;
   error: string | null = null;
-  selectedDay: any = null;
+  selectedDay: DayData | null = null;
   showAddTaskDialog = false;
   newTaskName = '';
   newTaskDescription = '';
@@ -132,531 +123,314 @@ export class CalendarComponent implements OnInit {
   editingTask: ScheduledHabit | null = null;
   editTaskName = '';
   editTaskDescription = '';
-  flexibleTasks: HabitWithFlexibility[] = [];
+  errorMessage = '';
 
-  constructor(private disciplineService: DisciplineService, private soundService: SoundService) {}
+  constructor(
+    private disciplineService: DisciplineService,
+    private soundService: SoundService
+  ) {}
 
   ngOnInit(): void {
-    this.loadFlexibleTasks();
     this.loadCurrentWeekData();
+    this.loadFlexibleTasks();
   }
 
- loadFlexibleTasks(): void {
+  // ===================================
+  // DATA LOADING METHODS
+  // ===================================
+
+  loadCurrentWeekData(): void {
+    this.loading = true;
+    this.error = null;
+
+    this.disciplineService.getCurrentWeek().subscribe({
+      next: (weekData) => {
+        this.weekData = weekData;
+        this.currentWeekDays = weekData.days;
+        
+        // Find today's data
+        const today = new Date();
+        this.todayData = weekData.days.find(day => 
+          new Date(day.date).toDateString() === today.toDateString()
+        ) || null;
+
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading week data:', error);
+        this.error = 'Failed to load calendar data';
+        this.loading = false;
+      }
+    });
+
+    // Load weekly progress
+    this.disciplineService.getWeeklyProgress().subscribe({
+      next: (progress) => {
+        this.weeklyProgress = progress;
+      },
+      error: (error) => {
+        console.error('Error loading weekly progress:', error);
+      }
+    });
+  }
+
+  loadFlexibleTasks(): void {
     const today = new Date().toISOString().split('T')[0];
     
     this.disciplineService.getFlexibleTasksForDay(today).subscribe({
       next: (tasks: HabitWithFlexibility[]) => {
         this.flexibleTasks = tasks;
-        console.log('Loaded flexible tasks:', tasks);
+        console.log('Flexible tasks loaded:', tasks);
       },
       error: (error) => {
         console.error('Error loading flexible tasks:', error);
+        this.errorMessage = 'Failed to load tasks. Please refresh the page.';
       }
     });
   }
-    canMoveTask(task: HabitWithFlexibility): boolean {
-    return task.canStillBeDeferred && !task.isCompleted && !task.isLocked;
-  }
 
-  
+  // ===================================
+  // FLEXIBLE TASK METHODS
+  // ===================================
 
-   getRemainingDeferrals(task: HabitWithFlexibility): number {
-    return task.maxDeferrals - task.deferralsUsed;
-  }
-
-  canMoveTaskToTomorrow(task: HabitWithFlexibility): boolean {
-    return task.canStillBeDeferred && !task.isCompleted && !task.isLocked;
-  }
-
-    getUrgencyClass(task: HabitWithFlexibility): string {
-    return `task-urgency-${task.urgencyLevel}`;
-  }
-
-  completeTask(task: HabitWithFlexibility): void {
-  if (task.isLocked) {
-    console.log('Task is locked, cannot complete');
-    return;
-  }
-
-  const today = new Date().toISOString().split('T')[0];
-  
-  // Toggle completion status
-  const newCompletionStatus = !task.isCompleted;
-  
-  this.disciplineService.completeHabit({
-    habitId: task.habitId,
-    date: today,
-    isCompleted: newCompletionStatus
-  }).subscribe({
-    next: (response) => {
-      console.log('Task completion updated:', response);
-      
-      // Update the task in our flexible tasks array
-      const index = this.flexibleTasks.findIndex(t => t.habitId === task.habitId);
-      if (index !== -1) {
-        this.flexibleTasks[index].isCompleted = newCompletionStatus;
+  getHabitClasses(habit: ScheduledHabit): string {
+    const classes = [];
+    
+    // Priority classes
+    if (habit.isRequired) classes.push('required');
+    if (!habit.isRequired) classes.push('optional');
+    
+    // Completion classes
+    if (habit.isCompleted) classes.push('completed');
+    
+    // Urgency classes
+    if (!habit.isCompleted) {
+      if (habit.isOverdue) classes.push('overdue');
+      if (habit.timeRemaining) {
+        const urgency = this.getUrgencyLevel(habit.timeRemaining);
+        if (urgency === 'urgent') classes.push('urgent');
+        if (urgency === 'critical') classes.push('critical');
       }
-      
-      // Show success message
-      if (newCompletionStatus) {
-        console.log(`${task.name} marked as completed!`);
-        // Play completion sound if you have it
-        this.soundService.playTaskCompleted();
-      } else {
-        console.log(`${task.name} marked as incomplete.`);
-      }
-      
-      // Reload data to refresh counters and overall progress
-      this.loadCurrentWeekData();
-      this.loadFlexibleTasks();
-    },
-    error: (error) => {
-      console.error('Error updating task completion:', error);
-      alert('Failed to update task. Please try again.');
     }
-  });
-}
+    
+    // Flexibility classes
+    const flexInfo = this.getFlexibilityInfo(habit);
+    if (flexInfo) {
+      classes.push(`flexibility-${flexInfo.urgency}`);
+    }
+    
+    // Type classes
+    if (habit.isAdHoc) classes.push('ad-hoc');
+    
+    return classes.join(' ');
+  }
 
+  getFlexibilityInfo(habit: ScheduledHabit): {
+    urgency: string;
+    color: string;
+    icon: string;
+    label: string;
+    statusText: string;
+    remainingDeferrals: number;
+    maxDeferrals: number;
+    deferralsUsed: number;
+    showDetails: boolean;
+  } | null {
+    // Skip daily and ad-hoc tasks
+    if (this.isDailyHabit(habit) || habit.isAdHoc) {
+      return null;
+    }
+    
+    // Get max deferrals based on frequency
+    const maxDeferrals = this.getMaxDeferralsForFrequency(habit.frequency || habit.reason || '');
+    if (maxDeferrals === 0) return null;
+    
+    // Get current deferral usage
+    const deferralsUsed = habit.deferralsUsed || 0;
+    const remainingDeferrals = maxDeferrals - deferralsUsed;
+    const usagePercentage = deferralsUsed / maxDeferrals;
+    
+    let urgency: string;
+    let color: string;
+    let icon: string;
+    let label: string;
+    let statusText: string;
+    
+    if (remainingDeferrals === 0) {
+      urgency = 'critical';
+      color = '#dc3545';
+      icon = '🚨';
+      label = 'FINAL DAY';
+      statusText = 'Must complete today - no more deferrals';
+    } else if (usagePercentage >= 0.66) {
+      urgency = 'urgent';
+      color = '#fd7e14';
+      icon = '🔥';
+      label = `${remainingDeferrals} left`;
+      statusText = remainingDeferrals === 1 ? 'Can move 1 more time' : `Can move ${remainingDeferrals} more times`;
+    } else if (usagePercentage >= 0.33) {
+      urgency = 'warning';
+      color = '#ffc107';
+      icon = '⚠️';
+      label = `${remainingDeferrals} left`;
+      statusText = remainingDeferrals === 1 ? 'Can move 1 more time' : `Can move ${remainingDeferrals} more times`;
+    } else {
+      urgency = 'safe';
+      color = '#28a745';
+      icon = '✅';
+      label = `${remainingDeferrals} left`;
+      statusText = remainingDeferrals === 1 ? 'Can move 1 more time' : `Can move ${remainingDeferrals} more times`;
+    }
+    
+    return {
+      urgency,
+      color,
+      icon,
+      label,
+      statusText,
+      remainingDeferrals,
+      maxDeferrals,
+      deferralsUsed,
+      showDetails: true
+    };
+  }
 
-  moveFlexibleTaskToTomorrow(task: HabitWithFlexibility): void {
-    if (!this.canMoveTaskToTomorrow(task)) {
-      alert(`Cannot move ${task.name}: ${task.statusLabel}`);
+  private getMaxDeferralsForFrequency(frequency: string): number {
+    if (!frequency) return 0;
+    
+    const freq = frequency.toLowerCase();
+    if (freq.includes('daily')) return 0;
+    if (freq.includes('weekly') || freq.includes('gym') || freq.includes('vacuum') || freq.includes('bathroom')) return 2;
+    if (freq.includes('monthly') || freq.includes('seasonal') || freq.includes('kitchen') || freq.includes('window')) return 6;
+    if (freq.includes('every') && freq.includes('2')) return 1; // EveryTwoDays
+    
+    return 0;
+  }
+
+  canMoveHabitToTomorrow(habit: ScheduledHabit): boolean {
+    return !this.isDailyHabit(habit) && !habit.isCompleted && !habit.isAdHoc && !habit.isLocked;
+  }
+
+  canActuallyMoveHabit(habit: ScheduledHabit): boolean {
+    if (!this.canMoveHabitToTomorrow(habit)) return false;
+    
+    const flexInfo = this.getFlexibilityInfo(habit);
+    return flexInfo ? flexInfo.remainingDeferrals > 0 : false;
+  }
+
+  getMoveButtonText(habit: ScheduledHabit): string {
+    const flexInfo = this.getFlexibilityInfo(habit);
+    if (!flexInfo || flexInfo.remainingDeferrals === 0) {
+      return 'Cannot Move';
+    }
+    return 'Move to Tomorrow';
+  }
+
+  getMoveButtonTooltip(habit: ScheduledHabit): string {
+    const flexInfo = this.getFlexibilityInfo(habit);
+    if (!flexInfo) return 'Daily tasks cannot be moved';
+    
+    if (flexInfo.remainingDeferrals === 0) {
+      return 'No more deferrals available - must complete today';
+    }
+    
+    return `${flexInfo.statusText}`;
+  }
+
+  // ===================================
+  // ACTION METHODS
+  // ===================================
+
+  moveHabitToTomorrow(habit: ScheduledHabit): void {
+    if (!this.canActuallyMoveHabit(habit)) {
+      const flexInfo = this.getFlexibilityInfo(habit);
+      const message = flexInfo ? 
+        `Cannot move ${habit.name}: ${flexInfo.statusText}` :
+        `Cannot move ${habit.name}: Daily tasks must be completed today`;
+      alert(message);
       return;
     }
 
-    const fromDate = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
     
-    this.disciplineService.deferTask(task.habitId, fromDate, 'Moved by user request').subscribe({
-      next: (updatedTask) => {
-        console.log('Task deferred successfully:', updatedTask);
-        
-        // Update the task in our array
-        const index = this.flexibleTasks.findIndex(t => t.habitId === task.habitId);
-        if (index !== -1) {
-          this.flexibleTasks[index] = updatedTask;
-        }
-        
-        // Show success message
-        alert(`${task.name} moved to tomorrow. ${updatedTask.statusLabel}`);
-      },
-      error: (error) => {
-        console.error('Error moving task:', error);
-        alert('Failed to move task. Please try again.');
-      }
-    });
-  }
-
-
-  public loadCurrentWeekData(): void {
-    const today = new Date();
-    
-    this.loading = true;
-    this.error = null;
-
-    this.disciplineService.getWeekData(
-      today.getFullYear(),
-      today.getMonth() + 1,
-      today.getDate()
-    ).subscribe({
-      next: (weekData) => {
-        console.log('Smart Schedule Data:', weekData);
-        this.weekData = weekData;
-        this.todayData = weekData.currentDay;
-        this.weeklyProgress = this.mapWeeklyProgress(weekData);
-              console.log('Today\'s habits after loading:', this.todayData?.allHabits);
-      this.todayData?.allHabits?.forEach(habit => {
-        console.log(`Habit: ${habit.name}, ID: ${habit.habitId}, Completed: ${habit.isCompleted}`);
-      });
-        this.currentWeekDays = this.mapApiDataToWeekDays(weekData);
-        this.loading = false;
-      },
-      error: (error) => {
-        console.error('Error loading week data:', error);
-        this.loadFallbackData();
-      }
-    });
-  }
-
-  private mapWeeklyProgress(weekData: WeekData): any {
-    if (!weekData.weeklyHabitProgress) return {};
-
-    const totalProgress = weekData.weeklyHabitProgress.reduce((sum, habit) => 
-      sum + habit.percentage, 0);
-    
-    const overallProgress = weekData.weeklyHabitProgress.length > 0 
-      ? Math.round(totalProgress / weekData.weeklyHabitProgress.length) 
-      : 0;
-
-    const habitProgress = weekData.weeklyHabitProgress.map(habit => ({
-      habitName: habit.name,
-      completedCount: habit.completions,
-      requiredCount: habit.target,
-      isOnTrack: habit.percentage >= 75
-    }));
-
-    return {
-      overallProgress: overallProgress,
-      graceRemaining: 1, // Could come from API in future
-      graceUsed: 0,
-      habitProgress: habitProgress
-    };
-  }
-
-  private mapApiDataToWeekDays(weekData: WeekData): any[] {
-    return weekData.dayStatuses.map(apiDay => ({
-      date: apiDay.date,
-      isCompleted: apiDay.isCompleted,
-      isPartiallyCompleted: apiDay.isPartiallyCompleted,
-      canUseGrace: apiDay.canUseGrace,
-      requiredHabitsCount: apiDay.requiredHabitsCount,
-      completedRequiredCount: apiDay.completedRequiredCount,
-      warnings: [],
-      recommendations: []
-    }));
-  }
-
-  private loadFallbackData(): void {
-    this.currentWeekDays = [];
-    this.weeklyProgress = {
-      overallProgress: 0,
-      graceRemaining: 1,
-      graceUsed: 0,
-      habitProgress: []
-    };
-    this.todayData = {
-      date: new Date().toISOString().split('T')[0],
-      allHabits: [],
-      warnings: [],
-      recommendations: [],
-      canUseGrace: true,
-      isCompleted: false,
-      isPartiallyCompleted: false
-    };
-    this.loading = false;
-  }
-
-
-  // Update your toggleHabit method to handle ad-hoc tasks:
-toggleHabit(habit: ScheduledHabit): void {
-  if (habit.isAdHoc && habit.adHocId) {
-    // Handle ad-hoc task completion
-    this.toggleAdHocTask(habit);
-  } else {
-    // Handle regular habit completion (your existing logic)
-    this.toggleRegularHabit(habit);
-  }
-}
-
-private toggleAdHocTask(habit: ScheduledHabit): void {
-  const newCompletionState = !habit.isCompleted;
-  
-  if (newCompletionState) {
-    this.soundService.playTaskCompleted();
-  }
-  
-  // Optimistic UI update
-  habit.isCompleted = newCompletionState;
-  let timeoutForCompleteDay = 0;
-
-  this.disciplineService.completeAdHocTask({
-    taskId: habit.adHocId!,
-    isCompleted: newCompletionState,
-    notes: 'Completed via smart schedule'
-  }).subscribe({
-    next: (response) => {
-      console.log('Ad-hoc task toggled successfully:', response);
-      // Check if all tasks are now completed for day completed sound
-      const allTasksCompleted = this.todayData?.allHabits?.every(h => h.isCompleted) || false;
-        if (allTasksCompleted && newCompletionState) {
-          console.log('All tasks completed! Playing day completed sound');
-                  timeoutForCompleteDay = 100; // Set delay for refreshing data
-                setTimeout(() => {
-              this.soundService.playDayCompleted();
-            }, 100); // Delay of 1000 milliseconds (1 second)
+    // Use flexible task service if available
+    if (this.disciplineService.deferTask) {
+      this.disciplineService.deferTask(habit.habitId, today, 'User requested').subscribe({
+        next: (updatedTask) => {
+          console.log('Task deferred successfully:', updatedTask);
+          
+          // Update the habit in the current day's data
+          if (this.todayData?.allHabits) {
+            const index = this.todayData.allHabits.findIndex(h => h.habitId === habit.habitId);
+            if (index !== -1) {
+              this.todayData.allHabits[index].deferralsUsed = (habit.deferralsUsed || 0) + 1;
+            }
           }
-                  // Refresh the entire week data to update progress
-          setTimeout(() => {
-             this.loadCurrentWeekData();
-            }, timeoutForCompleteDay); // Delay of 1000 milliseconds (1 second)    
-    },
-    error: (error) => {
-      console.error('Error toggling ad-hoc task:', error);
-      // Revert optimistic update on error
-      habit.isCompleted = !newCompletionState;
+          
+          alert(`${habit.name} moved to tomorrow. ${updatedTask.statusLabel || 'Task rescheduled successfully.'}`);
+          this.loadCurrentWeekData();
+        },
+        error: (error) => {
+          console.error('Error moving task:', error);
+          alert('Failed to move task. Please try again.');
+        }
+      });
+    } else {
+      // Fallback to original move logic
+      this.disciplineService.moveTaskToTomorrow({
+        habitId: habit.habitId,
+        currentDate: today,
+        reason: 'User requested'
+      }).subscribe({
+        next: (response) => {
+          console.log('Task moved:', response);
+          alert(`${habit.name} moved to tomorrow`);
+          this.loadCurrentWeekData();
+        },
+        error: (error) => {
+          console.error('Error moving task:', error);
+          alert('Failed to move task. Please try again.');
+        }
+      });
     }
-  });
-}
-
-  // Habit completion method
-  toggleRegularHabit(habit: ScheduledHabit): void {
-    if (!this.todayData) return;
-
-    const newCompletionState = !habit.isCompleted;
-      // Only play task completed sound when COMPLETING a task (not unchecking)
-  if (newCompletionState) {
-    console.log('Playing task completed sound for:', habit.name);
-    this.soundService.playTaskCompleted();
   }
-    // Optimistic UI update
-    habit.isCompleted = newCompletionState;
-    let timeoutForCompleteDay = 0;
 
+  toggleHabit(habit: ScheduledHabit): void {
+    if (habit.isLocked) {
+      console.log('Habit is locked, cannot toggle');
+      return;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    
     this.disciplineService.completeHabit({
       habitId: habit.habitId,
-      date: this.todayData.date,
-      isCompleted: newCompletionState,
-      notes: 'Completed via smart schedule'
+      date: today,
+      isCompleted: !habit.isCompleted,
+      adHocId: habit.adHocId
     }).subscribe({
       next: (response) => {
-        console.log('Habit toggled successfully:', response);
-        // Update the current day data with the response
-        if (response.allHabits) {
-          this.todayData = response;
-                  // Check if ALL tasks are now completed (day completed sound)
-        const allTasksCompleted = response.allHabits.every(h => h.isCompleted);
+        console.log('Habit completion toggled:', response);
         
-        if (allTasksCompleted && newCompletionState) {
-          console.log('All tasks completed! Playing day completed sound');
-                  timeoutForCompleteDay = 100; // Set delay for refreshing data
-                setTimeout(() => {
-              this.soundService.playDayCompleted();
-            }, 100); // Delay of 1000 milliseconds (1 second)
-          }
+        // Update local state
+        habit.isCompleted = !habit.isCompleted;
+        
+        // Play sound effect
+        if (habit.isCompleted) {
+          this.soundService.playTaskCompleted();
         }
-        // Refresh the entire week data to update progress
-          setTimeout(() => {
-             this.loadCurrentWeekData();
-            }, timeoutForCompleteDay); // Delay of 1000 milliseconds (1 second)
+        
+        // Reload data to refresh counters
+        this.loadCurrentWeekData();
+        this.loadFlexibleTasks();
       },
       error: (error) => {
         console.error('Error toggling habit:', error);
-        // Revert optimistic update on error
-        habit.isCompleted = !newCompletionState;
+        alert('Failed to update habit. Please try again.');
       }
     });
   }
 
-
-  // Helper methods for template
-  getRequiredHabits(): ScheduledHabit[] {
-    return this.todayData?.allHabits?.filter(h => h.isRequired) || [];
-  }
-
-  getOptionalHabits(): ScheduledHabit[] {
-    return this.todayData?.allHabits?.filter(h => !h.isRequired) || [];
-  }
-
-  getAllHabits(): ScheduledHabit[] {
-    return this.todayData?.allHabits || [];
-  }
-
-  getCompletedHabitsCount(): number {
-    return this.todayData?.allHabits?.filter(h => h.isCompleted).length || 0;
-  }
-
-  getTotalHabitsCount(): number {
-    return this.todayData?.allHabits?.length || 0;
-  }
-
-  getRequiredHabitsCount(): number {
-    return this.getRequiredHabits().length;
-  }
-
-  getCompletedRequiredCount(): number {
-    return this.getRequiredHabits().filter(h => h.isCompleted).length;
-  }
-
-  // Calendar navigation methods
-  getDayName(dateStr: string): string {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-  }
-
-  getDayNumber(dateStr: string): number {
-    return new Date(dateStr).getDate();
-  }
-
-  isToday(dateStr: string): boolean {
-    const today = new Date().toISOString().split('T')[0];
-    return dateStr === today;
-  }
-
-  isFuture(dateStr: string): boolean {
-    const today = new Date().toISOString().split('T')[0];
-    return dateStr > today;
-  }
-
-  formatDate(dateStr: string): string {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-  }
-
-  openAddTaskDialog(): void {
-  this.showAddTaskDialog = true;
-  this.newTaskName = '';
-  this.newTaskDescription = '';
-}
-
-closeAddTaskDialog(): void {
-  this.showAddTaskDialog = false;
-}
-
-addNewTask(): void {
-  if (!this.newTaskName.trim() || !this.todayData) return;
-
-  const request: AddAdHocTaskRequest = {
-    name: this.newTaskName.trim(),
-    description: this.newTaskDescription.trim(),
-    date: this.todayData.date
-  };
-
-  this.disciplineService.addAdHocTask(request).subscribe({
-    next: (response) => {
-      console.log('Ad-hoc task added successfully:', response);
-      // Play success sound
-      this.soundService.playTaskCompleted();
-      // Refresh the current day data
-      this.loadCurrentWeekData();
-      // Close dialog
-      this.closeAddTaskDialog();
-    },
-    error: (error) => {
-      console.error('Error adding ad-hoc task:', error);
-      alert('Failed to add task. Please try again.');
-    }
-  });
-}
-
-openEditTaskDialog(habit: ScheduledHabit): void {
-  if (!habit.isAdHoc || !habit.adHocId) {
-    console.error('Can only edit ad-hoc tasks');
-    return;
-  }
-  
-  this.editingTask = habit;
-  this.editTaskName = habit.name;
-  this.editTaskDescription = habit.description || '';
-  this.showEditTaskDialog = true;
-}
-
-closeEditTaskDialog(): void {
-  this.showEditTaskDialog = false;
-  this.editingTask = null;
-  this.editTaskName = '';
-  this.editTaskDescription = '';
-}
-
-saveEditedTask(): void {
-  if (!this.editTaskName.trim() || !this.editingTask?.adHocId) {
-    return;
-  }
-
-  const request: EditAdHocTaskRequest = {
-    name: this.editTaskName.trim(),
-    description: (this.editTaskDescription !== undefined && this.editTaskDescription !== null)
-      ? this.editTaskDescription.trim()
-      : ''
-  };
-
-  this.disciplineService.editAdHocTask(this.editingTask.adHocId, request).subscribe({
-    next: (response) => {
-      console.log('Ad-hoc task edited successfully:', response);
-      
-      // Update the task in the current UI immediately
-      if (this.editingTask && this.todayData?.allHabits) {
-        const taskIndex = this.todayData.allHabits.findIndex(h => h.adHocId === this.editingTask!.adHocId);
-        if (taskIndex !== -1) {
-          this.todayData.allHabits[taskIndex].name = this.editTaskName.trim();
-          this.todayData.allHabits[taskIndex].description = this.editTaskDescription.trim();
-        }
-      }
-      
-      // Close dialog
-      this.closeEditTaskDialog();
-      
-      // Reload data to ensure consistency
-      this.loadCurrentWeekData();
-    },
-    error: (error) => {
-      console.error('Error editing ad-hoc task:', error);
-      alert('Failed to update task. Please try again.');
-    }
-  });
-}
-
-  // Modal methods
-  openDayDetail(day: any): void {
-    if (this.isFuture(day.date)) return;
-    this.selectedDay = day;
-  }
-
-  closeModal(): void {
-    this.selectedDay = null;
-  }
-
-  // Priority and styling methods
-  getPriorityClass(habit: ScheduledHabit): string {
-    if (habit.isRequired) {
-      return 'priority-required';
-    }
-    return 'priority-optional';
-  }
-
-  getCompletionClass(habit: ScheduledHabit): string {
-  return habit.isCompleted ? 'completed' : 'incomplete';
-}
-
-  getDayCompletionStatus(): string {
-    if (!this.todayData) return 'No data';
-    
-    if (this.todayData.isCompleted) {
-      return 'Day Complete!';
-    }
-    
-    if (this.todayData.isPartiallyCompleted) {
-      const completed = this.getCompletedRequiredCount();
-      const total = this.getRequiredHabitsCount();
-      return `Progress: ${completed}/${total} required tasks`;
-    }
-    
-    const remaining = this.getRequiredHabitsCount() - this.getCompletedRequiredCount();
-    return `${remaining} required tasks remaining`;
-  }
-
-moveTaskToTomorrow(habit: ScheduledHabit): void {
-    if (confirm(`Move "${habit.name}" to tomorrow?`)) {
-        const request = {
-            habitId: habit.habitId,
-            currentDate: this.todayData?.date,
-            reason: 'Moved by user request'
-        };
-        
-        this.disciplineService.moveTaskToTomorrow(request).subscribe({
-            next: (response) => {
-                console.log('Task moved to tomorrow:', response);
-                // Play success sound if you have sound service
-                // this.soundService.playTaskCompleted();
-                
-                // Show success message
-                alert('Task moved to tomorrow successfully!');
-                
-                // Reload current week data to reflect changes
-                this.loadCurrentWeekData();
-            },
-            error: (error) => {
-                console.error('Error moving task:', error);
-                alert('Failed to move task. Please try again.');
-            }
-        });
-    }
-}
-
-  // Grace day method
   useGraceDay(): void {
     if (!this.todayData?.canUseGrace) return;
 
@@ -674,13 +448,37 @@ moveTaskToTomorrow(habit: ScheduledHabit): void {
     });
   }
 
-  /**
-   * Get urgency level based on time remaining
-   */
+  // ===================================
+  // UTILITY METHODS
+  // ===================================
+
+  isUrgentTask(habit: ScheduledHabit): boolean {
+    if (habit.isCompleted) return false;
+    
+    // Check deadline urgency
+    if (habit.timeRemaining) {
+      const urgency = this.getUrgencyLevel(habit.timeRemaining);
+      if (urgency === 'critical' || urgency === 'urgent') return true;
+    }
+    
+    // Check flexibility urgency
+    const flexInfo = this.getFlexibilityInfo(habit);
+    if (flexInfo && (flexInfo.urgency === 'critical' || flexInfo.urgency === 'urgent')) {
+      return true;
+    }
+    
+    return habit.isOverdue;
+  }
+
+  isDailyHabit(habit: ScheduledHabit): boolean {
+    if (habit.frequency && habit.frequency.toLowerCase().includes('daily')) return true;
+    if (habit.reason && habit.reason.toLowerCase().includes('daily')) return true;
+    return false;
+  }
+
   getUrgencyLevel(timeRemaining: string): 'normal' | 'urgent' | 'critical' {
     if (!timeRemaining) return 'normal';
     
-    // Extract hours from "2h 30m remaining" format
     const hourMatch = timeRemaining.match(/(\d+)h/);
     const minuteMatch = timeRemaining.match(/(\d+)m/);
     
@@ -688,69 +486,93 @@ moveTaskToTomorrow(habit: ScheduledHabit): void {
     const minutes = minuteMatch ? parseInt(minuteMatch[1]) : 0;
     const totalMinutes = hours * 60 + minutes;
     
-    if (totalMinutes <= 30) return 'critical';  // 30 minutes or less
-    if (totalMinutes <= 120) return 'urgent';   // 2 hours or less
+    if (totalMinutes <= 30) return 'critical';
+    if (totalMinutes <= 120) return 'urgent';
     return 'normal';
   }
 
-  /**
-   * Get deadline warning message
-   */
-  getDeadlineWarningMessage(habit: ScheduledHabit): string {
-    if (!habit.timeRemaining) return '';
-    
-    const urgency = this.getUrgencyLevel(habit.timeRemaining);
-    
-    switch (urgency) {
-      case 'critical':
-        return `🚨 URGENT: Only ${habit.timeRemaining} to complete "${habit.name}"!`;
-      case 'urgent':
-        return `⚠️ ${habit.timeRemaining} to complete "${habit.name}"`;
-      default:
-        return '';
-    }
+  // Date utility methods
+  getDayName(date: Date | string): string {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.toLocaleDateString('en-US', { weekday: 'short' });
   }
 
-  isDailyHabit(habit: any): boolean {
-  // Check if habit frequency is Daily (assuming you have access to frequency data)
-  return typeof habit.reason === 'string' && habit.reason.toLowerCase().includes('daily');
-}
-
-  /**
-   * Update time remaining for all habits (call this periodically)
-   */
-refreshTimeRemaining(): void {
-  if (this.todayData?.allHabits) {
-    this.todayData.allHabits.forEach(habit => {
-      if (habit.hasDeadline && !habit.isCompleted) {
-        habit.timeRemaining = this.calculateTimeRemaining(habit.deadlineTime);
-        habit.isOverdue = this.disciplineService.isOverdue(habit.deadlineTime, habit.isCompleted);
-      } else {
-        // ✅ Clear deadline-related properties for habits without deadlines
-        habit.timeRemaining = undefined;
-        habit.isOverdue = false;
-      }
-    });
+  getDayNumber(date: Date | string): number {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj.getDate();
   }
-}
 
-  private calculateTimeRemaining(deadlineTime?: string): string | undefined {
-    if (!deadlineTime) return undefined;
+  isToday(date: Date | string): boolean {
+    const today = new Date();
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
     
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const deadlineDateTime = new Date(`${today}T${deadlineTime}`);
-    
-    if (now > deadlineDateTime) return undefined;
-    
-    const diffMs = deadlineDateTime.getTime() - now.getTime();
-    const hours = Math.floor(diffMs / (1000 * 60 * 60));
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    } else {
-      return `${minutes}m`;
-    }
+    return today.getFullYear() === dateObj.getFullYear() &&
+           today.getMonth() === dateObj.getMonth() &&
+           today.getDate() === dateObj.getDate();
+  }
+
+  isFuture(date: Date | string): boolean {
+    const today = new Date();
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj > today;
+  }
+
+  isAnyToday(): boolean {
+    if (!this.currentWeekDays) return false;
+    return this.currentWeekDays.some(day => this.isToday(day.date));
+  }
+
+  getCompletionIcon(day: DayData): string {
+    if (day.isCompleted) return '✅';
+    if (day.isPartiallyCompleted) return '🔶';
+    return '⭕';
+  }
+
+  getCompletionPercentage(day: DayData): number {
+    if (!day.totalHabits || day.totalHabits === 0) return 0;
+    return Math.round((day.completedHabits / day.totalHabits) * 100);
+  }
+
+  getRequiredTasksCompleted(day: DayData): number {
+    if (!day.allHabits) return 0;
+    return day.allHabits.filter(h => h.isRequired && h.isCompleted).length;
+  }
+
+  getRequiredTasksTotal(day: DayData): number {
+    if (!day.allHabits) return 0;
+    return day.allHabits.filter(h => h.isRequired).length;
+  }
+
+  getOptionalTasksCompleted(day: DayData): number {
+    if (!day.allHabits) return 0;
+    return day.allHabits.filter(h => !h.isRequired && h.isCompleted).length;
+  }
+
+  getOptionalTasksTotal(day: DayData): number {
+    if (!day.allHabits) return 0;
+    return day.allHabits.filter(h => !h.isRequired).length;
+  }
+
+  openDayDetail(day: DayData): void {
+    this.selectedDay = day;
+    console.log('Opening day detail for:', day);
+  }
+
+  openAddTaskModal(): void {
+    this.showAddTaskDialog = true;
+    this.newTaskName = '';
+    this.newTaskDescription = '';
+  }
+
+  editAdHocTask(habit: ScheduledHabit): void {
+    this.editingTask = habit;
+    this.editTaskName = habit.name;
+    this.editTaskDescription = habit.description;
+    this.showEditTaskDialog = true;
+  }
+
+  refreshAllData(): void {
+    this.loadCurrentWeekData();
+    this.loadFlexibleTasks();
   }
 }

@@ -1,413 +1,467 @@
+// ===================================
+// UPDATED DISCIPLINE.SERVICE.TS
+// ===================================
+
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
-
-export interface ScheduledHabit {
-  habitId: number;
-  name: string;
-  description: string;
-  isCompleted: boolean;
-  isRequired: boolean;
-  reason: string;
-  priority: string;
-  isLocked: boolean;
-  completedAt?: string;
-  hasDeadline: boolean;
-  deadlineTime?: string; // Format: "18:00" for 6 PM
-  timeRemaining?: string; // e.g., "2 hours 30 minutes remaining"
-  isOverdue?: boolean;
-  isAdHoc?: boolean; // New property to distinguish ad-hoc tasks
-  adHocId?: number;
-}
-
-export interface DayData {
-  date: string;
-  allHabits: ScheduledHabit[];
-  warnings: string[];
-  recommendations: string[];
-  canUseGrace: boolean;
-  isCompleted: boolean;
-  isPartiallyCompleted: boolean;
-}
-
-export interface WeeklyProgress {
-  habitId: number;
-  name: string;
-  completions: number;
-  target: number;
-  percentage: number;
-}
-
-export interface DayStatus {
-  date: string;
-  isCompleted: boolean;
-  isPartiallyCompleted: boolean;
-  canUseGrace: boolean;
-  requiredHabitsCount: number;
-  completedRequiredCount: number;
-}
-
-export interface WeekDataResponse {
-  weekStartDate: string;
-  weekEndDate: string;
-  currentDay: DayData;
-  weeklyHabitProgress: WeeklyProgress[];
-  dayStatuses: DayStatus[];
-}
-
-export interface CompleteHabitRequest {
-  habitId: number;
-  date: string;
-  isCompleted: boolean;
-  notes?: string;
-}
-
-export interface UseGraceRequest {
-  date: string;
-  reason?: string;
-}
-
-export interface MoveTaskRequest {
-  habitId: number;
-  currentDate: string;
-  reason?: string;
-}
-
-export interface AdHocTask {
-  id: number;
-  name: string;
-  description: string;
-  date: string;
-  isCompleted: boolean;
-  completedAt?: string;
-  notes: string;
-  createdAt: string;
-}
-
-export interface AddAdHocTaskRequest {
-  name: string;
-  description?: string;
-  date: string;
-}
-
-export interface CompleteAdHocTaskRequest {
-  taskId: number;
-  isCompleted: boolean;
-  notes?: string;
-}
-
-export interface EditAdHocTaskRequest {
-  name: string;
-  description?: string;
-}
-
-export interface HabitWithFlexibility {
-  habitId: number;
-  name: string;
-  description: string;
-  frequency: string;
-  originalScheduledDate: string;
-  currentDueDate: string;
-  deferralsUsed: number;
-  maxDeferrals: number;
-  daysRemaining: number;
-  urgencyLevel: 'safe' | 'warning' | 'urgent' | 'critical';
-  canStillBeDeferred: boolean;
-  statusLabel: string;
-  flexibilityIcon: string;
-  flexibilityColor: string;
-  isCompleted: boolean;
-  isRequired: boolean;
-  isLocked: boolean;
-  hasDeadline: boolean;
-  deadlineTime: string;
-}
+import { 
+  WeekData, 
+  DayData, 
+  WeeklyProgress, 
+  ScheduledHabit,
+  HabitWithFlexibility,
+  StreakInfo
+} from '../models/discipline.models';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DisciplineService {
-  private readonly apiUrl = 'https://localhost:7025/api/discipline';
+  private baseUrl =  'https://localhost:7025/api/discipline';
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {}
+
+  // ===================================
+  // EXISTING METHODS (Enhanced)
+  // ===================================
 
   /**
-   * Get smart schedule data for a specific week
+   * Get current week data
    */
-  getWeekData(year: number, month: number, day: number): Observable<WeekDataResponse> {
-    return this.http.get<WeekDataResponse>(`${this.apiUrl}/week/${year}/${month}/${day}`)
+  getCurrentWeek(): Observable<WeekData> {
+    return this.http.get<WeekData>(`${this.baseUrl}/current-week`)
       .pipe(
-        map(response => this.normalizeWeekData(response)),
+        catchError(this.handleError)
+      );
+  }
+  
+
+  /**
+   * Get weekly progress
+   */
+  getWeeklyProgress(): Observable<WeeklyProgress> {
+    return this.http.get<WeeklyProgress>(`${this.baseUrl}/weekly-progress`)
+      .pipe(
         catchError(this.handleError)
       );
   }
 
   /**
-   * Complete or uncomplete a habit for a specific date
+   * Complete or uncomplete a habit
    */
-  completeHabit(request: CompleteHabitRequest): Observable<DayData> {
-    return this.http.post<DayData>(`${this.apiUrl}/complete-habit`, request)
+  completeHabit(request: { 
+    habitId: number; 
+    date: string; 
+    isCompleted: boolean; 
+    adHocId?: number 
+  }): Observable<any> {
+    return this.http.post(`${this.baseUrl}/complete-habit`, request)
       .pipe(
-        map(response => this.normalizeDayData(response)),
         catchError(this.handleError)
       );
   }
 
   /**
-   * Use a grace day to maintain streak
+   * Use grace day
    */
-  useGraceDay(request: UseGraceRequest): Observable<DayData> {
-    return this.http.post<DayData>(`${this.apiUrl}/use-grace`, request)
+  useGraceDay(request: { date: string; reason: string }): Observable<any> {
+    return this.http.post(`${this.baseUrl}/use-grace-day`, request)
       .pipe(
-        map(response => this.normalizeDayData(response)),
         catchError(this.handleError)
       );
   }
 
-  addAdHocTask(request: AddAdHocTaskRequest): Observable<any> {
-  return this.http.post(`${this.apiUrl}/add-adhoc-task`, request);
-}
-
-
-editAdHocTask(taskId: number, request: EditAdHocTaskRequest): Observable<any> {
-  return this.http.put(`${this.apiUrl}/edit-adhoc-task/${taskId}`, request);
-}
-
-  completeAdHocTask(request: CompleteAdHocTaskRequest): Observable<any> {
-    return this.http.post(`${this.apiUrl}/complete-adhoc-task`, request);
+  /**
+   * Add ad-hoc task
+   */
+  addAdHocTask(request: { 
+    name: string; 
+    description: string; 
+    date: string 
+  }): Observable<any> {
+    return this.http.post(`${this.baseUrl}/add-adhoc-task`, request)
+      .pipe(
+        catchError(this.handleError)
+      );
   }
 
   /**
-   * Get current week data (convenience method)
+   * Edit ad-hoc task
    */
-  getCurrentWeekData(): Observable<WeekDataResponse> {
-    const today = new Date();
-    return this.getWeekData(
-      today.getFullYear(),
-      today.getMonth() + 1,
-      today.getDate()
-    );
+  editAdHocTask(request: { 
+    adHocId: number; 
+    name: string; 
+    description: string 
+  }): Observable<any> {
+    return this.http.put(`${this.baseUrl}/edit-adhoc-task`, request)
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+
+  // ===================================
+  // NEW FLEXIBLE TASK METHODS
+  // ===================================
+
+  /**
+   * Get flexible tasks for a specific day
+   */
+  getFlexibleTasksForDay(date: string): Observable<HabitWithFlexibility[]> {
+    return this.http.get<HabitWithFlexibility[]>(`${this.baseUrl}/day/${date}/flexible-tasks`)
+      .pipe(
+        catchError(this.handleError)
+      );
   }
 
   /**
-   * Get today's smart schedule data
+   * Defer a task to tomorrow
    */
-  getTodayData(): Observable<DayData> {
-    return this.getCurrentWeekData().pipe(
-      map(weekData => weekData.currentDay)
-    );
-  }
-
-  /**
-   * Check API health
-   */
-  checkHealth(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/health`)
-      .pipe(catchError(this.handleError));
-  }
-
-  /**
-   * Normalize week data from API response
-   */
-  private normalizeWeekData(data: any): WeekDataResponse {
-    return {
-      weekStartDate: data.weekStartDate || '',
-      weekEndDate: data.weekEndDate || '',
-      currentDay: this.normalizeDayData(data.currentDay || {}),
-      weeklyHabitProgress: this.normalizeWeeklyProgress(data.weeklyHabitProgress || []),
-      dayStatuses: this.normalizeDayStatuses(data.dayStatuses || [])
+  deferTask(habitId: number, fromDate: string, reason?: string): Observable<HabitWithFlexibility> {
+    const request = {
+      habitId,
+      fromDate,
+      reason: reason || 'User requested'
     };
+
+    return this.http.post<HabitWithFlexibility>(`${this.baseUrl}/defer-task`, request)
+      .pipe(
+        catchError(this.handleError)
+      );
   }
 
   /**
-   * Normalize day data from API response
+   * Check if a task can be deferred
    */
-  private normalizeDayData(data: any): DayData {
-    return {
-      date: data.date || new Date().toISOString().split('T')[0],
-      allHabits: this.normalizeHabits(data.allHabits || []),
-      warnings: Array.isArray(data.warnings) ? data.warnings : [],
-      recommendations: Array.isArray(data.recommendations) ? data.recommendations : [],
-      canUseGrace: Boolean(data.canUseGrace),
-      isCompleted: Boolean(data.isCompleted),
-      isPartiallyCompleted: Boolean(data.isPartiallyCompleted)
-    };
+  canDeferTask(habitId: number, fromDate: string): Observable<boolean> {
+    return this.http.get<boolean>(`${this.baseUrl}/task/${habitId}/can-defer?fromDate=${fromDate}`)
+      .pipe(
+        catchError(this.handleError)
+      );
   }
 
   /**
-   * Normalize habits array from API response
+   * Get deferral status for a habit
    */
-private normalizeHabits(habits: any[]): ScheduledHabit[] {
-  return habits.map(habit => ({
-    habitId: habit.habitId || 0,
-    name: habit.name || '',
-    description: habit.description || '',
-    isCompleted: Boolean(habit.isCompleted),
-    isRequired: Boolean(habit.isRequired),
-    isLocked: habit.isLocked || false,
-    reason: habit.reason || '',
-    priority: habit.priority || 'Normal',
-    completedAt: habit.completedAt || undefined,
-    hasDeadline: Boolean(habit.hasDeadline),
-    deadlineTime: habit.deadlineTime || undefined,
-    isAdHoc: Boolean(habit.isAdHoc) || false,
-    adHocId: habit.adHocId || undefined,
-    
-    // ✅ FIX: Only calculate timeRemaining and isOverdue for habits with deadlines
-    timeRemaining: habit.hasDeadline ? this.calculateTimeRemaining(habit.deadlineTime) : undefined,
-    isOverdue: habit.hasDeadline ? this.isOverdue(habit.deadlineTime, habit.isCompleted) : false
-  }));
-}
+  getDeferralStatus(habitId: number, date: string): Observable<{
+    deferralsUsed: number;
+    maxDeferrals: number;
+    canStillDefer: boolean;
+    urgencyLevel: string;
+  }> {
+    return this.http.get<any>(`${this.baseUrl}/task/${habitId}/deferral-status?date=${date}`)
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+
+  // ===================================
+  // ENHANCED EXISTING METHODS
+  // ===================================
 
   /**
-   * Calculate time remaining until deadline
+   * Move task to tomorrow (enhanced with flexibility support)
    */
-  private calculateTimeRemaining(deadlineTime?: string): string | undefined {
-    if (!deadlineTime) return undefined;
+  moveTaskToTomorrow(request: { 
+    habitId: number; 
+    currentDate: string; 
+    reason?: string 
+  }): Observable<any> {
+    // First check if we should use the new flexible system
+    return this.canDeferTask(request.habitId, request.currentDate)
+      .pipe(
+        switchMap((canDefer) => {
+          if (canDefer) {
+            // Use new flexible deferral system
+            return this.deferTask(request.habitId, request.currentDate, request.reason);
+          } else {
+            // Fall back to original system
+            return this.http.post(`${this.baseUrl}/move-task-tomorrow`, request);
+          }
+        }),
+        catchError(this.handleError)
+      );
+  }
+
+  // ===================================
+  // HABIT MANAGEMENT METHODS
+  // ===================================
+
+  /**
+   * Get all habits with their flexibility settings
+   */
+  getAllHabitsWithFlexibility(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/habits/with-flexibility`)
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+
+  /**
+   * Update habit flexibility settings
+   */
+  updateHabitFlexibility(habitId: number, maxDeferrals: number): Observable<any> {
+    return this.http.put(`${this.baseUrl}/habits/${habitId}/flexibility`, { maxDeferrals })
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+
+  /**
+   * Get habit completion history with deferral info
+   */
+  getHabitHistory(habitId: number, fromDate?: string, toDate?: string): Observable<any[]> {
+    let url = `${this.baseUrl}/habits/${habitId}/history`;
+    const params = new URLSearchParams();
     
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const deadlineDateTime = new Date(`${today}T${deadlineTime}`);
+    if (fromDate) params.append('fromDate', fromDate);
+    if (toDate) params.append('toDate', toDate);
     
-    // If deadline has passed, return undefined
-    if (now > deadlineDateTime) return undefined;
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+
+    return this.http.get<any[]>(url)
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+
+  // ===================================
+  // ANALYTICS AND REPORTING
+  // ===================================
+
+  /**
+   * Get flexibility usage analytics
+   */
+  getFlexibilityAnalytics(period: 'week' | 'month' | 'year' = 'month'): Observable<{
+    totalDeferrals: number;
+    deferralsPerHabit: { habitName: string; count: number }[];
+    avgDeferralsPerTask: number;
+    mostDeferredDay: string;
+    flexibilityUsageRate: number;
+  }> {
+    return this.http.get<any>(`${this.baseUrl}/analytics/flexibility?period=${period}`)
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+
+  /**
+   * Get completion rate with flexibility impact
+   */
+  getCompletionRateAnalytics(): Observable<{
+    overallCompletionRate: number;
+    completionRateWithFlexibility: number;
+    improvementFromFlexibility: number;
+    tasksSavedByFlexibility: number;
+  }> {
+    return this.http.get<any>(`${this.baseUrl}/analytics/completion-rates`)
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+
+  // ===================================
+  // BULK OPERATIONS
+  // ===================================
+
+  /**
+   * Bulk defer multiple tasks
+   */
+  bulkDeferTasks(requests: { habitId: number; fromDate: string; reason?: string }[]): Observable<HabitWithFlexibility[]> {
+    return this.http.post<HabitWithFlexibility[]>(`${this.baseUrl}/bulk-defer-tasks`, { tasks: requests })
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+
+  /**
+   * Reset all deferrals for a specific date
+   */
+  resetDeferrals(date: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/reset-deferrals`, { date })
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+
+  // ===================================
+  // UTILITY METHODS
+  // ===================================
+
+  /**
+   * Calculate urgency level based on deferral usage
+   */
+  calculateUrgencyLevel(deferralsUsed: number, maxDeferrals: number): 'safe' | 'warning' | 'urgent' | 'critical' {
+    if (maxDeferrals === 0) return 'urgent'; // Daily tasks
     
-    const diffMs = deadlineDateTime.getTime() - now.getTime();
-    const hours = Math.floor(diffMs / (1000 * 60 * 60));
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const remainingDeferrals = maxDeferrals - deferralsUsed;
+    const usagePercentage = deferralsUsed / maxDeferrals;
     
-    if (hours > 0) {
-      return `${hours}h ${minutes}m remaining`;
-    } else {
-      return `${minutes}m remaining`;
+    if (remainingDeferrals === 0) return 'critical';
+    if (usagePercentage >= 0.66) return 'urgent';
+    if (usagePercentage >= 0.33) return 'warning';
+    return 'safe';
+  }
+
+  /**
+   * Get flexibility info for display
+   */
+  getFlexibilityDisplayInfo(deferralsUsed: number, maxDeferrals: number): {
+    icon: string;
+    color: string;
+    label: string;
+    statusText: string;
+  } {
+    const urgency = this.calculateUrgencyLevel(deferralsUsed, maxDeferrals);
+    const remainingDeferrals = maxDeferrals - deferralsUsed;
+    
+    switch (urgency) {
+      case 'critical':
+        return {
+          icon: '🚨',
+          color: '#dc3545',
+          label: 'FINAL DAY',
+          statusText: 'Must complete today - no more deferrals'
+        };
+      case 'urgent':
+        return {
+          icon: '🔥',
+          color: '#fd7e14',
+          label: `${remainingDeferrals} left`,
+          statusText: remainingDeferrals === 1 ? 'Can move 1 more time' : `Can move ${remainingDeferrals} more times`
+        };
+      case 'warning':
+        return {
+          icon: '⚠️',
+          color: '#ffc107',
+          label: `${remainingDeferrals} left`,
+          statusText: remainingDeferrals === 1 ? 'Can move 1 more time' : `Can move ${remainingDeferrals} more times`
+        };
+      case 'safe':
+      default:
+        return {
+          icon: '✅',
+          color: '#28a745',
+          label: `${remainingDeferrals} left`,
+          statusText: remainingDeferrals === 1 ? 'Can move 1 more time' : `Can move ${remainingDeferrals} more times`
+        };
     }
   }
 
   /**
-   * Check if a habit is overdue
+   * Validate if a habit can be deferred based on its frequency
    */
-public isOverdue(deadlineTime?: string, isCompleted?: boolean): boolean {
-  // ✅ If no deadline time or already completed, cannot be overdue
-  if (!deadlineTime || isCompleted) {
-    return false;
-  }
-  
-  const now = new Date();
-  const today = now.toISOString().split('T')[0];
-  const deadlineDateTime = new Date(`${today}T${deadlineTime}`);
-  
-  return now > deadlineDateTime;
-}
-  /**
-   * Normalize weekly progress from API response
-   */
-  private normalizeWeeklyProgress(progress: any[]): WeeklyProgress[] {
-    return progress.map(item => ({
-      habitId: item.habitId || 0,
-      name: item.name || '',
-      completions: Number(item.completions) || 0,
-      target: Number(item.target) || 0,
-      percentage: Number(item.percentage) || 0
-    }));
+  canHabitBeDeferred(frequency: string): boolean {
+    if (!frequency) return false;
+    
+    const freq = frequency.toLowerCase();
+    // Daily habits cannot be deferred
+    if (freq.includes('daily')) return false;
+    
+    // All other frequencies can be deferred
+    return freq.includes('weekly') || 
+           freq.includes('monthly') || 
+           freq.includes('seasonal') ||
+           freq.includes('every');
   }
 
   /**
-   * Normalize day statuses from API response
+   * Get max deferrals for a habit frequency
    */
-  private normalizeDayStatuses(statuses: any[]): DayStatus[] {
-    return statuses.map(status => ({
-      date: status.date || '',
-      isCompleted: Boolean(status.isCompleted),
-      isPartiallyCompleted: Boolean(status.isPartiallyCompleted),
-      canUseGrace: Boolean(status.canUseGrace),
-      requiredHabitsCount: Number(status.requiredHabitsCount) || 0,
-      completedRequiredCount: Number(status.completedRequiredCount) || 0
-    }));
+  getMaxDeferralsForFrequency(frequency: string): number {
+    if (!frequency) return 0;
+    
+    const freq = frequency.toLowerCase();
+    if (freq.includes('daily')) return 0;
+    if (freq.includes('weekly')) return 2;
+    if (freq.includes('monthly') || freq.includes('seasonal')) return 6;
+    if (freq.includes('every') && freq.includes('2')) return 1; // EveryTwoDays
+    
+    return 0;
   }
 
-moveTaskToTomorrow(request: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/move-task-tomorrow`, request);
+  getMonthData(year: number, month: number): Observable<DayData[]> {
+  return this.http.get<DayData[]>(`${this.baseUrl}/month/${year}/${month}`)
+    .pipe(catchError(this.handleError));
 }
 
-  /**
-   * Handle HTTP errors
-   */
+getStreakInfo(): Observable<StreakInfo> {
+  return this.http.get<StreakInfo>(`${this.baseUrl}/streak-info`)
+    .pipe(catchError(this.handleError));
+}
+
+  // ===================================
+  // ERROR HANDLING
+  // ===================================
+
   private handleError(error: HttpErrorResponse): Observable<never> {
-    let errorMessage = 'An error occurred';
-
+    let errorMessage = 'An unexpected error occurred';
+    
     if (error.error instanceof ErrorEvent) {
       // Client-side error
       errorMessage = `Client Error: ${error.error.message}`;
     } else {
       // Server-side error
-      errorMessage = `Server Error ${error.status}: ${error.message}`;
-      
-      if (error.status === 0) {
-        errorMessage = 'Unable to connect to the server. Please check if the API is running.';
-      } else if (error.status === 404) {
-        errorMessage = 'API endpoint not found. Please check the server configuration.';
-      } else if (error.status >= 500) {
-        errorMessage = 'Server error. Please try again later.';
+      switch (error.status) {
+        case 400:
+          errorMessage = error.error?.message || 'Bad request - please check your input';
+          break;
+        case 401:
+          errorMessage = 'Unauthorized - please log in again';
+          break;
+        case 403:
+          errorMessage = 'Forbidden - you don\'t have permission for this action';
+          break;
+        case 404:
+          errorMessage = 'Resource not found';
+          break;
+        case 409:
+          errorMessage = error.error?.message || 'Conflict - this action is not allowed';
+          break;
+        case 422:
+          errorMessage = error.error?.message || 'Validation error - please check your input';
+          break;
+        case 500:
+          errorMessage = 'Server error - please try again later';
+          break;
+        default:
+          errorMessage = `Server Error: ${error.status} - ${error.error?.message || error.message}`;
       }
     }
-
-    console.error('DisciplineService Error:', error);
+    
+    console.error('DisciplineService Error:', {
+      status: error.status,
+      message: errorMessage,
+      fullError: error
+    });
+    
     return throwError(() => new Error(errorMessage));
   }
-
-    getFlexibleTasksForDay(date: string): Observable<HabitWithFlexibility[]> {
-    return this.http.get<HabitWithFlexibility[]>(`${this.apiUrl}/day/${date}/flexible-tasks`);
-  }
-
-  deferTask(habitId: number, fromDate: string, reason?: string): Observable<HabitWithFlexibility> {
-    return this.http.post<HabitWithFlexibility>(`${this.apiUrl}/defer-task`, {
-      habitId,
-      fromDate,
-      reason
-    });
-  }
-
-  canDeferTask(habitId: number, fromDate: string): Observable<boolean> {
-    return this.http.get<boolean>(`${this.apiUrl}/task/${habitId}/can-defer?fromDate=${fromDate}`);
-  }
-
-  // Utility methods for date handling
-  static toDateString(date: Date): string {
-    return date.toISOString().split('T')[0];
-  }
-
-  static fromDateString(dateString: string): Date {
-    return new Date(dateString + 'T00:00:00');
-  }
-
-  static isToday(dateString: string): boolean {
-    const today = new Date().toISOString().split('T')[0];
-    return dateString === today;
-  }
-
-  static isFuture(dateString: string): boolean {
-    const today = new Date().toISOString().split('T')[0];
-    return dateString > today;
-  }
-
-  static formatDisplayDate(dateString: string): string {
-    const date = new Date(dateString + 'T00:00:00');
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-  }
-
-  static getDayName(dateString: string): string {
-    const date = new Date(dateString + 'T00:00:00');
-    return date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
-  }
-
-  static getDayNumber(dateString: string): number {
-    const date = new Date(dateString + 'T00:00:00');
-    return date.getDate();
-  }
 }
+
+// ===================================
+// ADDITIONAL IMPORTS NEEDED
+// ===================================
+
+import { switchMap } from 'rxjs/operators';
+
+// ===================================
+// ENVIRONMENT CONFIGURATION
+// ===================================
+
+// Make sure your environment.ts files have the correct API URL:
+// 
+// environment.ts:
+// export const environment = {
+//   production: false,
+//   apiUrl: 'https://localhost:7025/api/discipline'
+// };
+//
+// environment.prod.ts:
+// export const environment = {
+//   production: true,
+//   apiUrl: 'https://your-production-api.com/api/discipline'
+// };
