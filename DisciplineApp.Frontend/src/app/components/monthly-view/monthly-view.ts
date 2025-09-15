@@ -24,11 +24,12 @@ interface MonthlyDayData {
   totalHabits: number;
   requiredHabitsCount: number;
   completedRequiredCount: number;
-  tasks: ScheduledHabit[]; // Changed back to ScheduledHabit[] to match your actual structure
+  tasks: ScheduledHabit[];
   completionPercentage: number;
   isFuture: boolean;
   projectedReward?: ProjectedReward;
   flexibilityUsage?: FlexibilityDayInfo;
+  isBeforeStreakStart?: boolean; // ADD THIS LINE
 }
 
 interface ProjectedReward {
@@ -72,6 +73,7 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
   projectedRewards: ProjectedReward[] = [];
   loading = false;
   error: string | null = null;
+  private streakStartDate = new Date('2025-09-14'); // September 15th, 2025
 
   private destroy$ = new Subject<void>();
 
@@ -155,94 +157,101 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
     this.loadMonthlyStats();
   }
 
-  private generateCalendarWithTodayData(todayData: DayData | null): void {
-    const calendar: MonthlyDayData[] = [];
-    const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-    const today = new Date();
+private generateCalendarWithTodayData(todayData: DayData | null): void {
+  const calendar: MonthlyDayData[] = [];
+  const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+  const today = new Date();
 
-    // Calculate the first Monday to display (may be from previous month)
-    const startDate = new Date(firstDay);
-    const dayOfWeek = firstDay.getDay();
-    const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday = 0 to Monday = 0
-    startDate.setDate(firstDay.getDate() - mondayOffset);
+  // Calculate the first Monday to display (may be from previous month)
+  const startDate = new Date(firstDay);
+  const dayOfWeek = firstDay.getDay();
+  const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  startDate.setDate(firstDay.getDate() - mondayOffset);
 
-    // Generate 42 days (6 weeks) for the calendar grid
-    for (let i = 0; i < 42; i++) {
-      const currentDate = new Date(startDate);
-      currentDate.setDate(startDate.getDate() + i);
-      
-      const dateString = currentDate.toISOString().split('T')[0];
-      const isCurrentMonth = currentDate.getMonth() === this.currentMonth;
-      const isToday = currentDate.toDateString() === today.toDateString();
-      const isFuture = currentDate > today;
+  // Generate 42 days (6 weeks) for the calendar grid
+  for (let i = 0; i < 42; i++) {
+    const currentDate = new Date(startDate);
+    currentDate.setDate(startDate.getDate() + i);
+    
+    const dateString = currentDate.toISOString().split('T')[0];
+    const isCurrentMonth = currentDate.getMonth() === this.currentMonth;
+    const isToday = currentDate.toDateString() === today.toDateString();
+    const isFuture = currentDate > today;
+    const isBeforeStreakStart = currentDate < this.streakStartDate;
 
-      let dayData: DayData;
+    let dayData: DayData;
 
-      // Use real data for today, mock data for other days
-      if (isToday && todayData) {
-        dayData = todayData;
-      } else {
-        // Create mock/empty data for other days
-        dayData = {
-          date: dateString,
-          isCompleted: false,
-          isPartiallyCompleted: false,
-          completedHabits: 0,
-          totalHabits: 0,
-          requiredHabitsCount: 0,
-          completedRequiredCount: 0,
-          optionalHabitsCount: 0,
-          completedOptionalCount: 0,
-          canUseGrace: false,
-          usedGrace: false,
-          allHabits: [],
-          warnings: [],
-          recommendations: [],
-          dayOfWeek: currentDate.toLocaleDateString('en-US', { weekday: 'short' }),
-          isToday: isToday,
-          isFuture: isFuture,
-          isPast: currentDate < today && !isToday
-        };
-      }
-
-      // Calculate completion metrics
-      const completedHabits = dayData.completedHabits || 0;
-      const totalHabits = dayData.totalHabits || 0;
-      const requiredHabitsCount = dayData.requiredHabitsCount || 0;
-      const completedRequiredCount = dayData.completedRequiredCount || 0;
-
-      const completionPercentage = totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
-      
-      // Determine completion status
-      const isCompleted = requiredHabitsCount > 0 ? 
-        completedRequiredCount === requiredHabitsCount : 
-        completedHabits === totalHabits;
-      
-      const isPartiallyCompleted = completedHabits > 0 && !isCompleted;
-
-      calendar.push({
-        date: currentDate,
-        dateString,
-        dayNumber: currentDate.getDate(),
-        isCurrentMonth,
-        isToday,
-        isCompleted,
-        isPartiallyCompleted,
-        completedHabits,
-        totalHabits,
-        requiredHabitsCount,
-        completedRequiredCount,
-        tasks: dayData.allHabits || [], // Use ScheduledHabit[] directly
-        completionPercentage: Math.round(completionPercentage),
-        isFuture,
-        projectedReward: undefined,
-        flexibilityUsage: this.calculateFlexibilityUsage(dayData.allHabits || [])
-      });
+    // Use real data for today, mock data for other days
+    if (isToday && todayData) {
+      dayData = todayData;
+    } else {
+      // Create mock/empty data for other days
+      dayData = {
+        date: dateString,
+        isCompleted: false,
+        isPartiallyCompleted: false,
+        completedHabits: 0,
+        totalHabits: 0,
+        requiredHabitsCount: 0,
+        completedRequiredCount: 0,
+        optionalHabitsCount: 0,
+        completedOptionalCount: 0,
+        canUseGrace: false,
+        usedGrace: false,
+        allHabits: [],
+        warnings: [],
+        recommendations: [],
+        dayOfWeek: currentDate.toLocaleDateString('en-US', { weekday: 'short' }),
+        isToday: isToday,
+        isFuture: isFuture,
+        isPast: currentDate < today && !isToday
+      };
     }
 
-    this.calendarDays = calendar;
-    this.calculateMonthlyStats();
+    // Calculate completion metrics
+    const completedHabits = dayData.completedHabits || 0;
+    const totalHabits = dayData.totalHabits || 0;
+    const requiredHabitsCount = dayData.requiredHabitsCount || 0;
+    const completedRequiredCount = dayData.completedRequiredCount || 0;
+
+    const completionPercentage = totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
+    
+    // MODIFIED: Determine completion status - ignore days before streak start
+    let isCompleted: boolean;
+    if (isBeforeStreakStart) {
+      isCompleted = false; // Days before streak start are never "completed"
+    } else {
+      isCompleted = requiredHabitsCount > 0 ? 
+        completedRequiredCount === requiredHabitsCount : 
+        completedHabits === totalHabits;
+    }
+    
+    const isPartiallyCompleted = completedHabits > 0 && !isCompleted && !isBeforeStreakStart;
+
+    calendar.push({
+      date: currentDate,
+      dateString,
+      dayNumber: currentDate.getDate(),
+      isCurrentMonth,
+      isToday,
+      isCompleted,
+      isPartiallyCompleted,
+      completedHabits,
+      totalHabits,
+      requiredHabitsCount,
+      completedRequiredCount,
+      tasks: dayData.allHabits || [],
+      completionPercentage: isBeforeStreakStart ? 0 : Math.round(completionPercentage),
+      isFuture,
+      projectedReward: undefined,
+      flexibilityUsage: this.calculateFlexibilityUsage(dayData.allHabits || []),
+      isBeforeStreakStart // ADD THIS PROPERTY
+    });
   }
+
+  this.calendarDays = calendar;
+  this.calculateMonthlyStats();
+}
 
   private calculateFlexibilityUsage(tasks: ScheduledHabit[]): FlexibilityDayInfo {
     return {
@@ -277,40 +286,46 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
   // STATISTICS CALCULATION METHODS
   // ===================================
 
-  private calculateMonthlyStats(): void {
-    const currentMonthDays = this.calendarDays.filter(day => day.isCurrentMonth && !day.isFuture);
-    const completedDays = currentMonthDays.filter(day => day.isCompleted).length;
-    const totalDays = currentMonthDays.length;
+private calculateMonthlyStats(): void {
+  // Filter out days before streak start, future days, and non-current month days
+  const currentMonthDays = this.calendarDays.filter(day => 
+    day.isCurrentMonth && !day.isFuture && !day.isBeforeStreakStart
+  );
+  
+  const completedDays = currentMonthDays.filter(day => day.isCompleted).length;
+  const totalDays = currentMonthDays.length;
+  
+  const totalHabits = currentMonthDays.reduce((sum, day) => sum + day.totalHabits, 0);
+  const completedHabits = currentMonthDays.reduce((sum, day) => sum + day.completedHabits, 0);
+  
+  this.monthlyStats = {
+    completedDays,
+    totalDays,
+    completionRate: totalDays > 0 ? (completedDays / totalDays) * 100 : 0,
+    currentStreak: this.calculateCurrentStreak(),
+    totalHabits,
+    averageCompletionRate: totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0
+  };
+}
+private calculateCurrentStreak(): number {
+  let streak = 0;
+  const today = new Date();
+  
+  // Start from today and work backwards, but only count days from streak start
+  for (let i = this.calendarDays.length - 1; i >= 0; i--) {
+    const day = this.calendarDays[i];
     
-    const totalHabits = currentMonthDays.reduce((sum, day) => sum + day.totalHabits, 0);
-    const completedHabits = currentMonthDays.reduce((sum, day) => sum + day.completedHabits, 0);
+    // Skip days that are not current month, future days, or before streak start
+    if (day.date > today || !day.isCurrentMonth || day.isBeforeStreakStart) continue;
     
-    this.monthlyStats = {
-      completedDays,
-      totalDays,
-      completionRate: totalDays > 0 ? (completedDays / totalDays) * 100 : 0,
-      currentStreak: this.calculateCurrentStreak(),
-      totalHabits,
-      averageCompletionRate: totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0
-    };
+    // If day is not completed, break the streak
+    if (!day.isCompleted) break;
+    
+    streak++;
   }
-
-  private calculateCurrentStreak(): number {
-    let streak = 0;
-    const today = new Date();
-    
-    // Start from today and work backwards
-    for (let i = this.calendarDays.length - 1; i >= 0; i--) {
-      const day = this.calendarDays[i];
-      
-      if (day.date > today || !day.isCurrentMonth) continue;
-      if (!day.isCompleted) break;
-      
-      streak++;
-    }
-    
-    return streak;
-  }
+  
+  return streak;
+}
 
   // ===================================
   // REWARD CALCULATION METHODS
@@ -414,14 +429,15 @@ private calculateProjectedRewards(): void {
     return monthNames[this.currentMonth];
   }
 
-  getDayCompletionClass(day: MonthlyDayData): string {
-    if (!day.isCurrentMonth) return 'other-month';
-    if (day.isFuture) return 'future-day';
-    if (day.isToday) return day.isCompleted ? 'today completed' : 'today';
-    if (day.isCompleted) return 'completed';
-    if (day.isPartiallyCompleted) return 'partial';
-    return 'incomplete';
-  }
+getDayCompletionClass(day: MonthlyDayData): string {
+  if (!day.isCurrentMonth) return 'other-month';
+  if (day.isBeforeStreakStart) return 'ignored-day'; // NEW: Special class for pre-streak days
+  if (day.isFuture) return 'future-day';
+  if (day.isToday) return day.isCompleted ? 'today completed' : 'today';
+  if (day.isCompleted) return 'completed';
+  if (day.isPartiallyCompleted) return 'partial';
+  return 'incomplete';
+}
 
   getCompletionPercentage(day: MonthlyDayData): number {
     return Math.round(day.completionPercentage);

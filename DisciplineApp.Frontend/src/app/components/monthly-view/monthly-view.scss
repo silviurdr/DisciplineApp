@@ -590,3 +590,22 @@
     font-size: 0.8rem;
   }
 }
+
+.calendar-day {
+  // ... existing styles
+
+  &.ignored-day {
+    background-color: #2d3748; // Dark gray for ignored days
+    color: #718096; // Muted text
+    cursor: not-allowed;
+    
+    .day-number {
+      opacity: 0.5;
+    }
+    
+    // Remove any completion indicators
+    &::after {
+      display: none;
+    }
+  }
+}
