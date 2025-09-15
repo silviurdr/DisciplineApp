@@ -55,9 +55,29 @@ getCurrentWeek(): Observable<WeekData> {
           const isToday = dateString === todayString;
           
           // Use real data for today, mock for past days, empty for future
-          if (isToday && response.currentDay?.date === dateString) {
-            days.push(response.currentDay);
-          } else if (isFuture) {
+if (isToday && response.currentDay?.date === dateString) {
+  const todayData = { ...response.currentDay };
+  
+  // Calculate the correct values from allHabits array
+  if (todayData.allHabits && todayData.allHabits.length > 0) {
+    todayData.totalHabits = todayData.allHabits.length;
+    todayData.completedHabits = todayData.allHabits.filter((habit: ScheduledHabit) => habit.isCompleted).length;
+    
+    // Also fix the required/optional counts
+    const requiredHabits: ScheduledHabit[] = todayData.allHabits.filter((h: ScheduledHabit) => h.isRequired);
+    const completedRequired = requiredHabits.filter(h => h.isCompleted);
+    
+    todayData.requiredHabitsCount = requiredHabits.length;
+    todayData.completedRequiredCount = completedRequired.length;
+    
+    // Calculate completion status
+    todayData.isCompleted = todayData.completedHabits === todayData.totalHabits;
+    todayData.isPartiallyCompleted = todayData.completedHabits > 0 && !todayData.isCompleted;
+  }
+  
+  console.log('Fixed today data:', todayData);
+  days.push(todayData);
+} else if (isFuture) {
             // Future days should be empty/incomplete
             days.push({
               date: dateString,
