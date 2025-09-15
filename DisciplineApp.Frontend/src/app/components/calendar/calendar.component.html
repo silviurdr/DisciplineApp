@@ -142,13 +142,13 @@
           type="checkbox" 
           [id]="'task-' + (habit.habitId || habit.adHocId)"
           [checked]="habit.isCompleted" 
-          [disabled]="habit.isLocked || (habit.isAdHoc && habit.isCompleted)"
+          [disabled]="habit.isLocked || habit.isCompleted"
           (change)="toggleTask(habit)">
         <label [for]="'task-' + (habit.habitId || habit.adHocId)" class="checkmark"></label>
       </div>
 
       <!-- Task Content -->
-      <div class="task-content" (click)="!habit.isLocked && toggleTask(habit)">
+      <div class="task-content">
         <div class="task-main">
           <h4 class="task-name" [class.completed-text]="habit.isCompleted">
             {{ habit.name }}
