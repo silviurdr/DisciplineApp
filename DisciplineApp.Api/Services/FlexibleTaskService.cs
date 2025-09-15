@@ -80,7 +80,7 @@ namespace DisciplineApp.Api.Services
             {
                 // Update existing deferral
                 existingDeferral.DeferralsUsed++;
-                existingDeferral.CurrentDueDate = existingDeferral.CurrentDueDate.AddDays(1);
+                existingDeferral.DeferredToDate = existingDeferral.DeferredToDate.AddDays(1);
                 existingDeferral.Reason = reason;
             }
             else
@@ -90,7 +90,7 @@ namespace DisciplineApp.Api.Services
                 {
                     HabitId = habitId,
                     OriginalDate = fromDate,
-                    CurrentDueDate = fromDate.AddDays(1),
+                    DeferredToDate = fromDate.AddDays(1),
                     DeferralsUsed = 1,
                     Reason = reason,
                     CreatedAt = DateTime.UtcNow
@@ -115,7 +115,7 @@ namespace DisciplineApp.Api.Services
                                    !d.IsCompleted);
 
             var deferralsUsed = deferral?.DeferralsUsed ?? 0;
-            var currentDueDate = deferral?.CurrentDueDate ?? scheduledDate;
+            var currentDueDate = deferral?.DeferredToDate ?? scheduledDate;
 
             // Check if completed
             var isCompleted = await _context.HabitCompletions

@@ -88,7 +88,6 @@ namespace DisciplineApp.Api.Models
         public int Id { get; set; }
         public int HabitId { get; set; }
         public DateTime OriginalDate { get; set; }
-        public DateTime CurrentDueDate { get; set; }
         public DateTime DeferredToDate { get; set; }
         public int DeferralsUsed { get; set; } = 0;
         public string Reason { get; set; } = string.Empty;

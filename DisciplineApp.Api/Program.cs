@@ -17,7 +17,7 @@ builder.Services.AddDbContext<DisciplineDbContext>(options =>
 // Add services
 builder.Services.AddScoped<WeeklyScheduleService>();
 builder.Services.AddScoped<DataMigrationService>();
-builder.Services.AddScoped<IFlexibleTaskService, FlexibleTaskService>();
+builder.Services.AddScoped<FlexibleTaskService>();
 
 // Add CORS
 builder.Services.AddCors(options =>
