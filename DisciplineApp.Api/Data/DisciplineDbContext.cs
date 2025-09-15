@@ -57,6 +57,7 @@ public class DisciplineDbContext : DbContext
             entity.Property(h => h.HasDeadline)
                   .IsRequired()
                   .HasDefaultValue(false);
+            entity.Property(e => e.MaxDeferrals).HasDefaultValue(0);
 
             // Configure relationships
             entity.HasMany(h => h.Completions)
@@ -157,12 +158,11 @@ public class DisciplineDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Reason).HasMaxLength(500);
-            entity.HasOne(e => e.Habit)
-                  .WithMany()
-                  .HasForeignKey(e => e.HabitId)
-                  .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasIndex(e => new { e.HabitId, e.OriginalDate }).IsUnique();
+            entity.HasOne(d => d.Habit)
+                .WithMany(h => h.Deferrals)
+                .HasForeignKey(d => d.HabitId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         base.OnModelCreating(modelBuilder);

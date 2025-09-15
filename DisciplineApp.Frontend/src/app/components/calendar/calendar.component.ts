@@ -61,6 +61,55 @@ interface WeekData {
   dayStatuses: any[];
 }
 
+interface HabitWithFlexibility {
+  // Basic habit info
+  habitId: number;
+  name: string;
+  description: string;
+  frequency: string; // 'Daily', 'Weekly', 'Monthly', 'Seasonal', 'EveryTwoDays'
+  
+  // Date tracking
+  originalScheduledDate: string; // ISO date string like '2025-09-15'
+  currentDueDate: string;        // ISO date string like '2025-09-16'
+  
+  // Flexibility tracking
+  deferralsUsed: number;         // How many times this task has been moved
+  maxDeferrals: number;          // Maximum allowed deferrals (0 for daily, 2 for weekly, etc.)
+  daysRemaining: number;         // Days left in the completion window
+  canStillBeDeferred: boolean;   // Can this task still be moved to tomorrow?
+  
+  // Status and urgency
+  urgencyLevel: 'safe' | 'warning' | 'urgent' | 'critical';
+  statusLabel: string;           // Human-readable status like "Can move 2 more times"
+  
+  // Visual indicators
+  flexibilityIcon: string;       // Emoji icon like '✅', '⚠️', '🔥', '🚨'
+  flexibilityColor: string;      // CSS color like '#28a745', '#ffc107', etc.
+  
+  // Completion status
+  isCompleted: boolean;          // Has this task been completed?
+  isRequired: boolean;           // Is this task required today?
+  isLocked: boolean;             // Is this task locked (can't be modified)?
+  
+  // Deadline info (if applicable)
+  hasDeadline: boolean;          // Does this task have a time deadline?
+  deadlineTime: string;          // Time string like '18:00:00'
+}
+
+
+interface DeferTaskRequest {
+  habitId: number;
+  fromDate: string;    // ISO date string
+  reason?: string;     // Optional reason for deferral
+}
+
+// Response interface for deferral operations
+interface DeferTaskResponse {
+  success: boolean;
+  message: string;
+  updatedTask: HabitWithFlexibility;
+}
+
 @Component({
   selector: 'app-calendar',
   standalone: true,
@@ -83,12 +132,120 @@ export class CalendarComponent implements OnInit {
   editingTask: ScheduledHabit | null = null;
   editTaskName = '';
   editTaskDescription = '';
+  flexibleTasks: HabitWithFlexibility[] = [];
 
   constructor(private disciplineService: DisciplineService, private soundService: SoundService) {}
 
   ngOnInit(): void {
+    this.loadFlexibleTasks();
     this.loadCurrentWeekData();
   }
+
+ loadFlexibleTasks(): void {
+    const today = new Date().toISOString().split('T')[0];
+    
+    this.disciplineService.getFlexibleTasksForDay(today).subscribe({
+      next: (tasks: HabitWithFlexibility[]) => {
+        this.flexibleTasks = tasks;
+        console.log('Loaded flexible tasks:', tasks);
+      },
+      error: (error) => {
+        console.error('Error loading flexible tasks:', error);
+      }
+    });
+  }
+    canMoveTask(task: HabitWithFlexibility): boolean {
+    return task.canStillBeDeferred && !task.isCompleted && !task.isLocked;
+  }
+
+  
+
+   getRemainingDeferrals(task: HabitWithFlexibility): number {
+    return task.maxDeferrals - task.deferralsUsed;
+  }
+
+  canMoveTaskToTomorrow(task: HabitWithFlexibility): boolean {
+    return task.canStillBeDeferred && !task.isCompleted && !task.isLocked;
+  }
+
+    getUrgencyClass(task: HabitWithFlexibility): string {
+    return `task-urgency-${task.urgencyLevel}`;
+  }
+
+  completeTask(task: HabitWithFlexibility): void {
+  if (task.isLocked) {
+    console.log('Task is locked, cannot complete');
+    return;
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Toggle completion status
+  const newCompletionStatus = !task.isCompleted;
+  
+  this.disciplineService.completeHabit({
+    habitId: task.habitId,
+    date: today,
+    isCompleted: newCompletionStatus
+  }).subscribe({
+    next: (response) => {
+      console.log('Task completion updated:', response);
+      
+      // Update the task in our flexible tasks array
+      const index = this.flexibleTasks.findIndex(t => t.habitId === task.habitId);
+      if (index !== -1) {
+        this.flexibleTasks[index].isCompleted = newCompletionStatus;
+      }
+      
+      // Show success message
+      if (newCompletionStatus) {
+        console.log(`${task.name} marked as completed!`);
+        // Play completion sound if you have it
+        this.soundService.playTaskCompleted();
+      } else {
+        console.log(`${task.name} marked as incomplete.`);
+      }
+      
+      // Reload data to refresh counters and overall progress
+      this.loadCurrentWeekData();
+      this.loadFlexibleTasks();
+    },
+    error: (error) => {
+      console.error('Error updating task completion:', error);
+      alert('Failed to update task. Please try again.');
+    }
+  });
+}
+
+
+  moveFlexibleTaskToTomorrow(task: HabitWithFlexibility): void {
+    if (!this.canMoveTaskToTomorrow(task)) {
+      alert(`Cannot move ${task.name}: ${task.statusLabel}`);
+      return;
+    }
+
+    const fromDate = new Date().toISOString().split('T')[0];
+    
+    this.disciplineService.deferTask(task.habitId, fromDate, 'Moved by user request').subscribe({
+      next: (updatedTask) => {
+        console.log('Task deferred successfully:', updatedTask);
+        
+        // Update the task in our array
+        const index = this.flexibleTasks.findIndex(t => t.habitId === task.habitId);
+        if (index !== -1) {
+          this.flexibleTasks[index] = updatedTask;
+        }
+        
+        // Show success message
+        alert(`${task.name} moved to tomorrow. ${updatedTask.statusLabel}`);
+      },
+      error: (error) => {
+        console.error('Error moving task:', error);
+        alert('Failed to move task. Please try again.');
+      }
+    });
+  }
+
 
   public loadCurrentWeekData(): void {
     const today = new Date();

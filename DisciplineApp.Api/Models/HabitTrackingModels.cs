@@ -9,17 +9,20 @@ namespace DisciplineApp.Api.Models
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public HabitFrequency Frequency { get; set; }
-        public int WeeklyTarget { get; set; } // For weekly habits (gym=4, vacuum=2, bathroom=1)
-        public int MonthlyTarget { get; set; } // For monthly habits (kitchen=1)
-        public int SeasonalTarget { get; set; } // For seasonal habits (windows=3)
-        public TimeOnly DeadlineTime { get; set; } // e.g., 18:00 for 6 PM
+        public int WeeklyTarget { get; set; }
+        public int MonthlyTarget { get; set; }
+        public int SeasonalTarget { get; set; }
+        public TimeOnly DeadlineTime { get; set; }
         public bool HasDeadline { get; set; } = false;
         public bool IsLocked { get; set; }
         public bool IsActive { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation properties
+        // NEW: Add deferral limits based on frequency
+        public int MaxDeferrals { get; set; } = 0; // 0 for daily, 2 for weekly, 6 for monthly/seasonal
+
         public virtual ICollection<HabitCompletion> Completions { get; set; } = new List<HabitCompletion>();
+        public virtual ICollection<TaskDeferral> Deferrals { get; set; } = new List<TaskDeferral>();
     }
 
     // Individual habit completions
@@ -85,12 +88,38 @@ namespace DisciplineApp.Api.Models
         public int Id { get; set; }
         public int HabitId { get; set; }
         public DateTime OriginalDate { get; set; }
+        public DateTime CurrentDueDate { get; set; }
         public DateTime DeferredToDate { get; set; }
+        public int DeferralsUsed { get; set; } = 0;
         public string Reason { get; set; } = string.Empty;
-        public DateTime CreatedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? CompletedAt { get; set; }
+        public bool IsCompleted { get; set; } = false;
 
-        // Navigation property
-        public Habit Habit { get; set; } = null!;
+        // Navigation properties
+        public virtual Habit Habit { get; set; } = null!;
+    }
+    public class HabitWithFlexibility
+    {
+        public int HabitId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Frequency { get; set; } = string.Empty;
+        public DateTime OriginalScheduledDate { get; set; }
+        public DateTime CurrentDueDate { get; set; }
+        public int DeferralsUsed { get; set; }
+        public int MaxDeferrals { get; set; }
+        public int DaysRemaining { get; set; }
+        public string UrgencyLevel { get; set; } = "normal"; // safe, warning, urgent, critical
+        public bool CanStillBeDeferred { get; set; }
+        public string StatusLabel { get; set; } = string.Empty;
+        public string FlexibilityIcon { get; set; } = string.Empty;
+        public string FlexibilityColor { get; set; } = string.Empty;
+        public bool IsCompleted { get; set; }
+        public bool IsRequired { get; set; }
+        public bool IsLocked { get; set; }
+        public bool HasDeadline { get; set; }
+        public TimeOnly DeadlineTime { get; set; }
     }
 
     // DTOs for API responses

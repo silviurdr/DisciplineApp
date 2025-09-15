@@ -363,3 +363,51 @@
   </div>
 </div>
 </div>
+
+
+<div class="flexible-tasks-container">
+  <div *ngFor="let task of flexibleTasks" 
+       class="task-item" 
+       [ngClass]="getUrgencyClass(task)">
+    
+    <!-- Task Header -->
+    <div class="task-header">
+      <h4>{{ task.name }}</h4>
+      <span class="flexibility-icon" 
+            [style.color]="task.flexibilityColor">
+        {{ task.flexibilityIcon }}
+      </span>
+    </div>
+    
+    <!-- Task Info -->
+    <p class="task-description">{{ task.description }}</p>
+    
+    <!-- Flexibility Status -->
+    <div class="flexibility-status">
+      <span class="status-label" 
+            [style.color]="task.flexibilityColor">
+        {{ task.statusLabel }}
+      </span>
+      
+      <span *ngIf="task.maxDeferrals > 0" class="deferrals-info">
+        ({{ getRemainingDeferrals(task) }} of {{ task.maxDeferrals }} moves left)
+      </span>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="task-actions">
+      <button class="complete-btn" 
+              [disabled]="task.isCompleted || task.isLocked"
+              (click)="completeTask(task)">
+        {{ task.isCompleted ? '✅ Completed' : 'Mark Complete' }}
+      </button>
+      
+      <button class="move-btn" 
+              *ngIf="canMoveTask(task)"
+              [disabled]="!task.canStillBeDeferred"
+              (click)="moveFlexibleTaskToTomorrow(task)">
+        📅 Move to Tomorrow
+      </button>
+    </div>
+  </div>
+</div>

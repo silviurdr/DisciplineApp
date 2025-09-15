@@ -102,6 +102,28 @@ export interface EditAdHocTaskRequest {
   description?: string;
 }
 
+export interface HabitWithFlexibility {
+  habitId: number;
+  name: string;
+  description: string;
+  frequency: string;
+  originalScheduledDate: string;
+  currentDueDate: string;
+  deferralsUsed: number;
+  maxDeferrals: number;
+  daysRemaining: number;
+  urgencyLevel: 'safe' | 'warning' | 'urgent' | 'critical';
+  canStillBeDeferred: boolean;
+  statusLabel: string;
+  flexibilityIcon: string;
+  flexibilityColor: string;
+  isCompleted: boolean;
+  isRequired: boolean;
+  isLocked: boolean;
+  hasDeadline: boolean;
+  deadlineTime: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -332,6 +354,22 @@ moveTaskToTomorrow(request: any): Observable<any> {
 
     console.error('DisciplineService Error:', error);
     return throwError(() => new Error(errorMessage));
+  }
+
+    getFlexibleTasksForDay(date: string): Observable<HabitWithFlexibility[]> {
+    return this.http.get<HabitWithFlexibility[]>(`${this.apiUrl}/day/${date}/flexible-tasks`);
+  }
+
+  deferTask(habitId: number, fromDate: string, reason?: string): Observable<HabitWithFlexibility> {
+    return this.http.post<HabitWithFlexibility>(`${this.apiUrl}/defer-task`, {
+      habitId,
+      fromDate,
+      reason
+    });
+  }
+
+  canDeferTask(habitId: number, fromDate: string): Observable<boolean> {
+    return this.http.get<boolean>(`${this.apiUrl}/task/${habitId}/can-defer?fromDate=${fromDate}`);
   }
 
   // Utility methods for date handling

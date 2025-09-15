@@ -12,11 +12,13 @@ public class DisciplineController : ControllerBase
 {
     private readonly DisciplineDbContext _context;
     private readonly WeeklyScheduleService _scheduleService;
+    private readonly FlexibleTaskService _flexibleTaskService;
 
-    public DisciplineController(DisciplineDbContext context, WeeklyScheduleService scheduleService)
+    public DisciplineController(DisciplineDbContext context, WeeklyScheduleService scheduleService, FlexibleTaskService flexibleTaskService)
     {
         _context = context;
         _scheduleService = scheduleService;
+        _flexibleTaskService = flexibleTaskService;
     }
 
     [HttpGet("health")]
@@ -238,6 +240,51 @@ public class DisciplineController : ControllerBase
         {
             return BadRequest(new { error = ex.Message });
         }
+    }
+
+    [HttpGet("day/{date}/flexible-tasks")]
+    public async Task<ActionResult<List<HabitWithFlexibility>>> GetFlexibleTasksForDay(DateTime date)
+    {
+        try
+        {
+            var tasks = await _flexibleTaskService.GetDayTasksWithFlexibility(date);
+            return Ok(tasks);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error getting flexible tasks: {ex.Message}");
+        }
+    }
+
+    [HttpPost("defer-task")]
+    public async Task<ActionResult<HabitWithFlexibility>> DeferTask([FromBody] DeferTaskRequest request)
+    {
+        try
+        {
+            if (!await _flexibleTaskService.CanDeferTask(request.HabitId, request.FromDate))
+            {
+                return BadRequest("Cannot defer this task - no deferrals remaining or not allowed");
+            }
+
+            var result = await _flexibleTaskService.DeferTaskToTomorrow(
+                request.HabitId,
+                request.FromDate,
+                request.Reason ?? "Moved by user request"
+            );
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error deferring task: {ex.Message}");
+        }
+    }
+
+    [HttpGet("task/{habitId}/can-defer")]
+    public async Task<ActionResult<bool>> CanDeferTask(int habitId, DateTime fromDate)
+    {
+        var canDefer = await _flexibleTaskService.CanDeferTask(habitId, fromDate);
+        return Ok(canDefer);
     }
 
     // In your DisciplineController.cs, update the BuildCurrentDayResponse method signature:
@@ -530,4 +577,11 @@ public class EditAdHocTaskRequest
 {
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+}
+
+public class DeferTaskRequest
+{
+    public int HabitId { get; set; }
+    public DateTime FromDate { get; set; }
+    public string? Reason { get; set; }
 }
