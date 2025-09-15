@@ -102,15 +102,15 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
   // DATA LOADING METHODS
   // ===================================
 
-  loadMonthData(): void {
+loadMonthData(): void {
     this.loading = true;
     this.error = null;
 
-    // Load month data using the updated service
+    // Use the new getMonthData method
     this.disciplineService.getMonthData(this.currentYear, this.currentMonth + 1)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (monthData) => {
+        next: (monthData: DayData[]) => {
           this.processMonthData(monthData);
           this.calculateProjectedRewards();
           this.loading = false;
@@ -119,6 +119,25 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
           console.error('Error loading month data:', error);
           this.error = 'Failed to load month data. Please try again.';
           this.loading = false;
+        }
+      });
+
+    // Also load monthly stats separately if needed
+    this.disciplineService.getMonthlyStats(this.currentYear, this.currentMonth + 1)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (stats) => {
+          this.monthlyStats = {
+            completedDays: stats.completedDays || 0,
+            totalDays: stats.totalDays || 0,
+            completionRate: stats.completionRate || 0,
+            currentStreak: stats.currentStreak || 0,
+            totalHabits: stats.totalTasks || 0,
+            averageCompletionRate: stats.taskCompletionRate || 0
+          };
+        },
+        error: (error) => {
+          console.error('Error loading monthly stats:', error);
         }
       });
   }
