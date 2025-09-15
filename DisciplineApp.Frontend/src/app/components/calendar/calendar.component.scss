@@ -2231,3 +2231,191 @@ button:focus {
     }
   }
 }
+
+/* ===================================
+   DEFERRAL LABELS
+   =================================== */
+
+.task-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  align-items: center; // Align buttons and labels
+
+  .deferral-label {
+    font-size: 0.7rem;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    transition: all 0.2s ease;
+
+    &.safe {
+      background: rgba(40, 167, 69, 0.2);
+      color: #28a745;
+      border: 1px solid rgba(40, 167, 69, 0.3);
+    }
+
+    &.warning {
+      background: rgba(255, 193, 7, 0.2);
+      color: #ffc107;
+      border: 1px solid rgba(255, 193, 7, 0.3);
+      animation: warningPulse 2s ease-in-out infinite;
+    }
+
+    &.critical {
+      background: rgba(220, 53, 69, 0.2);
+      color: #dc3545;
+      border: 1px solid rgba(220, 53, 69, 0.3);
+      animation: criticalPulse 1.5s ease-in-out infinite;
+    }
+
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+
+  // Updated action button styles to work with labels
+  .action-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ccc;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(5px);
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.25);
+      color: #fff;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    &.defer-btn {
+      &:hover:not(:disabled) {
+        background: rgba(255, 152, 0, 0.4);
+        color: #ff9800;
+        border-color: rgba(255, 152, 0, 0.6);
+        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+      }
+
+      &.disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        background: rgba(244, 67, 54, 0.2);
+        color: #f44336;
+        border-color: rgba(244, 67, 54, 0.3);
+
+        &:hover {
+          transform: none;
+          box-shadow: none;
+          background: rgba(244, 67, 54, 0.2);
+          color: #f44336;
+          border-color: rgba(244, 67, 54, 0.3);
+        }
+      }
+    }
+
+    &.edit-btn {
+      &:hover:not(:disabled) {
+        background: rgba(156, 39, 176, 0.4);
+        color: #ba68c8;
+        border-color: rgba(156, 39, 176, 0.6);
+        box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+      }
+    }
+
+    &:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      background: rgba(255, 255, 255, 0.05);
+      color: #666;
+      border-color: rgba(255, 255, 255, 0.1);
+
+      &:hover {
+        transform: none;
+        box-shadow: none;
+        background: rgba(255, 255, 255, 0.05);
+        color: #666;
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+}
+
+/* ===================================
+   LABEL ANIMATIONS
+   =================================== */
+
+@keyframes warningPulse {
+  0%, 100% { 
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes criticalPulse {
+  0%, 100% { 
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
+  }
+  50% { 
+    opacity: 0.9;
+    transform: scale(1.03);
+    box-shadow: 0 0 0 4px rgba(220, 53, 69, 0);
+  }
+}
+
+/* ===================================
+   RESPONSIVE ADJUSTMENTS
+   =================================== */
+
+@media (max-width: 768px) {
+  .task-actions {
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+
+    .deferral-label {
+      text-align: center;
+      font-size: 0.65rem;
+    }
+
+    .action-btn {
+      width: 100%;
+      height: 32px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .task-actions {
+    .deferral-label {
+      font-size: 0.6rem;
+      padding: 2px 4px;
+    }
+  }
+}

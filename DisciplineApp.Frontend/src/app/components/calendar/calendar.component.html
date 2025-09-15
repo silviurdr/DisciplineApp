@@ -159,15 +159,26 @@
 
       <!-- Quick Actions -->
 <div class="task-actions" *ngIf="!habit.isLocked">
-  <!-- Move to Tomorrow Button -->
+  <!-- Move to Tomorrow Button with Deferral Info -->
   <button 
     *ngIf="!isDailyHabit(habit) && !habit.isCompleted" 
     class="action-btn defer-btn"
+    [class.disabled]="!canActuallyMoveHabit(habit)"
     (click)="moveTaskToTomorrow(habit)"
-    [disabled]="habit.isCompleted"
-    title="Move to tomorrow">
+    [disabled]="habit.isCompleted || !canActuallyMoveHabit(habit)"
+    [title]="getMoveButtonTooltip(habit)">
     ➡️
   </button>
+  
+  <!-- Deferral Label -->
+  <div *ngIf="!isDailyHabit(habit) && !habit.isCompleted && getFlexibilityInfo(habit) as flexInfo" 
+       class="deferral-label"
+       [class.safe]="flexInfo.urgency === 'safe'"
+       [class.warning]="flexInfo.urgency === 'warning'" 
+       [class.critical]="flexInfo.urgency === 'critical'"
+       [title]="flexInfo.statusText">
+    {{ flexInfo.icon }} {{ flexInfo.label }}
+  </div>
   
   <!-- Edit Button - Only for ad-hoc tasks and only when not completed -->
   <button 
