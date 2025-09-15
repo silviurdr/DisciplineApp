@@ -107,7 +107,7 @@
                  [id]="'habit-' + habit.habitId + (habit.adHocId || '')"
                  [checked]="habit.isCompleted"
                  [disabled]="habit.isLocked || habit.isCompleted"
-                 (change)="!habit.isLocked && toggleHabit(habit)">
+                 (change)="!habit.isLocked && toggleTask(habit)">
           <label [for]="'habit-' + habit.habitId + (habit.adHocId || '')" 
                  [class.disabled]="habit.isLocked"></label>
         </div>
@@ -213,14 +213,14 @@
           <!-- Complete Button (for mobile/accessibility) -->
           <button class="complete-btn" 
                   *ngIf="!habit.isCompleted && !habit.isLocked"
-                  (click)="toggleHabit(habit)"
+                  (click)="toggleTask(habit)"
                   [class.pulsing]="isUrgentTask(habit)">
             ✓ Complete
           </button>
           
           <!-- Edit Ad-Hoc Button -->
           <button class="edit-btn" 
-                  *ngIf="habit.isAdHoc"
+                  *ngIf="habit.isAdHoc && !habit.isCompleted"
                   (click)="editAdHocTask(habit)">
             ✏️ Edit
           </button>

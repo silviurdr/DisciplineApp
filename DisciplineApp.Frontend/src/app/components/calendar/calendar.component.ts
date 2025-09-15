@@ -395,7 +395,7 @@ export class CalendarComponent implements OnInit {
     }
   }
 
-  toggleHabit(habit: ScheduledHabit): void {
+  toggleRegularHabit(habit: ScheduledHabit): void {
     if (habit.isLocked) {
       console.log('Habit is locked, cannot toggle');
       return;
@@ -431,6 +431,20 @@ export class CalendarComponent implements OnInit {
     });
   }
 
+  toggleTask(habit: ScheduledHabit): void {
+  if (habit.isLocked) {
+    console.log('Task is locked, cannot toggle');
+    return;
+  }
+
+  // Check if it's an ad-hoc task
+  if (habit.isAdHoc && habit.adHocId) {
+    this.toggleAdHocTask(habit);
+  } else {
+    this.toggleRegularHabit(habit);
+  }
+}
+
   toggleAdHocTask(habit: ScheduledHabit): void {
   if (!habit.isAdHoc || !habit.adHocId) {
     console.error('Invalid ad-hoc task', habit);
@@ -445,13 +459,16 @@ export class CalendarComponent implements OnInit {
     next: (response) => {
       console.log('Ad-hoc task toggled successfully:', response);
       
-      // Refresh all data to update counters and status
-      this.loadCurrentWeekData();
+      // Update local state
+      habit.isCompleted = !habit.isCompleted;
       
-      // Play completion sound if task was completed
-      if (!habit.isCompleted) {
+      // Play sound effect
+      if (habit.isCompleted) {
         this.soundService.playTaskCompleted();
       }
+      
+      // Refresh all data to update counters and status
+      this.loadCurrentWeekData();
     },
     error: (error) => {
       console.error('Error toggling ad-hoc task:', error);
