@@ -216,14 +216,20 @@ private generateCalendarWithTodayData(todayData: DayData | null): void {
 
     const completionPercentage = totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0;
     
-    // MODIFIED: Determine completion status - ignore days before streak start
+    // 🔥 FIXED COMPLETION LOGIC:
     let isCompleted: boolean;
     if (isBeforeStreakStart) {
       isCompleted = false; // Days before streak start are never "completed"
+    } else if (totalHabits === 0) {
+      isCompleted = false; // No tasks = not completed
     } else {
-      isCompleted = requiredHabitsCount > 0 ? 
-        completedRequiredCount === requiredHabitsCount : 
-        completedHabits === totalHabits;
+      // 🔥 NEW LOGIC: A day is complete ONLY when ALL tasks are done
+      isCompleted = completedHabits === totalHabits;
+      
+      // Alternative logic if you want to base it on required tasks only:
+      // isCompleted = requiredHabitsCount > 0 ? 
+      //   completedRequiredCount === requiredHabitsCount : 
+      //   completedHabits === totalHabits;
     }
     
     const isPartiallyCompleted = completedHabits > 0 && !isCompleted && !isBeforeStreakStart;
@@ -245,14 +251,13 @@ private generateCalendarWithTodayData(todayData: DayData | null): void {
       isFuture,
       projectedReward: undefined,
       flexibilityUsage: this.calculateFlexibilityUsage(dayData.allHabits || []),
-      isBeforeStreakStart // ADD THIS PROPERTY
+      isBeforeStreakStart
     });
   }
 
   this.calendarDays = calendar;
   this.calculateMonthlyStats();
 }
-
   private calculateFlexibilityUsage(tasks: ScheduledHabit[]): FlexibilityDayInfo {
     return {
       totalDeferrals: 0, // You can calculate this from tasks if needed

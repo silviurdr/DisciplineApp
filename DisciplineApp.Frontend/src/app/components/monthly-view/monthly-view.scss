@@ -609,3 +609,224 @@
     }
   }
 }
+
+
+/* ADD these styles to your monthly-view.component.scss - they enhance the existing styles */
+
+/* ===================================
+   ENHANCED CALENDAR DAY STYLES
+   =================================== */
+
+.calendar-day {
+  /* Keep your existing styles and add these enhancements */
+
+  /* Make partial days more orange */
+  &.partial {
+    background: rgba(255, 152, 0, 0.25) !important; /* More orange background */
+    border-color: rgba(255, 152, 0, 0.7) !important; /* Brighter orange border */
+    box-shadow: 0 0 8px rgba(255, 152, 0, 0.3); /* Orange glow */
+  }
+
+  /* Make incomplete days with tasks more visible */
+  &.incomplete {
+    background: rgba(244, 67, 54, 0.15) !important;
+    border-color: rgba(244, 67, 54, 0.4) !important;
+  }
+
+  /* Days before streak start */
+  &.ignored-day {
+    background-color: rgba(77, 77, 77, 0.3) !important;
+    border-color: rgba(77, 77, 77, 0.5) !important;
+    color: #718096;
+    cursor: not-allowed;
+    
+    .day-number {
+      opacity: 0.6;
+      color: #9ca3af;
+    }
+  }
+
+  /* Enhanced task summary display */
+  .task-summary {
+    text-align: center;
+    width: 100%;
+    margin-top: auto; /* Push to bottom */
+
+    .task-count {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 6px;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .completion-bar {
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 3px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+
+      .completion-fill {
+        height: 100%;
+        transition: width 0.4s ease;
+        
+        /* Different colors for different completion states */
+        &.completed-fill {
+          background: linear-gradient(90deg, #4caf50, #66bb6a);
+          box-shadow: 0 0 6px rgba(76, 175, 80, 0.5);
+        }
+        
+        &.partial-fill {
+          background: linear-gradient(90deg, #ff9800, #ffb74d);
+          box-shadow: 0 0 6px rgba(255, 152, 0, 0.5);
+        }
+        
+        &.incomplete-fill {
+          background: linear-gradient(90deg, #f44336, #ef5350);
+          box-shadow: 0 0 6px rgba(244, 67, 54, 0.5);
+        }
+      }
+    }
+  }
+
+  /* Enhanced future indicator */
+  .future-indicator,
+  .free-day,
+  .before-streak {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    text-align: center;
+    margin-top: auto;
+    padding: 4px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .free-day {
+    color: #10b981; /* Green for free days */
+  }
+
+  .before-streak {
+    color: #6b7280; /* Gray for pre-streak days */
+    font-size: 1.2rem;
+  }
+
+  /* Enhanced projected reward */
+  .projected-reward {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin-top: auto;
+
+    .reward-icon {
+      font-size: 1.8rem;
+      padding: 6px;
+      border-radius: 50%;
+      background: rgba(255, 215, 0, 0.25);
+      border: 2px solid #ffd700;
+      animation: rewardPulse 2s ease-in-out infinite;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  /* Enhanced day status */
+  .day-status {
+    text-align: center;
+    margin-top: auto;
+
+    .status-icon {
+      font-size: 1.4rem;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      
+      &.completed {
+        color: #4caf50;
+      }
+      
+      &.partial {
+        color: #ff9800;
+      }
+      
+      &.incomplete {
+        color: #94a3b8;
+      }
+    }
+  }
+}
+
+/* ===================================
+   RESPONSIVE ENHANCEMENTS
+   =================================== */
+
+@media (max-width: 768px) {
+  .calendar-day {
+    .task-summary {
+      .task-count {
+        font-size: 0.75rem;
+        margin-bottom: 4px;
+      }
+
+      .completion-bar {
+        height: 4px;
+      }
+    }
+
+    .projected-reward .reward-icon {
+      font-size: 1.5rem;
+      padding: 4px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .calendar-day {
+    .task-summary {
+      .task-count {
+        font-size: 0.7rem;
+        margin-bottom: 3px;
+      }
+
+      .completion-bar {
+        height: 3px;
+      }
+    }
+
+    .future-indicator,
+    .free-day,
+    .before-streak {
+      font-size: 0.65rem;
+      padding: 2px;
+    }
+  }
+}
+
+/* ===================================
+   IMPROVED ANIMATIONS
+   =================================== */
+
+@keyframes rewardPulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7);
+  }
+  50% { 
+    transform: scale(1.08);
+    box-shadow: 0 0 0 10px rgba(255, 215, 0, 0);
+  }
+}
+
+/* Add hover effect for better interactivity */
+.calendar-day:hover:not(.other-month):not(.ignored-day) {
+  .task-summary .completion-bar {
+    transform: scaleY(1.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .task-count {
+    color: #fff;
+    transform: scale(1.05);
+  }
+}

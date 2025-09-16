@@ -57,56 +57,72 @@
     </div>
 
     <!-- Calendar Grid -->
-    <div class="calendar-grid">
-      <div 
-        *ngFor="let day of calendarDays" 
-        class="calendar-day"
-        [class.other-month]="!day.isCurrentMonth"
-        [class.today]="day.isToday"
-        [class.future]="day.isFuture"
-        [class.completed]="day.isCompleted"
-        [class.partial]="day.isPartiallyCompleted"
-        [class.incomplete]="!day.isCompleted && !day.isPartiallyCompleted && day.isCurrentMonth && !day.isFuture"
-        (click)="onDayClick(day)">
-        
-        <!-- Day Number -->
-        <div class="day-number">{{ day.dayNumber }}</div>
-        
-        <!-- Projected Reward Icon (simplified) -->
-        <div class="projected-reward" *ngIf="day.projectedReward">
-          <div class="reward-icon" [title]="day.projectedReward.description">
-            {{ day.projectedReward.icon }}
-          </div>
-        </div>
-        
-        <!-- Status Icon -->
-        <div class="day-status" *ngIf="day.isCurrentMonth && !day.isFuture && !day.projectedReward">
-          <span class="status-icon" [ngClass]="getDayCompletionClass(day)">
-            {{ day.isCompleted ? '✓' : day.isPartiallyCompleted ? '◐' : day.totalHabits > 0 ? '○' : '' }}
-          </span>
-        </div>
-        
-        <!-- Task Summary -->
-        <div class="task-summary" *ngIf="day.isCurrentMonth && !day.isFuture && day.totalHabits > 0 && !day.projectedReward">
-          <div class="task-count">
-            {{ day.completedHabits }}/{{ day.totalHabits }}
-          </div>
-          <div class="completion-bar">
-            <div class="completion-fill" [style.width.%]="day.completionPercentage"></div>
-          </div>
-        </div>
-        
-        <!-- Future Indicator -->
-        <div class="future-indicator" *ngIf="day.isFuture && day.isCurrentMonth && !day.projectedReward">
-          Future
-        </div>
-        
-        <!-- Free Day -->
-        <div class="free-day" *ngIf="day.totalHabits === 0 && !day.isFuture && day.isCurrentMonth && !day.projectedReward">
-          Free
+<div class="calendar-grid">
+  <div 
+    *ngFor="let day of calendarDays" 
+    class="calendar-day"
+    [class.other-month]="!day.isCurrentMonth"
+    [class.today]="day.isToday"
+    [class.future]="day.isFuture"
+    [class.completed]="day.isCompleted"
+    [class.partial]="day.isPartiallyCompleted"
+    [class.incomplete]="!day.isCompleted && !day.isPartiallyCompleted && day.isCurrentMonth && !day.isFuture && day.totalHabits > 0"
+    [class.ignored-day]="day.isBeforeStreakStart"
+    (click)="onDayClick(day)">
+    
+    <!-- Day Number -->
+    <div class="day-number">{{ day.dayNumber }}</div>
+    
+    <!-- Projected Reward Icon (highest priority) -->
+    <div class="projected-reward" *ngIf="day.projectedReward">
+      <div class="reward-icon" [title]="day.projectedReward.description">
+        {{ day.projectedReward.icon }}
+      </div>
+    </div>
+    
+    <!-- Progress Display for Days with Tasks (shows completion like 6/8) -->
+    <div class="task-summary" 
+         *ngIf="day.isCurrentMonth && !day.isFuture && day.totalHabits > 0 && !day.projectedReward && !day.isBeforeStreakStart">
+      <div class="task-count">
+        {{ day.completedHabits }}/{{ day.totalHabits }}
+      </div>
+      <div class="completion-bar">
+        <div class="completion-fill" 
+             [style.width.%]="day.completionPercentage"
+             [class.completed-fill]="day.isCompleted"
+             [class.partial-fill]="day.isPartiallyCompleted"
+             [class.incomplete-fill]="!day.isCompleted && !day.isPartiallyCompleted">
         </div>
       </div>
     </div>
+    
+    <!-- Status Icon for Completed/Partial Days (backup display) -->
+    <div class="day-status" 
+         *ngIf="day.isCurrentMonth && !day.isFuture && !day.projectedReward && !day.isBeforeStreakStart && day.totalHabits === 0">
+      <span class="status-icon" [ngClass]="getDayCompletionClass(day)">
+        {{ day.isCompleted ? '✓' : day.isPartiallyCompleted ? '◐' : '○' }}
+      </span>
+    </div>
+    
+    <!-- Future Indicator -->
+    <div class="future-indicator" 
+         *ngIf="day.isFuture && day.isCurrentMonth && !day.projectedReward">
+      Future
+    </div>
+    
+    <!-- Free Day (no tasks scheduled) -->
+    <div class="free-day" 
+         *ngIf="day.totalHabits === 0 && !day.isFuture && day.isCurrentMonth && !day.projectedReward && !day.isBeforeStreakStart">
+      Free
+    </div>
+    
+    <!-- Before Streak Start Indicator -->
+    <div class="before-streak" 
+         *ngIf="day.isBeforeStreakStart && day.isCurrentMonth">
+      -
+    </div>
+  </div>
+</div>
   </div>
 
   <!-- Projected Rewards Section -->

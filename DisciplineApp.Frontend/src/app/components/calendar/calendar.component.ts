@@ -139,40 +139,54 @@ export class CalendarComponent implements OnInit {
   // DATA LOADING METHODS
   // ===================================
 
-  loadCurrentWeekData(): void {
-    this.loading = true;
-    this.error = null;
+loadCurrentWeekData(): void {
+  this.loading = true;
+  this.error = null;
 
-    this.disciplineService.getCurrentWeek().subscribe({
-      next: (weekData) => {
-        this.weekData = weekData;
-        this.currentWeekDays = weekData.days;
-        
-        // Find today's data
-        const today = new Date();
-        this.todayData = weekData.days.find(day => 
-          new Date(day.date).toDateString() === today.toDateString()
-        ) || null;
+  console.log('🔍 Loading current week data...');
 
-        this.loading = false;
-      },
-      error: (error) => {
-        console.error('Error loading week data:', error);
-        this.error = 'Failed to load calendar data';
-        this.loading = false;
-      }
-    });
+  this.disciplineService.getCurrentWeek().subscribe({
+    next: (weekData) => {
+      console.log('✅ Week data received:', weekData);
+      
+      this.weekData = weekData;
+      this.currentWeekDays = weekData.days;
+      
+      // Find today's data
+      const today = new Date();
+      this.todayData = weekData.days.find(day => 
+        new Date(day.date).toDateString() === today.toDateString()
+      ) || null;
 
-    // Load weekly progress
-    this.disciplineService.getWeeklyProgress().subscribe({
-      next: (progress) => {
-        this.weeklyProgress = progress;
-      },
-      error: (error) => {
-        console.error('Error loading weekly progress:', error);
-      }
-    });
-  }
+      // 🔍 DEBUG: Log today's data specifically
+      console.log('📅 Today\'s data:', this.todayData);
+      console.log('📋 Today\'s habits:', this.todayData?.allHabits);
+      console.log('📊 Today\'s totals:', {
+        total: this.todayData?.totalHabits,
+        completed: this.todayData?.completedHabits,
+        required: this.todayData?.requiredHabitsCount
+      });
+
+      this.loading = false;
+    },
+    error: (error) => {
+      console.error('❌ Error loading week data:', error);
+      this.error = 'Failed to load calendar data';
+      this.loading = false;
+    }
+  });
+
+  // Load weekly progress
+  this.disciplineService.getWeeklyProgress().subscribe({
+    next: (progress) => {
+      console.log('📈 Weekly progress loaded:', progress);
+      this.weeklyProgress = progress;
+    },
+    error: (error) => {
+      console.error('❌ Error loading weekly progress:', error);
+    }
+  });
+}
 
   loadFlexibleTasks(): void {
     const today = new Date().toISOString().split('T')[0];
