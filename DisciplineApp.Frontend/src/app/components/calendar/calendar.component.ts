@@ -158,14 +158,22 @@ loadCurrentWeekData(): void {
         new Date(day.date).toDateString() === today.toDateString()
       ) || null;
 
-      // 🔍 DEBUG: Log today's data specifically
-      console.log('📅 Today\'s data:', this.todayData);
-      console.log('📋 Today\'s habits:', this.todayData?.allHabits);
-      console.log('📊 Today\'s totals:', {
-        total: this.todayData?.totalHabits,
-        completed: this.todayData?.completedHabits,
-        required: this.todayData?.requiredHabitsCount
-      });
+      // 🔍 DEBUG: Check deadline data specifically
+      if (this.todayData?.allHabits) {
+        console.log('📋 Today\'s habits with deadline info:');
+        this.todayData.allHabits.forEach(habit => {
+          if (habit.name === 'Phone Lock Box') {
+            console.log('📱 Phone Lock Box deadline data:', {
+              name: habit.name,
+              hasDeadline: habit.hasDeadline,
+              deadlineTime: habit.deadlineTime,
+              timeRemaining: habit.timeRemaining,
+              isOverdue: habit.isOverdue,
+              isCompleted: habit.isCompleted
+            });
+          }
+        });
+      }
 
       this.loading = false;
     },
@@ -173,17 +181,6 @@ loadCurrentWeekData(): void {
       console.error('❌ Error loading week data:', error);
       this.error = 'Failed to load calendar data';
       this.loading = false;
-    }
-  });
-
-  // Load weekly progress
-  this.disciplineService.getWeeklyProgress().subscribe({
-    next: (progress) => {
-      console.log('📈 Weekly progress loaded:', progress);
-      this.weeklyProgress = progress;
-    },
-    error: (error) => {
-      console.error('❌ Error loading weekly progress:', error);
     }
   });
 }

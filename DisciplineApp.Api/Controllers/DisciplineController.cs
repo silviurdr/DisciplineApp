@@ -100,11 +100,34 @@ public class DisciplineController : ControllerBase
 
             // Determine if the habit is locked based on the deadline
             var isLocked = false;
+            string timeRemaining = null;
+
             if (scheduledHabit.HasDeadline && date.Date == DateTime.Today)
             {
                 var currentTime = TimeOnly.FromDateTime(DateTime.Now);
                 var deadlineTime = scheduledHabit?.DeadlineTime ?? TimeOnly.MaxValue;
+
                 isLocked = currentTime > deadlineTime;
+
+                // Calculate time remaining until deadline
+                if (!isLocked && deadlineTime != TimeOnly.MaxValue)
+                {
+                    var now = DateTime.Now;
+                    var deadlineDateTime = date.Date.Add(deadlineTime.ToTimeSpan());
+                    var timeDiff = deadlineDateTime - now;
+
+                    if (timeDiff.TotalMinutes > 0)
+                    {
+                        if (timeDiff.TotalHours >= 1)
+                        {
+                            timeRemaining = $"{(int)timeDiff.TotalHours}h {timeDiff.Minutes}m";
+                        }
+                        else
+                        {
+                            timeRemaining = $"{(int)timeDiff.TotalMinutes}m";
+                        }
+                    }
+                }
             }
 
             allHabits.Add(new
@@ -120,18 +143,19 @@ public class DisciplineController : ControllerBase
                 completedAt = completion?.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss"),
                 hasDeadline = scheduledHabit.HasDeadline,
                 deadlineTime = scheduledHabit.DeadlineTime.ToString("HH:mm"),
+                timeRemaining = timeRemaining, // 🔥 ADD THIS LINE
                 isOverdue = scheduledHabit.HasDeadline && date.Date == DateTime.Today &&
                            TimeOnly.FromDateTime(DateTime.Now) > (scheduledHabit?.DeadlineTime ?? TimeOnly.MaxValue) &&
                            !(completion?.IsCompleted ?? false)
             });
         }
 
-        // Add ad-hoc tasks
+        // Add ad-hoc tasks (unchanged)
         foreach (var adHocTask in adHocTasks)
         {
             allHabits.Add(new
             {
-                habitId = -1, // Use negative ID to distinguish ad-hoc tasks
+                habitId = -1,
                 adHocId = adHocTask.Id,
                 name = adHocTask.Name,
                 description = adHocTask.Description,
@@ -142,6 +166,7 @@ public class DisciplineController : ControllerBase
                 completedAt = adHocTask.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss"),
                 hasDeadline = false,
                 deadlineTime = "",
+                timeRemaining = "", // 🔥 ADD THIS LINE
                 isOverdue = false
             });
         }

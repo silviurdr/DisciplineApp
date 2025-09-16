@@ -155,29 +155,40 @@
           </h4>
           
           <!-- Task Badges -->
-          <div class="task-badges">
-            <span *ngIf="habit.isRequired" class="badge required">Required</span>
-            <span *ngIf="habit.isAdHoc" class="badge ad-hoc">Quick Task</span>
-            <span *ngIf="habit.priority && habit.priority !== 'Normal'" 
-                  class="badge priority" 
-                  [class.critical]="habit.priority === 'Critical'"
-                  [class.urgent]="habit.priority === 'Urgent'">
-              {{ habit.priority }}
-            </span>
-            <span *ngIf="habit.isOverdue" class="badge overdue">Overdue</span>
-          </div>
+        <div class="task-badges">
+          <!-- Required Badge -->
+          <span *ngIf="habit.isRequired" class="badge required">Required</span>
+          
+          <!-- NEW: Deadline Badge (Red) -->
+          <span *ngIf="habit.hasDeadline && !habit.isCompleted" class="badge deadline">
+            🔴 Deadline
+          </span>
+          
+          <!-- NEW: Time Remaining Badge -->
+          <span *ngIf="habit.hasDeadline && habit.timeRemaining && !habit.isCompleted" 
+                class="badge time-remaining"
+                [class.critical]="getUrgencyLevel(habit.timeRemaining) === 'critical'"
+                [class.urgent]="getUrgencyLevel(habit.timeRemaining) === 'urgent'"
+                [class.normal]="getUrgencyLevel(habit.timeRemaining) === 'normal'">
+            ⏰ {{ habit.timeRemaining }}
+          </span>
+          
+          <!-- Existing badges -->
+<!--           <span *ngIf="habit.isAdHoc" class="badge ad-hoc">Quick Task</span>
+          <span *ngIf="habit.priority && habit.priority !== 'Normal'" 
+                class="badge priority" 
+                [class.critical]="habit.priority === 'Critical'"
+                [class.urgent]="habit.priority === 'Urgent'">
+            {{ habit.priority }}
+          </span>
+          <span *ngIf="habit.isOverdue" class="badge overdue">Overdue</span> -->
+        </div>
         </div>
 
         <!-- Task Description (if exists) -->
         <p *ngIf="habit.description" class="task-description">{{ habit.description }}</p>
 
         <!-- Time Remaining Badge -->
-        <div *ngIf="habit.hasDeadline && habit.timeRemaining && !habit.isCompleted" 
-             class="time-remaining"
-             [class.critical]="getUrgencyLevel(habit.timeRemaining) === 'critical'"
-             [class.urgent]="getUrgencyLevel(habit.timeRemaining) === 'urgent'">
-          ⏰ {{ habit.timeRemaining }} left
-        </div>
       </div>
 
       <!-- Quick Actions -->
