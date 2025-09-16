@@ -38,33 +38,44 @@ public class DisciplineDbContext : DbContext
             entity.Property(h => h.Name)
                   .IsRequired()
                   .HasMaxLength(100)
-                  .IsUnicode(false); // ✅ For performance if only ASCII
+                  .IsUnicode(false);
             entity.Property(h => h.Description)
                   .HasMaxLength(500)
-                  .IsUnicode(true); // ✅ Allow Unicode for descriptions
+                  .IsUnicode(true);
             entity.Property(h => h.Frequency)
                   .IsRequired()
-                  .HasConversion<string>(); // ✅ Store enum as string
+                  .HasConversion<string>();
             entity.Property(h => h.IsActive)
                   .IsRequired()
                   .HasDefaultValue(true);
             entity.Property(h => h.CreatedAt)
                   .IsRequired()
-                  .HasColumnType("datetime2") // ✅ Use datetime2 for SQL Server
-                  .HasDefaultValueSql("GETUTCDATE()"); // ✅ SQL Server function
+                  .HasColumnType("datetime2")
+                  .HasDefaultValueSql("GETUTCDATE()");
             entity.Property(h => h.DeadlineTime)
-                  .HasColumnType("time"); // ✅ Specify time type
+                  .HasColumnType("time");
             entity.Property(h => h.HasDeadline)
                   .IsRequired()
                   .HasDefaultValue(false);
-            entity.Property(e => e.MaxDeferrals).HasDefaultValue(0);
+
+            // 🔥 ADD CONFIGURATION FOR MaxDeferrals
+            entity.Property(h => h.MaxDeferrals)
+                  .IsRequired()
+                  .HasDefaultValue(0);
 
             // Configure relationships
             entity.HasMany(h => h.Completions)
                   .WithOne(c => c.Habit)
                   .HasForeignKey(c => c.HabitId)
                   .OnDelete(DeleteBehavior.Cascade)
-                  .HasConstraintName("FK_HabitCompletions_Habits"); // ✅ Explicit FK name
+                  .HasConstraintName("FK_HabitCompletions_Habits");
+
+            // 🔥 ADD RELATIONSHIP FOR TaskDeferrals
+            entity.HasMany(h => h.Deferrals)
+                  .WithOne(d => d.Habit)
+                  .HasForeignKey(d => d.HabitId)
+                  .OnDelete(DeleteBehavior.Cascade)
+                  .HasConstraintName("FK_TaskDeferrals_Habits");
         });
 
         // HabitCompletion configuration
@@ -82,7 +93,7 @@ public class DisciplineDbContext : DbContext
             entity.Property(hc => hc.CompletedAt)
                   .HasColumnType("datetime2");
 
-            // Create unique constraint for HabitId + Date
+            // Unique constraint
             entity.HasIndex(hc => new { hc.HabitId, hc.Date })
                   .IsUnique()
                   .HasDatabaseName("IX_HabitCompletions_HabitId_Date");
@@ -156,13 +167,33 @@ public class DisciplineDbContext : DbContext
 
         modelBuilder.Entity<TaskDeferral>(entity =>
         {
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Reason).HasMaxLength(500);
+            entity.HasKey(td => td.Id);
+            entity.Property(td => td.OriginalDate)
+                  .IsRequired()
+                  .HasColumnType("datetime2");
+            entity.Property(td => td.DeferredToDate)
+                  .IsRequired()
+                  .HasColumnType("datetime2");
 
-            entity.HasOne(d => d.Habit)
-                .WithMany(h => h.Deferrals)
-                .HasForeignKey(d => d.HabitId)
-                .OnDelete(DeleteBehavior.Cascade);
+            // 🔥 ADD CONFIGURATION FOR DeferralsUsed
+            entity.Property(td => td.DeferralsUsed)
+                  .IsRequired()
+                  .HasDefaultValue(1);
+
+            entity.Property(td => td.Reason)
+                  .HasMaxLength(500)
+                  .IsUnicode(true);
+            entity.Property(td => td.CreatedAt)
+                  .IsRequired()
+                  .HasColumnType("datetime2")
+                  .HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(td => td.CompletedAt)
+                  .HasColumnType("datetime2")
+                  .IsRequired(false);
+
+            // Create index for performance
+            entity.HasIndex(td => new { td.HabitId, td.OriginalDate })
+                  .HasDatabaseName("IX_TaskDeferrals_HabitId_OriginalDate");
         });
 
         base.OnModelCreating(modelBuilder);

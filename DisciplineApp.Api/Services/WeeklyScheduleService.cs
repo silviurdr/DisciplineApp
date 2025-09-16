@@ -120,12 +120,12 @@ public class WeeklyScheduleService
         {
             foreach (var habit in dailyHabits)
             {
-                // 🔥 CRITICAL FIX: Check if this habit was moved AWAY from this day
+                // Check if this habit was moved AWAY from this day
                 var wasMovedFromThisDay = deferrals.Any(d =>
                     d.HabitId == habit.Id &&
                     d.OriginalDate.Date == day.Date.Date);
 
-                // 🔥 CRITICAL FIX: Also check if already deferred TO this day (to prevent duplicates)
+                // Also check if already deferred TO this day (to prevent duplicates)
                 var isAlreadyDeferredToThisDay = deferrals.Any(d =>
                     d.HabitId == habit.Id &&
                     d.DeferredToDate.Date == day.Date.Date);
@@ -133,6 +133,9 @@ public class WeeklyScheduleService
                 // Only add if NOT moved away AND NOT already deferred to this day
                 if (!wasMovedFromThisDay && !isAlreadyDeferredToThisDay)
                 {
+                    // 🔥 FIX: Calculate deferral info for this specific habit and date
+                    var deferralInfo = await CalculateDeferralInfo(habit, day.Date);
+
                     day.ScheduledHabits.Add(new ScheduledHabit
                     {
                         HabitId = habit.Id,
@@ -142,7 +145,13 @@ public class WeeklyScheduleService
                         DeadlineTime = habit.DeadlineTime,
                         Description = habit.Description,
                         Priority = SchedulePriority.Required,
-                        Reason = "Daily habit"
+                        Reason = "Daily habit",
+
+                        // 🔥 ADD MISSING DEFERRAL FIELDS
+                        DeferralsUsed = deferralInfo.DeferralsUsed,
+                        MaxDeferrals = deferralInfo.MaxDeferrals,
+                        CanStillBeDeferred = deferralInfo.CanStillBeDeferred,
+                        Frequency = habit.Frequency.ToString()
                     });
                 }
             }
@@ -210,44 +219,6 @@ public class WeeklyScheduleService
                             break; // Only schedule once per week
                         }
                     }
-                }
-            }
-        }
-    }
-
-    private async Task AssignWeeklyHabits(WeekSchedule schedule, List<Habit> habits, List<TaskDeferral> weekDeferrals)
-    {
-        var weeklyHabits = habits.Where(h => h.Frequency == HabitFrequency.Weekly).ToList();
-
-        foreach (var habit in weeklyHabits)
-        {
-            var optimalDays = GetOptimalDaysForWeeklyHabit(habit, schedule);
-            int assignedCount = 0;
-
-            for (int i = 0; i < optimalDays.Count && assignedCount < habit.WeeklyTarget; i++)
-            {
-                var dayIndex = optimalDays[i];
-                var targetDate = schedule.DailySchedules[dayIndex].Date;
-
-                // Skip if this habit is already deferred to this day  // this now removes from weekly assignment
-                var isAlreadyDeferred = weekDeferrals.Any(d =>
-                    d.HabitId == habit.Id &&
-                    d.OriginalDate.Date == targetDate.Date);
-
-                if (!isAlreadyDeferred)
-                {
-                    schedule.DailySchedules[dayIndex].ScheduledHabits.Add(new ScheduledHabit
-                    {
-                        HabitId = habit.Id,
-                        HabitName = habit.Name,
-                        Description = habit.Description,
-                        IsLocked = habit.IsLocked,
-                        HasDeadline = habit.HasDeadline,
-                        DeadlineTime = habit.DeadlineTime,
-                        Priority = SchedulePriority.Required,
-                        Reason = $"Weekly target: {assignedCount + 1}/{habit.WeeklyTarget}"
-                    });
-                    assignedCount++;
                 }
             }
         }
@@ -364,6 +335,91 @@ public class WeeklyScheduleService
         }
     }
 
+    private async Task AssignWeeklyHabits(WeekSchedule schedule, List<Habit> habits, List<TaskDeferral> weekDeferrals)
+    {
+        var weeklyHabits = habits.Where(h => h.Frequency == HabitFrequency.Weekly).ToList();
+
+        foreach (var habit in weeklyHabits)
+        {
+            var optimalDays = GetOptimalDaysForWeeklyHabit(habit, schedule);
+            int assignedCount = 0;
+
+            for (int i = 0; i < optimalDays.Count && assignedCount < habit.WeeklyTarget; i++)
+            {
+                var dayIndex = optimalDays[i];
+                var targetDate = schedule.DailySchedules[dayIndex].Date;
+
+                // Skip if this habit is already deferred from this day
+                var isAlreadyDeferred = weekDeferrals.Any(d =>
+                    d.HabitId == habit.Id &&
+                    d.OriginalDate.Date == targetDate.Date);
+
+                if (!isAlreadyDeferred)
+                {
+                    // 🔥 FIX: Calculate deferral info for this specific habit and date
+                    var deferralInfo = await CalculateDeferralInfo(habit, targetDate);
+
+                    schedule.DailySchedules[dayIndex].ScheduledHabits.Add(new ScheduledHabit
+                    {
+                        HabitId = habit.Id,
+                        HabitName = habit.Name,
+                        Description = habit.Description,
+                        IsLocked = habit.IsLocked,
+                        HasDeadline = habit.HasDeadline,
+                        DeadlineTime = habit.DeadlineTime,
+                        Priority = SchedulePriority.Required,
+                        Reason = $"Weekly habit ({assignedCount + 1}/{habit.WeeklyTarget})",
+
+                        // 🔥 ADD MISSING DEFERRAL FIELDS
+                        DeferralsUsed = deferralInfo.DeferralsUsed,
+                        MaxDeferrals = deferralInfo.MaxDeferrals,
+                        CanStillBeDeferred = deferralInfo.CanStillBeDeferred,
+                        Frequency = habit.Frequency.ToString()
+                    });
+                    assignedCount++;
+                }
+            }
+        }
+    }
+
+    private async Task<(int DeferralsUsed, int MaxDeferrals, bool CanStillBeDeferred)> CalculateDeferralInfo(Habit habit, DateTime scheduledDate)
+    {
+        // Set MaxDeferrals if not already set
+        var maxDeferrals = habit.MaxDeferrals;
+        if (maxDeferrals == 0)
+        {
+            maxDeferrals = GetMaxDeferralsForFrequency(habit.Frequency);
+            habit.MaxDeferrals = maxDeferrals;
+            _context.Habits.Update(habit);
+            await _context.SaveChangesAsync();
+        }
+
+        // Find any deferral record for this specific habit and original date
+        var deferral = await _context.TaskDeferrals
+            .FirstOrDefaultAsync(d => d.HabitId == habit.Id &&
+                           d.OriginalDate.Date == scheduledDate.Date &&
+                           !d.IsCompleted);
+
+        var deferralsUsed = deferral?.DeferralsUsed ?? 0;
+        var canStillBeDeferred = deferralsUsed < maxDeferrals;
+
+        return (deferralsUsed, maxDeferrals, canStillBeDeferred);
+    }
+
+
+    private int GetMaxDeferralsForFrequency(HabitFrequency frequency)
+    {
+        return frequency switch
+        {
+            HabitFrequency.Daily => 0,          // No deferrals for daily tasks
+            HabitFrequency.EveryTwoDays => 1,   // Limited deferrals for rolling
+            HabitFrequency.Weekly => 2,         // 2 deferrals for weekly tasks
+            HabitFrequency.Monthly => 6,        // 6 deferrals for monthly tasks
+            HabitFrequency.Seasonal => 6,       // 6 deferrals for seasonal tasks
+            _ => 0
+        };
+    }
+
     private (DateTime Start, DateTime End) GetCurrentSeason(DateTime date)
     {
         var year = date.Year;
@@ -477,6 +533,20 @@ public class ScheduledHabit
     public TimeOnly DeadlineTime { get; set; }
     public SchedulePriority Priority { get; set; }
     public string Reason { get; set; } = string.Empty;
+
+    // 🔥 ADD MISSING DEFERRAL FIELDS
+    public string Frequency { get; set; } = string.Empty;
+    public int DeferralsUsed { get; set; } = 0;
+    public int MaxDeferrals { get; set; } = 0;
+    public bool CanStillBeDeferred { get; set; } = false;
+    public DateTime? OriginalScheduledDate { get; set; }
+    public DateTime? CurrentDueDate { get; set; }
+
+    // Status fields for frontend compatibility
+    public bool IsCompleted { get; set; } = false;
+    public bool IsRequired { get; set; } = true;
+    public bool IsAdHoc { get; set; } = false;
+    public int? AdHocId { get; set; }
 }
 
 public enum SchedulePriority

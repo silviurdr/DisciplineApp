@@ -49,6 +49,13 @@ namespace DisciplineApp.Api.Services
             var habit = await _context.Habits.FindAsync(habitId);
             if (habit == null) return false;
 
+            // Ensure MaxDeferrals is set
+            if (habit.MaxDeferrals == 0)
+            {
+                habit.MaxDeferrals = GetMaxDeferralsForFrequency(habit.Frequency);
+            }
+
+            // Get existing deferral for this specific date
             var existingDeferral = await _context.TaskDeferrals
                 .FirstOrDefaultAsync(d => d.HabitId == habitId &&
                                    d.OriginalDate.Date == fromDate.Date &&
@@ -105,19 +112,38 @@ namespace DisciplineApp.Api.Services
 
         public async Task<HabitWithFlexibility> CalculateTaskFlexibility(Habit habit, DateTime scheduledDate)
         {
-            // Set max deferrals based on habit frequency
-            var maxDeferrals = GetMaxDeferralsForFrequency(habit.Frequency);
-            habit.MaxDeferrals = maxDeferrals;
+            // Ensure MaxDeferrals is set based on frequency if not already set
+            if (habit.MaxDeferrals == 0)
+            {
+                habit.MaxDeferrals = GetMaxDeferralsForFrequency(habit.Frequency);
+                _context.Habits.Update(habit);
+                await _context.SaveChangesAsync();
+            }
 
-            var deferral = await _context.TaskDeferrals
-                .FirstOrDefaultAsync(d => d.HabitId == habit.Id &&
-                                   d.OriginalDate.Date == scheduledDate.Date &&
-                                   !d.IsCompleted);
+            // Get ALL deferrals for this habit and date combination
+            var deferrals = await _context.TaskDeferrals
+                .Where(d => d.HabitId == habit.Id &&
+                       (d.OriginalDate.Date == scheduledDate.Date ||
+                        d.DeferredToDate.Date == scheduledDate.Date))
+                .OrderBy(d => d.CreatedAt)
+                .ToListAsync();
 
-            var deferralsUsed = deferral?.DeferralsUsed ?? 0;
-            var currentDueDate = deferral?.DeferredToDate ?? scheduledDate;
+            // Calculate total deferrals used for this specific task instance
+            var totalDeferralsUsed = 0;
+            DateTime currentDueDate = scheduledDate;
 
-            // Check if completed
+            if (deferrals.Any())
+            {
+                // Find the deferral chain starting from the original date
+                var currentDeferral = deferrals.FirstOrDefault(d => d.OriginalDate.Date == scheduledDate.Date);
+                if (currentDeferral != null)
+                {
+                    totalDeferralsUsed = currentDeferral.DeferralsUsed;
+                    currentDueDate = currentDeferral.DeferredToDate;
+                }
+            }
+
+            // Check if completed on current due date
             var isCompleted = await _context.HabitCompletions
                 .AnyAsync(c => c.HabitId == habit.Id &&
                              c.Date.Date == currentDueDate.Date &&
@@ -131,9 +157,9 @@ namespace DisciplineApp.Api.Services
                 Frequency = habit.Frequency.ToString(),
                 OriginalScheduledDate = scheduledDate,
                 CurrentDueDate = currentDueDate,
-                DeferralsUsed = deferralsUsed,
-                MaxDeferrals = maxDeferrals,
-                CanStillBeDeferred = deferralsUsed < maxDeferrals,
+                DeferralsUsed = totalDeferralsUsed,
+                MaxDeferrals = habit.MaxDeferrals,
+                CanStillBeDeferred = totalDeferralsUsed < habit.MaxDeferrals,
                 IsCompleted = isCompleted,
                 IsLocked = habit.IsLocked,
                 HasDeadline = habit.HasDeadline,

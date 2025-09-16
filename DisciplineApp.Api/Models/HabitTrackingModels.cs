@@ -9,21 +9,21 @@ namespace DisciplineApp.Api.Models
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public HabitFrequency Frequency { get; set; }
-        public int WeeklyTarget { get; set; }
-        public int MonthlyTarget { get; set; }
-        public int SeasonalTarget { get; set; }
+        public int WeeklyTarget { get; set; } = 1;
+        public int MonthlyTarget { get; set; } = 1;
+        public int SeasonalTarget { get; set; } = 1;
         public TimeOnly DeadlineTime { get; set; }
         public bool HasDeadline { get; set; } = false;
-        public bool IsLocked { get; set; }
+        public bool IsLocked { get; set; } = false;
         public bool IsActive { get; set; } = true;
+        public int MaxDeferrals { get; set; } = 0; // 🔥 ENSURE THIS FIELD EXISTS
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // NEW: Add deferral limits based on frequency
-        public int MaxDeferrals { get; set; } = 0; // 0 for daily, 2 for weekly, 6 for monthly/seasonal
-
+        // Navigation properties
         public virtual ICollection<HabitCompletion> Completions { get; set; } = new List<HabitCompletion>();
         public virtual ICollection<TaskDeferral> Deferrals { get; set; } = new List<TaskDeferral>();
     }
+
 
     // Individual habit completions
     public class HabitCompletion
@@ -89,15 +89,18 @@ namespace DisciplineApp.Api.Models
         public int HabitId { get; set; }
         public DateTime OriginalDate { get; set; }
         public DateTime DeferredToDate { get; set; }
-        public int DeferralsUsed { get; set; } = 0;
+        public int DeferralsUsed { get; set; } = 1;
         public string Reason { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // 🔥 KEEP ONLY ONE CompletedAt field
         public DateTime? CompletedAt { get; set; }
         public bool IsCompleted { get; set; } = false;
 
         // Navigation properties
         public virtual Habit Habit { get; set; } = null!;
     }
+
     public class HabitWithFlexibility
     {
         public int HabitId { get; set; }
