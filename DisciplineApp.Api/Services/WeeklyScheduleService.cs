@@ -85,6 +85,9 @@ public class WeeklyScheduleService
 
                 if (targetDay != null && deferral.Habit.IsActive)
                 {
+                    // 🔥 FIX: Calculate deferral info for deferred tasks
+                    var deferralInfo = await CalculateDeferralInfo(deferral.Habit, deferral.OriginalDate);
+
                     targetDay.ScheduledHabits.Add(new ScheduledHabit
                     {
                         HabitId = deferral.HabitId,
@@ -93,14 +96,19 @@ public class WeeklyScheduleService
                         IsLocked = deferral.Habit.IsLocked,
                         HasDeadline = deferral.Habit.HasDeadline,
                         DeadlineTime = deferral.Habit.DeadlineTime,
-                        Priority = SchedulePriority.Required, // Deferred tasks get high priority
-                        Reason = $"Moved from {deferral.OriginalDate:MMM dd} - {deferral.Reason}"
+                        Priority = SchedulePriority.Required,
+                        Reason = $"Moved from {deferral.OriginalDate:MMM dd} - {deferral.Reason}",
+
+                        // 🔥 ADD MISSING DEFERRAL FIELDS
+                        DeferralsUsed = deferralInfo.DeferralsUsed,
+                        MaxDeferrals = deferralInfo.MaxDeferrals,
+                        CanStillBeDeferred = deferralInfo.CanStillBeDeferred,
+                        Frequency = deferral.Habit.Frequency.ToString(),
+                        OriginalScheduledDate = deferral.OriginalDate,
+                        CurrentDueDate = deferral.DeferredToDate
                     });
                 }
             }
-
-            // CASE 2: Tasks deferred FROM this week are handled by the assignment methods
-            // (they check weekDeferrals and skip scheduling tasks that were moved away)
         }
     }
 
@@ -161,15 +169,32 @@ public class WeeklyScheduleService
 
     public async Task DeferTask(int habitId, DateTime fromDate, DateTime toDate, string reason)
     {
-        // Create a deferred task record (tracks that task was moved, not failed)
-        _context.TaskDeferrals.Add(new TaskDeferral
+        // Check if there's already a deferral record for this habit and date
+        var existingDeferral = await _context.TaskDeferrals
+            .FirstOrDefaultAsync(d => d.HabitId == habitId &&
+                               d.OriginalDate.Date == fromDate.Date &&
+                               !d.IsCompleted);
+
+        if (existingDeferral != null)
         {
-            HabitId = habitId,
-            OriginalDate = fromDate,
-            DeferredToDate = toDate,
-            Reason = reason,
-            CreatedAt = DateTime.UtcNow
-        });
+            // Update existing deferral
+            existingDeferral.DeferralsUsed++;
+            existingDeferral.DeferredToDate = toDate;
+            existingDeferral.Reason = reason;
+        }
+        else
+        {
+            // Create new deferral record
+            _context.TaskDeferrals.Add(new TaskDeferral
+            {
+                HabitId = habitId,
+                OriginalDate = fromDate,
+                DeferredToDate = toDate,
+                DeferralsUsed = 1, // 🔥 FIX: Set to 1 for new deferrals
+                Reason = reason,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
 
         await _context.SaveChangesAsync();
     }

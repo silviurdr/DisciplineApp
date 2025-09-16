@@ -146,7 +146,8 @@ public class DisciplineController : ControllerBase
                 timeRemaining = timeRemaining, // 🔥 ADD THIS LINE
                 isOverdue = scheduledHabit.HasDeadline && date.Date == DateTime.Today &&
                            TimeOnly.FromDateTime(DateTime.Now) > (scheduledHabit?.DeadlineTime ?? TimeOnly.MaxValue) &&
-                           !(completion?.IsCompleted ?? false)
+                           !(completion?.IsCompleted ?? false),
+                frequency = scheduledHabit.Frequency
             });
         }
 

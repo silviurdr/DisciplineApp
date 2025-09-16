@@ -10,7 +10,6 @@ import {
   WeekData, 
   DayData, 
   WeeklyProgress, 
-  ScheduledHabit,
   HabitWithFlexibility,
   StreakInfo
 } from '../models/discipline.models';
