@@ -1,484 +1,395 @@
 /* ===================================
    COMPLETE CALENDAR COMPONENT STYLES
+   Modern Dark Theme - Compact Design
    =================================== */
 
 .calendar-container {
-  padding: 20px;
+  padding: 16px;
   max-width: 1400px;
   margin: 0 auto;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: #1a1b26;  /* Darker main background like in image */
   min-height: 100vh;
-  color: #e3f2fd;
+  color: #a9adc1;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
 }
 
 /* ===================================
-   HEADER SECTION (CORRECTED)
+   HEADER SECTION - Compact Design
    =================================== */
 .header {
-  background: linear-gradient(135deg,
-    rgba(33, 150, 243, 0.15) 0%,
-    rgba(63, 81, 181, 0.15) 35%,
-    rgba(103, 58, 183, 0.15) 70%,
-    rgba(156, 39, 176, 0.15) 100%);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(100, 181, 246, 0.2);
-  border-radius: 20px;
-  padding: 30px;
-  margin-bottom: 30px;
-  position: relative;
-  overflow: hidden;
+  background: #2a2b3d;  /* Slightly lighter than main bg */
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
-.header::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(100, 181, 246, 0.1) 0%, transparent 70%);
-  animation: floatBackground 20s ease-in-out infinite;
-  z-index: 0;
-}
-.header::after {
-  content: '';
-  position: absolute;
-  bottom: -50%;
-  right: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(156, 39, 176, 0.08) 0%, transparent 70%);
-  animation: floatBackground 25s ease-in-out infinite reverse;
-  z-index: 0;
-}
+
 .header .header-content {
   position: relative;
   z-index: 1;
 }
+
 .header .app-title-section {
   text-align: center;
-  margin-bottom: 25px;
+  margin-bottom: 16px;
 }
+
 .header .week-info {
-  color: #90caf9;
-  font-size: 1rem;
+  color: #8b8fa3;
+  font-size: 0.875rem;
   font-weight: 500;
-  opacity: 0.9;
 }
+
 .header .progress-overview {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 20px;
+  gap: 16px;
   align-items: center;
 }
+
 .header .week-progress .progress-header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
+
 .header .week-progress .progress-header .progress-title {
-  font-size: 1.3rem;
+  font-size: 1.125rem;
   font-weight: 600;
-  color: #64b5f6;
+  color: #d1d3db;
   margin: 0;
 }
+
 .header .week-progress .progress-header .progress-percentage {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #66bb6a;
+  color: #4ade80;
   margin: 0;
 }
+
 .header .week-progress .progress-bar-container {
   position: relative;
-  height: 12px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  height: 8px;
+  background: #1f2028;
+  border-radius: 4px;
   overflow: hidden;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
+
 .header .week-progress .progress-bar-container .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #4caf50, #66bb6a, #81c784);
-  border-radius: 8px;
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+  border-radius: 4px;
+  transition: width 0.6s ease;
 }
+
 .header .grace-info {
   text-align: center;
-  padding: 16px 20px;
-  background: rgba(76, 175, 80, 0.15);
-  border: 1px solid rgba(76, 175, 80, 0.3);
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
+  padding: 12px 16px;
+  background: #2d4a2b;
+  border-radius: 8px;
+  border: 1px solid #22c55e20;
 }
+
 .header .grace-info .grace-icon {
-  font-size: 1.5rem;
-  margin-bottom: 8px;
+  font-size: 1.25rem;
   display: block;
 }
+
 .header .grace-info .grace-count {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #66bb6a;
-  margin: 0 0 4px 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #4ade80;
+  margin: 4px 0;
 }
+
 .header .grace-info .grace-label {
-  font-size: 0.85rem;
-  color: #a5d6a7;
-  margin: 0;
+  font-size: 0.75rem;
+  color: #86efac;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-@keyframes floatBackground {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(180deg); }
-}
 
 /* ===================================
-   WEEKLY HABIT SUMMARY SECTION (Formerly Weekly Overview)
+   WEEKLY HABIT SUMMARY
    =================================== */
-
 .weekly-overview {
-  /* This container is now just for the habit summary */
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
-.weekly-overview .progress-card {
-  /* Hiding the old progress card as it's now in the main header */
-  display: none;
-}
+
 .weekly-overview .habit-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 10px;
-  margin-top: 0; /* Removed top margin */
-  padding: 20px;
-  background: rgba(20, 20, 40, 0.6);
-  border-radius: 15px;
-  border: 1px solid rgba(100, 181, 246, 0.3);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  padding: 16px;
+  background: #2a2b3d;  /* Same as header */
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
+
 .weekly-overview .habit-summary .habit-progress {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-}
-.weekly-overview .habit-summary .habit-progress.on-track {
-  border-left: 3px solid #4caf50;
-}
-.weekly-overview .habit-summary .habit-progress.behind {
-  border-left: 3px solid #f44336;
-}
-.weekly-overview .habit-summary .habit-progress .habit-name {
-  font-size: 0.9rem;
-  color: #ccc;
-}
-.weekly-overview .habit-summary .habit-progress .habit-count {
-  font-weight: bold;
-  color: #fff;
+  background: transparent;  /* No background - blends with parent */
+  border-radius: 6px;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #35364a;  /* Just a subtle separator */
 }
 
+.weekly-overview .habit-summary .habit-progress.on-track {
+  border-left: 2px solid #4ade80;
+}
+
+.weekly-overview .habit-summary .habit-progress.behind {
+  border-left: 2px solid #ef4444;
+}
+
+.weekly-overview .habit-summary .habit-progress .habit-name {
+  color: #8b8fa3;
+}
+
+.weekly-overview .habit-summary .habit-progress .habit-count {
+  font-weight: 600;
+  color: #d1d3db;
+}
 
 /* ===================================
    WEEKLY CALENDAR GRID
    =================================== */
-
 .weekly-calendar {
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
+
 .weekly-calendar .calendar-week {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 10px;
+  gap: 8px;
 }
+
 .weekly-calendar .calendar-week .calendar-day {
-  background: rgba(20, 20, 40, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 15px;
+  background: #2a2b3d;  /* Base section color */
+  border: 1px solid #35364a;
+  border-radius: 8px;
+  padding: 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  min-height: 120px;
+  transition: all 0.2s ease;
+  min-height: 110px;
+  position: relative;
 }
-.weekly-calendar .calendar-week .calendar-day:hover {
-  border-color: rgba(100, 181, 246, 0.3);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-.weekly-calendar .calendar-week .calendar-day.today {
-  border: 2px solid #2196f3;
-  background: linear-gradient(135deg, rgba(33, 150, 243, 0.2), rgba(33, 150, 243, 0.1));
-  box-shadow: 0 0 20px rgba(33, 150, 243, 0.3);
-}
+
+/* Completed days - orange/bronze highlight */
 .weekly-calendar .calendar-week .calendar-day.completed {
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.1));
-  border-color: #4caf50;
+  background: linear-gradient(135deg, #744210, #5a3410);
+  border: 1.5px solid #b8860b;
+  box-shadow: 0 2px 8px rgba(184, 134, 11, 0.2);
 }
+
+/* Partially completed days */
 .weekly-calendar .calendar-week .calendar-day.partial {
-  background: linear-gradient(135deg, rgba(255, 152, 0, 0.3), rgba(255, 152, 0, 0.1));
-  border-color: #ff9800;
+  background: linear-gradient(135deg, #4a3810, #3a2810);
+  border: 1.5px solid #806515;
 }
+
+/* Today highlight */
+.weekly-calendar .calendar-week .calendar-day.today {
+  border: 2px solid #5865f2;
+  box-shadow: 0 0 12px rgba(88, 101, 242, 0.3);
+}
+
+/* Future days - more transparent */
 .weekly-calendar .calendar-week .calendar-day.future {
-  opacity: 0.6;
-  cursor: default;
+  opacity: 0.5;
+  background: #1f2028;
+  border-color: #2a2b3d;
 }
+
+.weekly-calendar .calendar-week .calendar-day:hover:not(.future) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
 .weekly-calendar .calendar-week .calendar-day .day-header {
   text-align: center;
   margin-bottom: 10px;
 }
+
 .weekly-calendar .calendar-week .calendar-day .day-header .day-name {
-  font-size: 0.8rem;
-  color: #64b5f6;
-  margin-bottom: 5px;
+  font-size: 0.75rem;
+  color: #8b8fa3;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
+
 .weekly-calendar .calendar-week .calendar-day .day-header .day-number {
   font-size: 1.5rem;
-  font-weight: bold;
-  color: #fff;
+  font-weight: 600;
+  color: #e5e7eb;
 }
+
+/* Completion status icon */
 .weekly-calendar .calendar-week .calendar-day .day-content .completion-status {
   text-align: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
-.weekly-calendar .calendar-week .calendar-day .day-content .completion-status .status-icon.incomplete {
-  color: #666;
+
+.weekly-calendar .calendar-week .calendar-day .day-content .completion-status .status-icon {
+  font-size: 1.25rem;
 }
-.weekly-calendar .calendar-week .calendar-day .day-content .completion-status .status-icon.partial {
-  color: #ff9800;
+
+.weekly-calendar .calendar-week .calendar-day.completed .status-icon {
+  color: #f59e0b;
 }
-.weekly-calendar .calendar-week .calendar-day .day-content .completion-status .status-icon:not(.incomplete):not(.partial) {
-  color: #4caf50;
+
+.weekly-calendar .calendar-week .calendar-day.partial .status-icon {
+  color: #d97706;
 }
+
+.weekly-calendar .calendar-week .calendar-day.future .status-icon,
+.weekly-calendar .calendar-week .calendar-day:not(.completed):not(.partial) .status-icon {
+  color: #ef4444;
+}
+
+/* Progress indicator bar */
+.weekly-calendar .calendar-week .calendar-day .day-content .progress-indicator {
+  margin-top: auto;
+}
+
 .weekly-calendar .calendar-week .calendar-day .day-content .progress-indicator .progress-bar {
   width: 100%;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
   overflow: hidden;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
+
 .weekly-calendar .calendar-week .calendar-day .day-content .progress-indicator .progress-bar .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #64b5f6, #42a5f5);
+  background: #f59e0b;
   transition: width 0.3s ease;
+  border-radius: 3px;
 }
+
+.weekly-calendar .calendar-week .calendar-day.partial .progress-bar .progress-fill {
+  background: #d97706;
+}
+
+.weekly-calendar .calendar-week .calendar-day:not(.completed):not(.partial) .progress-bar .progress-fill {
+  background: #6b7280;
+}
+
 .weekly-calendar .calendar-week .calendar-day .day-content .progress-indicator .progress-text {
   text-align: center;
-  font-size: 0.7rem;
-  color: #aaa;
+  font-size: 0.75rem;
+  color: #d1d3db;
+  font-weight: 500;
 }
 
 /* ===================================
-   IMPROVED SMART SCHEDULE SECTION
+   SMART SCHEDULE SECTION - Compact Design
    =================================== */
-
 .smart-schedule {
-  background: rgba(20, 20, 40, 0.8);
-  border-radius: 16px;
-  padding: 24px;
-  margin-bottom: 30px;
-  border: 1px solid rgba(100, 181, 246, 0.2);
-  backdrop-filter: blur(10px);
+  background: #2a2b3d;  /* Section color matching header */
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
+
 .smart-schedule .schedule-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-.smart-schedule .schedule-header .header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  flex: 1;
-  min-width: 0;
-}
-.smart-schedule .schedule-header .header-left h2 {
-  color: #64b5f6;
-  margin: 0;
-  font-size: 1.6rem;
-  font-weight: 600;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-.smart-schedule .schedule-header .header-left .inline-stats {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
   align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #4a4d66;
 }
-.smart-schedule .schedule-header .add-quick-task-btn {
+
+.smart-schedule .schedule-header .schedule-title {
+  color: #8b8fa3;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
   display: flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(135deg, #4caf50, #66bb6a);
-  color: white;
+}
+
+.smart-schedule .schedule-header .schedule-title .today-label {
+  color: #d1d3db;
+  font-weight: 400;
+}
+
+.smart-schedule .schedule-header .add-quick-task-btn {
+  width: 24px;
+  height: 24px;
   border: none;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
-  flex-shrink: 0;
-  align-self: flex-start;
-}
-.smart-schedule .schedule-header .add-quick-task-btn .plus-icon {
-  font-size: 1.2rem;
-  font-weight: bold;
-}
-.smart-schedule .schedule-header .add-quick-task-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4);
-  background: linear-gradient(135deg, #45a049, #5cb85c);
-}
-.smart-schedule .schedule-header .add-quick-task-btn:active {
-  transform: translateY(0);
-}
-
-
-/* ===================================
-   INLINE STAT CHIPS
-   =================================== */
-
-.stat-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  border: 1px solid transparent;
-  backdrop-filter: blur(5px);
-  transition: all 0.3s ease;
-}
-.stat-chip .stat-value {
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-.stat-chip .stat-label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  opacity: 0.9;
-}
-.stat-chip.required {
-  background: rgba(33, 150, 243, 0.15);
-  color: #64b5f6;
-  border-color: rgba(33, 150, 243, 0.3);
-}
-.stat-chip.required:hover {
-  background: rgba(33, 150, 243, 0.25);
-  border-color: rgba(33, 150, 243, 0.5);
-}
-.stat-chip.optional {
-  background: rgba(156, 39, 176, 0.15);
-  color: #ba68c8;
-  border-color: rgba(156, 39, 176, 0.3);
-}
-.stat-chip.optional:hover {
-  background: rgba(156, 39, 176, 0.25);
-  border-color: rgba(156, 39, 176, 0.5);
-}
-.stat-chip.grace {
-  background: rgba(76, 175, 80, 0.15);
-  color: #66bb6a;
-  border-color: rgba(76, 175, 80, 0.3);
-  animation: gracePulse 2s ease-in-out infinite;
-}
-.stat-chip.grace .stat-value {
-  font-size: 1rem;
-}
-.stat-chip.grace:hover {
-  background: rgba(76, 175, 80, 0.25);
-  border-color: rgba(76, 175, 80, 0.5);
-}
-
-
-/* ===================================
-   COMPACT TASK GRID
-   =================================== */
-
-.task-grid {
-  display: grid;
-  gap: 12px;
-}
-.task-grid .task-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 16px;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-.task-grid .task-card::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
+  border-radius: 4px;
   background: transparent;
-  transition: all 0.3s ease;
+  color: #8b8fa3;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
 }
-.task-grid .task-card:hover:not(.locked) {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(100, 181, 246, 0.3);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-.task-grid .task-card.completed {
-  background: rgba(76, 175, 80, 0.08);
-  border-color: rgba(76, 175, 80, 0.3);
-}
-.task-grid .task-card.completed::before {
-  background: #4caf50;
-}
-.task-grid .task-card.completed .task-name {
-  opacity: 0.7;
-}
-.task-grid .task-card.urgent::before {
-  background: #ff9800;
-}
-.task-grid .task-card.urgent .task-card {
-  border-color: rgba(255, 152, 0, 0.3);
-}
-.task-grid .task-card.overdue::before {
-  background: #f44336;
-}
-.task-grid .task-card.overdue {
-  border-color: rgba(244, 67, 54, 0.3);
-  animation: subtlePulse 2s ease-in-out infinite;
-}
-.task-grid .task-card.ad-hoc::before {
-  background: #9c27b0;
-}
-.task-grid .task-card.ad-hoc {
-  border-color: rgba(156, 39, 176, 0.3);
-}
-.task-grid .task-card.locked {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.task-grid .task-card.locked .task-content {
-  cursor: not-allowed;
+
+.smart-schedule .schedule-header .add-quick-task-btn:hover {
+  background: #4a4d66;
+  color: #d1d3db;
 }
 
 /* ===================================
-   TASK CHECKBOX STYLING
+   COMPACT TASK LIST
    =================================== */
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
 
+.task-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: transparent;  /* No background - blends with section */
+  transition: all 0.2s ease;
+  position: relative;
+  min-height: 40px;
+  border-bottom: 1px solid #35364a;  /* Subtle separator between tasks */
+  margin-bottom: 0;
+}
+
+.task-row:last-child {
+  border-bottom: none;  /* No border on last item */
+}
+
+.task-row:hover {
+  background: rgba(255, 255, 255, 0.02);  /* Very subtle hover effect */
+}
+
+.task-row.completed {
+  opacity: 0.6;
+}
+
+.task-row.completed .task-name {
+  text-decoration: line-through;
+  color: #6b6f80;
+}
+
+/* ===================================
+   MODERN CHECKBOX STYLING
+   =================================== */
 .task-checkbox {
   position: relative;
   flex-shrink: 0;
 }
+
 .task-checkbox input[type="checkbox"] {
   position: absolute;
   opacity: 0;
@@ -486,341 +397,407 @@
   height: 0;
   width: 0;
 }
-.task-checkbox input[type="checkbox"]:checked ~ .checkmark {
-  background: linear-gradient(135deg, #4caf50, #66bb6a);
-  border-color: #4caf50;
-}
-.task-checkbox input[type="checkbox"]:checked ~ .checkmark::after {
+
+.task-checkbox .checkbox-label {
   display: block;
-}
-.task-checkbox input[type="checkbox"]:disabled ~ .checkmark {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.task-checkbox .checkmark {
-  display: block;
-  width: 24px;
-  height: 24px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 6px;
+  width: 18px;
+  height: 18px;
+  background: transparent;
+  border: 1.5px solid #4a4d66;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.3s ease;
   position: relative;
-}
-.task-checkbox .checkmark:hover {
-  border-color: rgba(100, 181, 246, 0.6);
-  background: rgba(100, 181, 246, 0.1);
-}
-.task-checkbox .checkmark::after {
-  content: '';
-  position: absolute;
-  display: none;
-  left: 7px;
-  top: 3px;
-  width: 6px;
-  height: 12px;
-  border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+  transition: all 0.2s ease;
 }
 
+.task-checkbox input[type="checkbox"]:checked ~ .checkbox-label {
+  background: #5865f2;
+  border-color: #5865f2;
+}
+
+.task-checkbox .checkbox-label:hover {
+  border-color: #5865f2;
+}
+
+.task-checkbox .checkmark-svg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 12px;
+  height: 10px;
+  stroke: white;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.task-checkbox input[type="checkbox"]:checked ~ .checkbox-label .checkmark-svg {
+  opacity: 1;
+}
 
 /* ===================================
-   TASK CONTENT
+   TASK CONTENT - Compact
    =================================== */
-
 .task-content {
   flex: 1;
-  cursor: default;
-  min-width: 0; /* Allows text truncation */
-}
-.task-content .task-main {
+  min-width: 0;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
-  margin-bottom: 6px;
 }
-.task-content .task-main .task-name {
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 500;
+
+.task-content .task-name {
+  color: #d1d3db;
+  font-size: 0.875rem;
+  font-weight: 400;
   margin: 0;
-  line-height: 1.4;
   flex: 1;
   min-width: 0;
-}
-.task-content .task-main .task-name.completed-text {
-  text-decoration: line-through;
-  opacity: 0.7;
-}
-.task-content .task-main .task-badges {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  align-items: center;
-  flex-shrink: 0;
-}
-.task-content .task-description {
-  color: #bbb;
-  font-size: 0.85rem;
-  margin: 0 0 8px 0;
-  line-height: 1.3;
-  opacity: 0.8;
-}
-.task-content .time-remaining {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(255, 193, 7, 0.2);
-  color: #ffc107;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-.task-content .time-remaining.urgent {
-  background: rgba(255, 152, 0, 0.2);
-  color: #ff9800;
-}
-.task-content .time-remaining.critical {
-  background: rgba(244, 67, 54, 0.2);
-  color: #f44336;
-  animation: subtlePulse 1.5s ease-in-out infinite;
-}
-
-
-/* ===================================
-   BADGE STYLES
-   =================================== */
-
-.badge {
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
-.badge.required {
-  background: rgba(33, 150, 243, 0.2);
-  color: #64b5f6;
-  border: 1px solid rgba(33, 150, 243, 0.3);
-}
-.badge.deadline {
-    background: rgba(244, 67, 54, 0.2);
-    color: #ef5350;
-    border: 1px solid rgba(244, 67, 54, 0.3);
-}
-.badge.time-remaining {
-    background: rgba(255, 152, 0, 0.2);
-    color: #ffb74d;
-    border: 1px solid rgba(255, 152, 0, 0.3);
-}
-.badge.ad-hoc {
-  background: rgba(156, 39, 176, 0.2);
-  color: #ba68c8;
-  border: 1px solid rgba(156, 39, 176, 0.3);
-}
-.badge.priority.urgent {
-  background: rgba(255, 152, 0, 0.2);
-  color: #ffb74d;
-  border: 1px solid rgba(255, 152, 0, 0.3);
-}
-.badge.priority.critical {
-  background: rgba(244, 67, 54, 0.2);
-  color: #ef5350;
-  border: 1px solid rgba(244, 67, 54, 0.3);
-  animation: badgePulse 2s ease-in-out infinite;
-}
-.badge.overdue {
-  background: rgba(244, 67, 54, 0.3);
-  color: #ffcdd2;
-  border: 1px solid rgba(244, 67, 54, 0.5);
-}
 
-
-/* ===================================
-   TASK ACTIONS
-   =================================== */
-
-.task-actions {
+.task-content .task-meta {
   display: flex;
   gap: 8px;
+  align-items: center;
   flex-shrink: 0;
 }
+
+.task-content .task-priority {
+  font-size: 0.75rem;
+  color: #8b8fa3;
+  padding: 2px 6px;
+  background: #4a4d66;
+  border-radius: 4px;
+}
+
+.task-content .task-priority.urgent {
+  color: #fbbf24;
+  background: #78350f20;
+}
+
+.task-content .task-priority.critical {
+  color: #ef4444;
+  background: #7f1d1d20;
+}
+
+.task-content .task-time {
+  font-size: 0.75rem;
+  color: #8b8fa3;
+}
+
+.task-content .task-time.time-critical {
+  color: #ef4444;
+}
+
+/* ===================================
+   TASK STATS - Milestone Style
+   =================================== */
+.task-stats {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.task-stats .task-milestone {
+  font-size: 0.75rem;
+  color: #8b8fa3;
+  font-weight: 500;
+  padding: 2px 8px;
+  background: #1a1b26;  /* Main bg color */
+  border-radius: 4px;
+  border: 1px solid #35364a;
+}
+
+/* ===================================
+   TASK ACTIONS - Minimal Buttons
+   =================================== */
+.task-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .task-actions .action-btn {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border: none;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #ccc;
+  border-radius: 4px;
+  background: transparent;
+  color: #6b6f80;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
-}
-.task-actions .action-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-  transform: translateY(-1px);
-}
-.task-actions .action-btn.defer-btn:hover {
-  background: rgba(255, 152, 0, 0.3);
-  color: #ff9800;
-}
-.task-actions .action-btn.edit-btn:hover {
-  background: rgba(156, 39, 176, 0.3);
-  color: #ba68c8;
+  padding: 0;
 }
 
+.task-actions .action-btn:hover {
+  background: #4a4d66;
+  color: #d1d3db;
+}
+
+.task-actions .action-btn:disabled,
+.task-actions .action-btn.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.task-actions .action-btn svg {
+  fill: currentColor;
+}
 
 /* ===================================
    NO TASKS STATE
    =================================== */
-
 .no-tasks {
   text-align: center;
-  padding: 40px 20px;
-  color: #aaa;
+  padding: 32px 20px;
+  color: #8b8fa3;
 }
+
 .no-tasks .no-tasks-icon {
-  font-size: 3rem;
-  margin-bottom: 16px;
+  font-size: 2.5rem;
+  margin-bottom: 12px;
 }
+
 .no-tasks h3 {
-  color: #64b5f6;
+  color: #d1d3db;
   margin: 0 0 8px 0;
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
+
 .no-tasks p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   opacity: 0.8;
 }
 
 /* ===================================
-   DAY SUMMARY
+   MODAL STYLES
    =================================== */
-
-.day-summary {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-.day-summary .summary-stats {
-  display: flex;
-  justify-content: center;
-  gap: 24px;
-  flex-wrap: wrap;
-}
-.day-summary .summary-stats .stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-.day-summary .summary-stats .stat-item .stat-value {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #64b5f6;
-}
-.day-summary .summary-stats .stat-item .stat-value.grace-available {
-  font-size: 1.3rem;
-  color: #4caf50;
-}
-.day-summary .summary-stats .stat-item .stat-label {
-  font-size: 0.8rem;
-  color: #aaa;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-
-/* ===================================
-   RECOMMENDATIONS
-   =================================== */
-
-.recommendations {
-  margin-top: 20px;
-  padding: 16px;
-  background: rgba(33, 150, 243, 0.1);
-  border-radius: 8px;
-  border-left: 4px solid #2196f3;
-}
-.recommendations h4 {
-  color: #64b5f6;
-  margin: 0 0 12px 0;
-  font-size: 1rem;
-  font-weight: 600;
-}
-.recommendations .recommendation-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.recommendations .recommendation-list .recommendation-item {
-  color: #e3f2fd;
-  font-size: 0.9rem;
-  line-height: 1.4;
-  margin-bottom: 8px;
-  padding-left: 16px;
-  position: relative;
-}
-.recommendations .recommendation-list .recommendation-item::before {
-  content: '→';
-  position: absolute;
+.modal-overlay {
+  position: fixed;
+  top: 0;
   left: 0;
-  color: #64b5f6;
-  font-weight: bold;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
 }
-.recommendations .recommendation-list .recommendation-item:last-child {
+
+.modal-content {
+  background: #2a2b3d;  /* Section color */
+  border-radius: 12px;
+  width: 90%;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #35364a;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #d1d3db;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.modal-header .close-btn {
+  background: transparent;
+  border: none;
+  color: #8b8fa3;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.modal-header .close-btn:hover {
+  background: #4a4d66;
+  color: #d1d3db;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group:last-child {
   margin-bottom: 0;
 }
 
+.form-group label {
+  display: block;
+  color: #8b8fa3;
+  font-size: 0.875rem;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.form-input,
+.form-textarea {
+  width: 100%;
+  background: #1a1b26;  /* Main bg color for inputs */
+  border: 1px solid #35364a;
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #d1d3db;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #5865f2;
+  background: #22232f;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.error-message {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: #7f1d1d20;
+  border-radius: 6px;
+  border-left: 3px solid #ef4444;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #4a4d66;
+}
+
+.cancel-btn,
+.save-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.cancel-btn {
+  background: transparent;
+  color: #8b8fa3;
+  border: 1px solid #4a4d66;
+}
+
+.cancel-btn:hover {
+  background: #4a4d66;
+  color: #d1d3db;
+}
+
+.save-btn {
+  background: #5865f2;
+  color: white;
+}
+
+.save-btn:hover {
+  background: #4752c4;
+}
+
+.save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===================================
+   LOADING & ERROR STATES
+   =================================== */
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: 48px 20px;
+  background: #2a2b3d;  /* Section color */
+  border-radius: 12px;
+  margin: 20px 0;
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3px solid #4a4d66;
+  border-top-color: #5865f2;
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  animation: spin 1s linear infinite;
+}
+
+.error-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.error-state h3 {
+  color: #d1d3db;
+  margin: 0 0 8px 0;
+  font-size: 1.125rem;
+}
+
+.error-state p {
+  color: #8b8fa3;
+  margin: 0 0 20px 0;
+  font-size: 0.875rem;
+}
+
+.retry-button {
+  background: #5865f2;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-button:hover {
+  background: #4752c4;
+}
 
 /* ===================================
    ANIMATIONS
    =================================== */
-
-@keyframes warningPulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.02);
-  }
-}
-
-@keyframes criticalPulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
-  }
-  50% {
-    opacity: 0.9;
-    transform: scale(1.03);
-    box-shadow: 0 0 0 4px rgba(220, 53, 69, 0);
-  }
-}
-
-@keyframes badgePulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
 @keyframes spin {
   0% {
     transform: rotate(0deg);
@@ -830,79 +807,91 @@
   }
 }
 
+@keyframes subtlePulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes gracePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
 /* ===================================
    RESPONSIVE DESIGN
    =================================== */
-
 @media (max-width: 768px) {
   .calendar-container {
-    padding: 15px;
+    padding: 12px;
   }
-  .header .title {
-    font-size: 2rem;
-  }
+
   .weekly-calendar .calendar-week {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: 6px;
   }
+
   .calendar-day {
     min-height: auto !important;
   }
+
   .smart-schedule {
-    padding: 16px;
+    padding: 12px;
   }
-  .smart-schedule .schedule-header {
-    flex-direction: column;
-    align-items: stretch;
+
+  .task-row {
+    padding: 8px;
   }
-  .smart-schedule .schedule-header h2 {
-    text-align: center;
-    margin-bottom: 12px;
+
+  .task-content {
+    flex-wrap: wrap;
   }
-  .smart-schedule .schedule-header .add-quick-task-btn {
-    align-self: center;
+
+  .task-content .task-name {
+    flex-basis: 100%;
+    margin-bottom: 4px;
   }
-  .task-card {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
+
+  .habit-summary {
+    grid-template-columns: 1fr;
   }
-  .task-card .task-content .task-main {
-    flex-direction: column;
-    gap: 8px;
-  }
-  .task-card .task-content .task-main .task-badges {
-    justify-content: flex-start;
-  }
-  .task-card .task-actions {
-    align-self: flex-end;
-  }
-  .summary-stats {
-    gap: 16px;
+
+  .modal-content {
+    width: 95%;
+    margin: 10px;
   }
 }
 
 @media (max-width: 480px) {
   .calendar-container {
-    padding: 10px;
+    padding: 8px;
   }
-  .header .title {
-    font-size: 1.8rem;
+
+  .header {
+    padding: 16px;
   }
-  .task-card {
-    padding: 12px;
+
+  .task-row {
+    flex-wrap: wrap;
+    gap: 8px;
   }
-  .badge {
-    font-size: 0.65rem;
-    padding: 2px 6px;
+
+  .task-stats,
+  .task-actions {
+    margin-left: 30px;
   }
 }
-
 
 /* ===================================
    ACCESSIBILITY IMPROVEMENTS
    =================================== */
-
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
@@ -912,9 +901,9 @@
 }
 
 /* Focus styles for better accessibility */
-input[type="checkbox"]:focus,
-button:focus {
-  outline: 2px solid #64b5f6;
+input[type="checkbox"]:focus-visible ~ .checkbox-label,
+button:focus-visible {
+  outline: 2px solid #5865f2;
   outline-offset: 2px;
 }
 
@@ -924,7 +913,41 @@ button:focus {
     background: #000;
     color: #fff;
   }
+
+  .smart-schedule,
+  .header,
+  .weekly-overview .habit-summary,
   .calendar-day {
-    border-width: 2px;
+    background: #111;
+    border-color: #fff;
   }
+
+  .task-row {
+    background: #222;
+  }
+
+  .task-row:hover {
+    background: #333;
+  }
+}
+
+/* ===================================
+   SCROLLBAR STYLING
+   =================================== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #2b2d42;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4a4d66;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5865f2;
 }
