@@ -32,12 +32,16 @@
   <div class="weekly-overview" *ngIf="weeklyProgress">
     <div class="habit-summary">
       <div *ngFor="let habit of calculateWeeklyHabitProgress()"
-           class="habit-progress"
-           [class.on-track]="habit.percentage >= 50"
-           [class.behind]="habit.percentage < 50">
+          class="habit-progress"
+          [class.status-unachievable]="!habit.isAchievable && habit.percentage < 100"
+          [class.status-completed]="habit.percentage === 100"
+          [class.status-in-progress]="habit.isAchievable && habit.percentage > 0 && habit.percentage < 100"
+          [class.status-not-started]="habit.isAchievable && habit.percentage === 0">
         <span class="habit-name">{{ habit.habitName }}</span>
-        <span class="habit-count">{{ habit.completed }}/{{ habit.total }}</span>
-        <span class="habit-percentage">({{ habit.percentage }}%)</span>
+        <div class="habit-stats">
+          <span class="habit-count">{{ habit.completed }}/{{ habit.total }}</span>
+          <span class="habit-percentage">({{ habit.percentage }}%)</span>
+        </div>
       </div>
     </div>
   </div>
@@ -46,13 +50,13 @@
   <div class="weekly-calendar" *ngIf="currentWeekDays && currentWeekDays.length > 0">
     <div class="calendar-week">
       <div *ngFor="let day of currentWeekDays" 
-           class="calendar-day"
-           [class.completed]="day.isCompleted"
-           [class.partial]="day.isPartiallyCompleted && !day.isCompleted"
-           [class.today]="isToday(day.date)"
-           [class.previous-day]="!isToday(day.date)"
-           [class.future]="isFuture(day.date)"
-           (click)="openDayDetail(day)">
+          class="calendar-day"
+          [class.completed]="day.isCompleted"
+          [class.partial]="day.isPartiallyCompleted && !day.isCompleted && isToday(day.date)"
+          [class.today]="isToday(day.date)"
+          [class.future]="isFuture(day.date)"
+          [class.failed]="!isToday(day.date) && !isFuture(day.date) && !day.isCompleted"
+          (click)="openDayDetail(day)">
         
         <div class="day-header">
           <div class="day-name">{{ getDayName(day.date) }}</div>
@@ -64,7 +68,7 @@
             <span class="status-icon" 
                   [class.incomplete]="!day.isCompleted && !day.isPartiallyCompleted"
                   [class.partial]="day.isPartiallyCompleted && !day.isCompleted">
-              {{ getCompletionIcon(day) }}
+            {{ getCompletionIcon(day) }}
             </span>
           </div>
 
@@ -133,13 +137,18 @@
           
           <!-- Task Meta Info -->
           <div class="task-meta">
+            <span *ngIf="habit.isMustDo && !habit.isCompleted" class="task-must-do">
+              Must
+            </span>
+
             <span *ngIf="habit.priority && habit.priority !== 'Normal'" 
                   class="task-priority"
                   [class.critical]="habit.priority === 'Critical'"
-                  [class.urgent]="habit.priority === 'Urgent'">
+                  [class.urgent]="habit.priority === 'Urgent'"
+                  [class.required]="habit.priority === 'Required'">
               {{ habit.priority }}
             </span>
-            
+
             <span *ngIf="habit.hasDeadline && habit.timeRemaining && !habit.isCompleted" 
                   class="task-time"
                   [class.time-critical]="getUrgencyLevel(habit.timeRemaining) === 'critical'">
@@ -152,13 +161,13 @@
         <div class="task-actions">
           <button 
             *ngIf="!isDailyHabit(habit) && !habit.isCompleted" 
-            class="action-btn"
+            class="action-btn move-btn"
             [class.disabled]="!canActuallyMoveHabit(habit)"
             (click)="moveTaskToTomorrow(habit)"
             [disabled]="habit.isCompleted || !canActuallyMoveHabit(habit)"
             [title]="getMoveButtonTooltip(habit)">
-            <svg viewBox="0 0 20 20" width="16" height="16">
-              <path d="M10.707 7.293l3 3a1 1 0 0 1-1.414 1.414L10 9.414l-2.293 2.293a1 1 0 0 1-1.414-1.414l3-3a1 1 0 0 1 1.414 0z"/>
+            <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="16" height="16">
+              <path d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
             </svg>
           </button>
           

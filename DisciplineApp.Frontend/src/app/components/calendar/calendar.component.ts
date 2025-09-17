@@ -158,14 +158,38 @@ loadCurrentWeekData(): void {
         new Date(day.date).toDateString() === today.toDateString()
       ) || null;
 
-      // 🔍 DEBUG: Log today's data specifically
-      console.log('📅 Today\'s data:', this.todayData);
-      console.log('📋 Today\'s habits:', this.todayData?.allHabits);
-      console.log('📊 Today\'s totals:', {
-        total: this.todayData?.totalHabits,
-        completed: this.todayData?.completedHabits,
-        required: this.todayData?.requiredHabitsCount
-      });
+      // ==========================================================
+      // ✨ LOGIC TO CALCULATE "MUST DO" STATUS
+      // ==========================================================
+      if (this.todayData && this.todayData.allHabits) {
+        // 1. Calculate weekly progress stats for all habits
+        const habitStats = new Map<string, {completed: number, total: number}>();
+        this.currentWeekDays.forEach(day => {
+          day.allHabits?.forEach(habit => {
+            if (habit.isAdHoc) return;
+            const stats = habitStats.get(habit.name) || {completed: 0, total: 0};
+            stats.total += 1;
+            if (habit.isCompleted) stats.completed += 1;
+            habitStats.set(habit.name, stats);
+          });
+        });
+
+        // 2. Calculate days remaining in the week
+        const daysRemaining = this.currentWeekDays.filter(d => this.isToday(d.date) || this.isFuture(d.date)).length;
+
+        // 3. Loop through TODAY's tasks and set the isMustDo flag
+        this.todayData.allHabits.forEach(habit => {
+          const stats = habitStats.get(habit.name);
+          if (stats) {
+            const remainingTasks = stats.total - stats.completed;
+            // A task is a "MUST" if remaining tasks equal remaining days, and there's still work to do
+            habit.isMustDo = (remainingTasks === daysRemaining && remainingTasks > 0);
+          }
+        });
+      }
+      // ==========================================================
+      
+      console.log('📅 Today\'s data (with MUST DO):', this.todayData);
 
       this.loading = false;
     },
@@ -774,12 +798,20 @@ cancelEditTask(): void {
     return this.currentWeekDays.some(day => this.isToday(day.date));
   }
 
-  getCompletionIcon(day: DayData): string {
-    if (day.isCompleted) return '✅';
-    if (day.isPartiallyCompleted) return '🔶';
-    return '⭕';
+getCompletionIcon(day: DayData): string {
+  if (day.isCompleted) return '✅'; // Always show check for completed days
+
+  if (this.isFuture(day.date)) {
+    return '⚫'; // CHANGED: Solid dark circle for "not yet started"
   }
 
+  if (this.isToday(day.date)) {
+    return day.isPartiallyCompleted ? '◆' : '⚫'; // CHANGED: Solid diamond for in-progress
+  }
+  
+  // If none of the above, it's a past day that wasn't completed
+  return '❌'; // Failed
+}
 calculateWeekProgress(): number {
   if (!this.currentWeekDays) return 0;
   
@@ -801,43 +833,46 @@ calculateWeekProgress(): number {
     : 0;
 }
 
-calculateWeeklyHabitProgress(): {habitName: string, completed: number, total: number, percentage: number}[] {
-  if (!this.currentWeekDays) return [];
+calculateWeeklyHabitProgress(): {habitName: string, completed: number, total: number, percentage: number, isAchievable: boolean}[] {
+  if (!this.currentWeekDays || this.currentWeekDays.length === 0) return [];
   
   const habitStats = new Map<string, {completed: number, total: number}>();
   
   this.currentWeekDays.forEach(day => {
     if (day.allHabits) {
       day.allHabits.forEach(habit => {
-        // 🔥 SKIP AD-HOC TASKS - only count scheduled/default habits
         if (habit.isAdHoc) {
-          return; // Skip this habit entirely
+          return; 
         }
-        
         const habitName = habit.name;
-        
         if (!habitStats.has(habitName)) {
           habitStats.set(habitName, {completed: 0, total: 0});
         }
-        
         const stats = habitStats.get(habitName)!;
-        stats.total += 1; // This habit appears on this day
-        
-        // Only count as completed if it's not a future day
-        if (!day.isFuture && habit.isCompleted) {
+        stats.total += 1;
+        if (habit.isCompleted) { // We count all completions regardless of day for accuracy
           stats.completed += 1;
         }
       });
     }
   });
-  
-  // Convert to array and calculate percentages
-  return Array.from(habitStats.entries()).map(([habitName, stats]) => ({
-    habitName,
-    completed: stats.completed,
-    total: stats.total,
-    percentage: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
-  }));
+
+  // Calculate days remaining in the week (today + future days)
+  const daysRemaining = this.currentWeekDays.filter(d => this.isToday(d.date) || this.isFuture(d.date)).length;
+
+  // Convert to array, calculate percentages, and determine achievability
+  return Array.from(habitStats.entries()).map(([habitName, stats]) => {
+    const remainingTasks = stats.total - stats.completed;
+    const isAchievable = remainingTasks <= daysRemaining;
+
+    return {
+      habitName,
+      completed: stats.completed,
+      total: stats.total,
+      percentage: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0,
+      isAchievable: isAchievable
+    };
+  });
 }
 
   getCompletionPercentage(day: DayData): number {

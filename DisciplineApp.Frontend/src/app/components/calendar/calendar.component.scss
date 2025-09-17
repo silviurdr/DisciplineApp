@@ -36,7 +36,7 @@
 
 .header .week-info {
   color: #8b8fa3;
-  font-size: 0.875rem;
+  font-size: 1.3rem;
   font-weight: 500;
 }
 
@@ -64,7 +64,7 @@
 .header .week-progress .progress-header .progress-percentage {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #4ade80;
+  color: #69C28A;
   margin: 0;
 }
 
@@ -78,8 +78,11 @@
 
 .header .week-progress .progress-bar-container .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, #22c55e, #4ade80);
-  border-radius: 4px;
+  background: linear-gradient(
+  90deg,
+  #5cb87e, /* Darker shade of your green */
+  #77cc96  /* Lighter shade of your green */
+);  border-radius: 4px;
   transition: width 0.6s ease;
 }
 
@@ -105,7 +108,7 @@
 
 .header .grace-info .grace-label {
   font-size: 0.75rem;
-  color: #86efac;
+  color: #69C28A;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -120,30 +123,41 @@
 .weekly-overview .habit-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 8px;
+  gap: 12px; /* Increased gap for more separation */
   padding: 16px;
-  background: #2a2b3d;  /* Same as header */
+  background: #2a2b3d;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .weekly-overview .habit-summary .habit-progress {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background: transparent;  /* No background - blends with parent */
-  border-radius: 6px;
+  flex-direction: column;   /* Stack items vertically */
+  align-items: flex-start;  /* Align to the left */
+  gap: 4px;                 /* Add space between name and stats */
+  padding: 12px 16px;
+  background: #1f2028;
+  border-radius: 8px;
   font-size: 0.875rem;
-  border-bottom: 1px solid #35364a;  /* Just a subtle separator */
+  border: 1px solid #35364a;
+  transition: all 0.2s ease;
 }
 
-.weekly-overview .habit-summary .habit-progress.on-track {
-  border-left: 2px solid #4ade80;
+.weekly-overview .habit-summary .habit-progress:hover {
+    transform: translateY(-2px);
+    border-color: #4a4d66;
 }
 
-.weekly-overview .habit-summary .habit-progress.behind {
-  border-left: 2px solid #ef4444;
+.weekly-overview .habit-summary .habit-progress.status-completed {
+  border-left: 3px solid #69C28A; /* Green for 100% complete */
+}
+
+.weekly-overview .habit-summary .habit-progress.status-in-progress {
+  border-left: 3px solid #f59e0b; /* Orange for in-progress (e.g., 1% to 99%) */
+}
+
+.weekly-overview .habit-summary .habit-progress.status-not-started {
+  border-left: 3px solid #35364a; /* Dark grey for not started (0%) */
 }
 
 .weekly-overview .habit-summary .habit-progress .habit-name {
@@ -153,6 +167,29 @@
 .weekly-overview .habit-summary .habit-progress .habit-count {
   font-weight: 600;
   color: #d1d3db;
+}
+
+.weekly-overview .habit-summary .habit-progress.status-unachievable {
+  border-left: 3px solid #ef4444; /* Red for habits that can no longer be completed */
+}
+
+/* Make the habit name bolder, like a title */
+.weekly-overview .habit-summary .habit-progress .habit-name {
+  font-weight: 600;
+  color: #d1d3db;
+}
+
+/* New container for the stats */
+.weekly-overview .habit-summary .habit-progress .habit-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+
+/* Style for the percentage text */
+.weekly-overview .habit-summary .habit-progress .habit-percentage {
+  color: #8b8fa3;
 }
 
 /* ===================================
@@ -188,15 +225,16 @@
 
 /* Partially completed days */
 .weekly-calendar .calendar-week .calendar-day.partial {
-  background: linear-gradient(135deg, #4a3810, #3a2810);
   border: 1.5px solid #806515;
 }
 
-/* Today highlight */
+/* A more subtle "Today" highlight */
 .weekly-calendar .calendar-week .calendar-day.today {
-  border: 2px solid #5865f2;
-  box-shadow: 0 0 12px rgba(88, 101, 242, 0.3);
+  border: 1.5px solid rgba(88, 101, 242, 0.6); /* Thinner, semi-transparent border */
+  box-shadow: 0 0 8px rgba(88, 101, 242, 0.15); /* Softer glow */
+  background-color: rgba(88, 101, 242, 0.05); /* Adds a very faint background tint */
 }
+
 
 /* Future days - more transparent */
 .weekly-calendar .calendar-week .calendar-day.future {
@@ -236,7 +274,13 @@
 }
 
 .weekly-calendar .calendar-week .calendar-day .day-content .completion-status .status-icon {
-  font-size: 1.25rem;
+  font-size: 1.25rem; /* Base size, will be overridden */
+  display: inline-flex; /* Use flexbox for centering */
+  align-items: center;
+  justify-content: center;
+  width: 28px; /* Set a consistent width */
+  height: 28px; /* Set a consistent height */
+  line-height: 1; /* Helps with vertical alignment */
 }
 
 .weekly-calendar .calendar-week .calendar-day.completed .status-icon {
@@ -244,12 +288,12 @@
 }
 
 .weekly-calendar .calendar-week .calendar-day.partial .status-icon {
-  color: #d97706;
+  color: #D68D38;
 }
 
 .weekly-calendar .calendar-week .calendar-day.future .status-icon,
 .weekly-calendar .calendar-week .calendar-day:not(.completed):not(.partial) .status-icon {
-  color: #ef4444;
+  color: #6b6f80; /* A subtle, lighter grey shade */
 }
 
 /* Progress indicator bar */
@@ -268,17 +312,25 @@
 
 .weekly-calendar .calendar-week .calendar-day .day-content .progress-indicator .progress-bar .progress-fill {
   height: 100%;
-  background: #f59e0b;
+  background: #D68D38;
   transition: width 0.3s ease;
   border-radius: 3px;
 }
 
 .weekly-calendar .calendar-week .calendar-day.partial .progress-bar .progress-fill {
-  background: #d97706;
+  background: #d97706; /* Brighter orange to match the icon */
 }
 
 .weekly-calendar .calendar-week .calendar-day:not(.completed):not(.partial) .progress-bar .progress-fill {
   background: #6b7280;
+}
+
+.weekly-calendar .calendar-week .calendar-day.failed .progress-fill {
+  background: #991b1b; /* A deep, reddish color */
+}
+
+.weekly-calendar .calendar-week .calendar-day.failed .day-content .progress-indicator .progress-bar .progress-fill {
+  background: #ef4444; /* Brighter red to match the icon */
 }
 
 .weekly-calendar .calendar-week .calendar-day .day-content .progress-indicator .progress-text {
@@ -287,6 +339,13 @@
   color: #d1d3db;
   font-weight: 500;
 }
+
+.weekly-calendar .calendar-week .calendar-day.failed {
+  background: #1f2028;    /* Darker background to match future days */
+  border-color: #2a2b3d;  /* Darker border to match future days */
+  opacity: 0.5;           /* Lower opacity to match future days */
+}
+
 
 /* ===================================
    SMART SCHEDULE SECTION - Compact Design
@@ -496,6 +555,27 @@
   color: #ef4444;
 }
 
+.task-content .task-priority.required {
+  color: #c7b3ff; /* A lighter, more prominent purple */
+  background: rgba(88, 101, 242, 0.15); /* A semi-transparent version of the main accent color */
+  border: 1px solid rgba(88, 101, 242, 0.3);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 8px; /* Slightly more padding */
+}
+
+.task-content .task-must-do {
+  color: #fca5a5; /* Light red text */
+  background: rgba(239, 68, 68, 0.15); /* Reddish transparent background */
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  font-weight: 700;
+  font-size: 0.7rem;
+  padding: 3px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
 /* ===================================
    TASK STATS - Milestone Style
    =================================== */
@@ -522,6 +602,8 @@
   display: flex;
   gap: 4px;
   flex-shrink: 0;
+  justify-content: flex-end; /* Aligns buttons to the right */
+  min-width: 60px;           /* Reserves space for approx. 2 buttons */
 }
 
 .task-actions .action-btn {
@@ -552,6 +634,18 @@
 
 .task-actions .action-btn svg {
   fill: currentColor;
+}
+
+.task-actions .action-btn.move-btn {
+  background: #2a2b3d; /* Give it a subtle background */
+  border: 1px solid #4a4d66; /* Add a border to define its shape */
+  color: #a9adc1; /* Make the icon color brighter */
+}
+
+.task-actions .action-btn.move-btn:hover {
+  background: #4a4d66;
+  border-color: #5865f2; /* Highlight with accent color on hover */
+  color: #ffffff;
 }
 
 /* ===================================
@@ -599,7 +693,7 @@
 
 .modal-content {
   background: #2a2b3d;  /* Section color */
-  border-radius: 12px;
+  border-radius: 16px; /* Softer corners */
   width: 90%;
   max-width: 480px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
@@ -609,8 +703,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #35364a;
+  padding: 20px 24px; /* Slightly increase horizontal padding */
 }
 
 .modal-header h3 {
@@ -642,7 +735,7 @@
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 20px 24px;
 }
 
 .form-group {
@@ -655,15 +748,16 @@
 
 .form-group label {
   display: block;
-  color: #8b8fa3;
+  color: #a9adc1; /* Brighter label text */
   font-size: 0.875rem;
   margin-bottom: 8px;
-  font-weight: 500;
+  font-weight: 600; /* Bolder weight */
 }
 
 .form-input,
 .form-textarea {
   width: 100%;
+  box-sizing: border-box; /* This is the key fix */
   background: #1a1b26;  /* Main bg color for inputs */
   border: 1px solid #35364a;
   border-radius: 6px;
@@ -679,6 +773,7 @@
   outline: none;
   border-color: #5865f2;
   background: #22232f;
+  box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.2); /* Add glow effect */
 }
 
 .form-textarea {
@@ -700,8 +795,10 @@
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 16px 20px;
-  border-top: 1px solid #4a4d66;
+  padding: 20px 24px; /* Give buttons more breathing room */
+  background: #1f2028; /* Add a subtle darker background */
+  border-bottom-left-radius: 16px; /* Match new modal radius */
+  border-bottom-right-radius: 16px; /* Match new modal radius */
 }
 
 .cancel-btn,
@@ -838,6 +935,23 @@
     gap: 6px;
   }
 
+  .weekly-calendar .calendar-week .calendar-day.failed {
+  background: #2a2b3d; /* Use the base section color */
+  border-color: #4a2a2a; /* A subtle, dark red border */
+  opacity: 0.6; /* Make it more subtle than other days */
+}
+
+/* Make the text inside failed days less prominent */
+.weekly-calendar .calendar-week .calendar-day.failed .day-number,
+.weekly-calendar .calendar-week .calendar-day.failed .progress-text {
+  color: #8b8fa3;
+}
+
+/* Ensure the new fail icon is red */
+.weekly-calendar .calendar-week .calendar-day.failed .status-icon {
+  color: #ef4444;
+}
+
   .calendar-day {
     min-height: auto !important;
   }
@@ -951,3 +1065,5 @@ button:focus-visible {
 ::-webkit-scrollbar-thumb:hover {
   background: #5865f2;
 }
+
+

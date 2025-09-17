@@ -74,6 +74,7 @@ export interface ScheduledHabit {
   urgencyLevel: string;
   reason?: string;
   priority?: string;
+  isMustDo?: boolean;
   
   // Flexible task properties
   frequency?: string;
