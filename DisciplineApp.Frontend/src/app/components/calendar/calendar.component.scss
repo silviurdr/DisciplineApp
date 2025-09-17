@@ -535,6 +535,16 @@
   background: #4a4d66;
   border-radius: 4px;
 }
+.task-content .task-frequency {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #8b8fa3;
+  padding: 2px 8px;
+  background: #35364a;
+  border: 1px solid #4a4d66;
+  border-radius: 12px; /* This creates the pill shape */
+  white-space: nowrap; /* Prevents text from wrapping */
+}
 
 .task-content .task-priority.urgent {
   color: #fbbf24;
@@ -566,9 +576,9 @@
 }
 
 .task-content .task-must-do {
-  color: #fca5a5; /* Light red text */
-  background: rgba(239, 68, 68, 0.15); /* Reddish transparent background */
-  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #69C28A; /* Light red text */
+  background: #2d4a2b; /* Reddish transparent background */
+  border: 1px solid rgba(34, 197, 94, 0.1254901961);
   font-weight: 700;
   font-size: 0.7rem;
   padding: 3px 6px;

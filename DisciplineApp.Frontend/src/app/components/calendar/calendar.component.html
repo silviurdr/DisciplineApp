@@ -138,7 +138,7 @@
           <!-- Task Meta Info -->
           <div class="task-meta">
             <span *ngIf="habit.isMustDo && !habit.isCompleted" class="task-must-do">
-              Must
+              100 %
             </span>
 
             <span *ngIf="habit.priority && habit.priority !== 'Normal'" 
@@ -148,6 +148,10 @@
                   [class.required]="habit.priority === 'Required'">
               {{ habit.priority }}
             </span>
+
+            <span *ngIf="habit.frequency" class="task-frequency">
+                {{ habit.frequency }}
+              </span>
 
             <span *ngIf="habit.hasDeadline && habit.timeRemaining && !habit.isCompleted" 
                   class="task-time"
@@ -160,7 +164,7 @@
         <!-- Task Actions -->
         <div class="task-actions">
           <button 
-            *ngIf="!isDailyHabit(habit) && !habit.isCompleted" 
+            *ngIf="!isDailyHabit(habit) && !habit.isCompleted && !habit.isAdHoc" 
             class="action-btn move-btn"
             [class.disabled]="!canActuallyMoveHabit(habit)"
             (click)="moveTaskToTomorrow(habit)"
