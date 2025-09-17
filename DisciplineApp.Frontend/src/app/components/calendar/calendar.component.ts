@@ -75,11 +75,12 @@ import {
   DayData, 
   WeeklyProgress, 
   ScheduledHabit, 
-  HabitWithFlexibility 
+  HabitWithFlexibility, 
 } from '../../models/discipline.models';
+import { DaysLeftPipe } from '../../pipes/days-left-pipe';
 
 // Pipe for sorting habits
-import { Pipe, PipeTransform } from '@angular/core';
+import { Pipe, PipeTransform,  } from '@angular/core';
 
 @Pipe({
   name: 'sortCompleted',
@@ -103,7 +104,7 @@ export class SortCompletedPipe implements PipeTransform {
 @Component({
   selector: 'app-calendar',
   standalone: true,
-  imports: [CommonModule, FormsModule, SortCompletedPipe],
+  imports: [CommonModule, FormsModule, SortCompletedPipe, DaysLeftPipe],
   templateUrl: './calendar.component.html',
   styleUrls: ['./calendar.component.scss']
 })
@@ -124,6 +125,8 @@ export class CalendarComponent implements OnInit {
   editTaskName = '';
   editTaskDescription = '';
   errorMessage = '';
+  hasDeadline = false;
+  deadlineDate = '';
 
   constructor(
     private disciplineService: DisciplineService,
@@ -382,6 +385,11 @@ getMoveButtonTooltip(habit: ScheduledHabit): string {
   
   return `Move to next available date (${flexInfo.remainingDeferrals} moves left)`;
 }
+
+  getTodayDateString(): string {
+    return new Date().toISOString().split('T')[0];
+  }
+
 
   // ===================================
   // ACTION METHODS
@@ -683,7 +691,8 @@ addAdHocTask(): void {
   this.disciplineService.addAdHocTask({
     name: this.newTaskName.trim(),
     description: this.newTaskDescription.trim(),
-    date: today
+    date: today,
+    deadlineDate: this.hasDeadline ? this.deadlineDate : undefined  
   }).subscribe({
     next: (response) => {
       console.log('Ad-hoc task added successfully:', response);
@@ -731,12 +740,13 @@ saveEditedTask(): void {
   });
 }
 
-cancelAddTask(): void {
-  this.showAddTaskDialog = false;
-  this.newTaskName = '';
-  this.newTaskDescription = '';
-  this.errorMessage = '';
-}
+  cancelAddTask(): void {
+    this.showAddTaskDialog = false;
+    this.newTaskName = '';
+    this.newTaskDescription = '';
+    this.hasDeadline = false;
+    this.deadlineDate = '';
+  }
 
 cancelEditTask(): void {
   this.showEditTaskDialog = false;

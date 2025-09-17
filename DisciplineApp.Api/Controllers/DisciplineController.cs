@@ -186,6 +186,7 @@ public class DisciplineController : ControllerBase
                 canStillBeDeferred = false,
                 originalScheduledDate = (string)null,
                 currentDueDate = (string)null,
+                deadlineDate = adHoc.DeadlineDate,
 
                 // Ad-hoc properties
                 isAdHoc = true,
@@ -425,13 +426,19 @@ public class DisciplineController : ControllerBase
             var task = new AdHocTask
             {
                 Name = request.Name,
-                Description = request.Description ?? "",
-                Date = request.Date.Date,
-                IsCompleted = false,
-                Notes = ""
+                Description = request.Description,
+                Date = request.Date == default(DateTime) ? DateTime.Today : request.Date,
+                DeadlineDate = request.DeadlineDate, // NEW
+                CreatedAt = DateTime.UtcNow,
+                Notes = "Test"
             };
 
             _context.AdHocTasks.Add(task);
+            // Replace this line in AddAdHocTask method:
+            // Date = request.Date ?? DateTime.Today,
+
+            // With this fix:
+            
             await _context.SaveChangesAsync();
 
             // Return updated day status including the new ad-hoc task
@@ -516,7 +523,6 @@ public class DisciplineController : ControllerBase
 
             task.IsCompleted = request.IsCompleted;
             task.CompletedAt = request.IsCompleted ? DateTime.UtcNow : null;
-            task.Notes = request.Notes ?? task.Notes;
 
             await _context.SaveChangesAsync();
 
@@ -622,7 +628,8 @@ public class DisciplineController : ControllerBase
                 isOverdue = scheduledHabit.HasDeadline && date.Date == DateTime.Today &&
                            TimeOnly.FromDateTime(DateTime.Now) > (scheduledHabit?.DeadlineTime ?? TimeOnly.MaxValue) &&
                            !(completion?.IsCompleted ?? false),
-                isAdHoc = false // Regular habits are not ad-hoc
+                isAdHoc = false, // Regular habits are not ad-hoc
+                deadlineDate = DateTime.Now
             });
         }
 
@@ -644,7 +651,8 @@ public class DisciplineController : ControllerBase
                 deadlineTime = (string)null,
                 isOverdue = false,
                 isAdHoc = true, // Mark as ad-hoc
-                adHocId = adHocTask.Id // Include the ad-hoc task ID
+                adHocId = adHocTask.Id, // Include the ad-hoc task ID
+                deadlineDate = adHocTask.DeadlineDate
             });
         }
 
@@ -891,6 +899,7 @@ public class AddAdHocTaskRequest
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; }
     public DateTime Date { get; set; }
+    public DateTime? DeadlineDate { get; set; } // FIX: Add this property to match usage
 }
 
 public class CompleteAdHocTaskRequest

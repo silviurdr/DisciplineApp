@@ -141,6 +141,10 @@
               100 %
             </span>
 
+            <span *ngIf="habit.deferralsUsed ? habit.deferralsUsed > 0 : false" class="task-must-do">
+              Deferred
+            </span>
+
             <span *ngIf="habit.priority && habit.priority !== 'Normal'" 
                   class="task-priority"
                   [class.critical]="habit.priority === 'Critical'"
@@ -153,6 +157,7 @@
                 {{ habit.frequency }}
               </span>
 
+            <span *ngIf="habit.deadlineDate && !habit.isCompleted && habit.isAdHoc">{{habit.deadlineDate  | daysLeft  }} days left</span>
             <span *ngIf="habit.hasDeadline && habit.timeRemaining && !habit.isCompleted" 
                   class="task-time"
                   [class.time-critical]="getUrgencyLevel(habit.timeRemaining) === 'critical'">
@@ -243,6 +248,23 @@
             maxlength="500"
             rows="3"
             class="form-textarea"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="hasDeadline" name="hasDeadline">
+            Set deadline for this task
+          </label>
+        </div>
+
+        <div class="form-group" *ngIf="hasDeadline">
+          <label for="deadlineDate">Deadline Date</label>
+          <input type="date" 
+                id="deadlineDate"
+                [(ngModel)]="deadlineDate"
+                name="deadlineDate"
+                [min]="getTodayDateString()"
+                placeholder="Select deadline date">
         </div>
         
         <div class="error-message" *ngIf="errorMessage">

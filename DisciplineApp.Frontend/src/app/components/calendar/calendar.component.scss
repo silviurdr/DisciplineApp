@@ -1077,3 +1077,22 @@ button:focus-visible {
 }
 
 
+.task-item.auto-moved {
+  border-left: 3px solid #ff9800;
+  
+  .task-name::after {
+    content: ' (moved)';
+    color: #ff9800;
+    font-size: 0.7rem;
+    font-style: italic;
+  }
+}
+
+.deadline-indicator {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ff9800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+}

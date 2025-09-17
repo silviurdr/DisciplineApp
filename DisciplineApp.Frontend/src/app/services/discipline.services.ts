@@ -282,7 +282,8 @@ getMonthlyStats(year: number, month: number): Observable<any> {
   addAdHocTask(request: { 
     name: string; 
     description: string; 
-    date: string 
+    date: string
+    deadlineDate?: string 
   }): Observable<any> {
     return this.http.post(`${this.baseUrl}/add-adhoc-task`, request)
       .pipe(

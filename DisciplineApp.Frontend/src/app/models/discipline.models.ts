@@ -84,6 +84,7 @@ export interface ScheduledHabit {
   originalScheduledDate?: string;
   currentDueDate?: string;
   flexibilityStatus?: FlexibilityStatus;
+  deadlineDate?: string;  // NEW
   
   // Ad-hoc task properties
   isAdHoc?: boolean;
@@ -274,6 +275,7 @@ export interface AddAdHocTaskRequest {
   description: string;
   date: string;
   priority?: 'low' | 'normal' | 'high';
+  deadlineDate?: string;  // NEW
 }
 
 export interface EditAdHocTaskRequest {

@@ -195,12 +195,15 @@ namespace DisciplineApp.Api.Models
     public class AdHocTask
     {
         public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
+        public string Name { get; set; }
+        public string Description { get; set; }
         public DateTime Date { get; set; }
         public bool IsCompleted { get; set; }
+        public DateTime? DeadlineDate { get; set; }  // NEW
+        public bool IsAutoMoved { get; set; } = false;  // NEW
+        public DateTime? OriginalDate { get; set; }  // NEW - tracks original date
+        public DateTime CreatedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
-        public string Notes { get; set; } = string.Empty;
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public string Notes { get; set; }
     }
 }
