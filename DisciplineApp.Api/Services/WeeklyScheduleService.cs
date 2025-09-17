@@ -419,14 +419,54 @@ public class WeeklyScheduleService
             await _context.SaveChangesAsync();
         }
 
-        // Find any deferral record for this specific habit and original date
-        var deferral = await _context.TaskDeferrals
-            .FirstOrDefaultAsync(d => d.HabitId == habit.Id &&
-                           d.OriginalDate.Date == scheduledDate.Date &&
-                           !d.IsCompleted);
+        // 🔥 FIX: The problem is here - we need to find deferrals for THIS habit where:
+        // 1. OriginalDate matches the scheduled date (for tasks moved FROM this date)
+        // 2. OR DeferredToDate matches today (for tasks moved TO today)
 
-        var deferralsUsed = deferral?.DeferralsUsed ?? 0;
+        var today = DateTime.Today;
+
+        // For deferred tasks, we need to check if this task was moved FROM its original date
+        var deferral = await _context.TaskDeferrals
+            .Where(d => d.HabitId == habit.Id && !d.IsCompleted)
+            .Where(d =>
+                // Case 1: Task originally scheduled for this date but moved elsewhere
+                d.OriginalDate.Date == scheduledDate.Date ||
+                // Case 2: Task moved TO today from elsewhere
+                (d.DeferredToDate.Date == today && scheduledDate.Date == today)
+            )
+            .FirstOrDefaultAsync();
+
+        var deferralsUsed = 0;
+
+        if (deferral != null)
+        {
+            // If this is a task that was moved TO today, use its DeferralsUsed count
+            if (deferral.DeferredToDate.Date == today && scheduledDate.Date == today)
+            {
+                deferralsUsed = deferral.DeferralsUsed;
+            }
+            // If this is checking the original scheduled date of a moved task
+            else if (deferral.OriginalDate.Date == scheduledDate.Date)
+            {
+                deferralsUsed = deferral.DeferralsUsed;
+            }
+        }
+
         var canStillBeDeferred = deferralsUsed < maxDeferrals;
+
+        // 🔥 DEBUG: Add logging to see what's happening
+        Console.WriteLine($"🔍 CalculateDeferralInfo for Habit {habit.Id} ({habit.Name}):");
+        Console.WriteLine($"   ScheduledDate: {scheduledDate:yyyy-MM-dd}");
+        Console.WriteLine($"   Today: {today:yyyy-MM-dd}");
+        Console.WriteLine($"   Found deferral: {deferral != null}");
+        if (deferral != null)
+        {
+            Console.WriteLine($"   Deferral OriginalDate: {deferral.OriginalDate:yyyy-MM-dd}");
+            Console.WriteLine($"   Deferral DeferredToDate: {deferral.DeferredToDate:yyyy-MM-dd}");
+            Console.WriteLine($"   Deferral DeferralsUsed: {deferral.DeferralsUsed}");
+        }
+        Console.WriteLine($"   Final DeferralsUsed: {deferralsUsed}");
+        Console.WriteLine($"   MaxDeferrals: {maxDeferrals}");
 
         return (deferralsUsed, maxDeferrals, canStillBeDeferred);
     }

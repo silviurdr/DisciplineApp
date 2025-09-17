@@ -35,7 +35,7 @@ public class DisciplineController : ControllerBase
             var currentDate = new DateTime(year, month, day);
             var weekStart = GetWeekStart(currentDate);
 
-            // Generate the smart schedule for this week
+            // 🔥 KEY FIX: Generate the smart schedule for this week (includes deferral logic)
             var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
 
             // Get actual completion data for the entire week
@@ -48,7 +48,7 @@ public class DisciplineController : ControllerBase
                 .Where(t => t.Date >= weekStart && t.Date <= weekStart.AddDays(6))
                 .ToListAsync();
 
-            // Build all 7 days data
+            // Build all 7 days data using the WeeklyScheduleService data
             var allDays = new List<object>();
 
             foreach (var daySchedule in weekSchedule.DailySchedules)
@@ -56,6 +56,7 @@ public class DisciplineController : ControllerBase
                 var dayCompletions = completions.Where(c => c.Date.Date == daySchedule.Date.Date).ToList();
                 var dayAdHocTasks = adHocTasks.Where(t => t.Date.Date == daySchedule.Date.Date).ToList();
 
+                // 🔥 FIX: Use the daySchedule from WeeklyScheduleService (which respects deferrals)
                 var dayData = await BuildDayResponse(daySchedule.Date, daySchedule, dayCompletions, dayAdHocTasks);
                 allDays.Add(dayData);
             }
@@ -70,7 +71,7 @@ public class DisciplineController : ControllerBase
                 weekStartDate = weekStart.ToString("yyyy-MM-dd"),
                 weekEndDate = weekStart.AddDays(6).ToString("yyyy-MM-dd"),
                 currentDay = currentDayData,
-                allDays = allDays, // ← This is the key addition!
+                allDays = allDays,
                 weeklyStats = new
                 {
                     totalDays = 7,
@@ -87,13 +88,12 @@ public class DisciplineController : ControllerBase
             return StatusCode(500, new { error = $"Failed to get week data: {ex.Message}" });
         }
     }
-
     // Add this new helper method to build individual day responses
     private async Task<object> BuildDayResponse(DateTime date, DailySchedule daySchedule, List<HabitCompletion> completions, List<AdHocTask> adHocTasks)
     {
         var allHabits = new List<object>();
 
-        // Add regular scheduled habits
+        // 🔥 FIX: Use the actual scheduled habits from WeeklyScheduleService (includes deferral fields)
         foreach (var scheduledHabit in daySchedule.ScheduledHabits)
         {
             var completion = completions.FirstOrDefault(c => c.HabitId == scheduledHabit.HabitId);
@@ -136,47 +136,67 @@ public class DisciplineController : ControllerBase
                 name = scheduledHabit.HabitName,
                 description = scheduledHabit.Description,
                 isCompleted = completion?.IsCompleted ?? false,
-                isRequired = scheduledHabit.Priority == SchedulePriority.Required,
+                isRequired = true, // All scheduled habits are required
                 isLocked = isLocked,
+                hasDeadline = scheduledHabit.HasDeadline,
+                deadlineTime = scheduledHabit.HasDeadline ? scheduledHabit.DeadlineTime.ToString() : null,
+                timeRemaining = timeRemaining,
+                isOverdue = isLocked && !(completion?.IsCompleted ?? false),
+                urgencyLevel = isLocked ? "Critical" : "Normal",
                 reason = scheduledHabit.Reason,
                 priority = scheduledHabit.Priority.ToString(),
-                completedAt = completion?.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss"),
-                hasDeadline = scheduledHabit.HasDeadline,
-                deadlineTime = scheduledHabit.DeadlineTime.ToString("HH:mm"),
-                timeRemaining = timeRemaining, // 🔥 ADD THIS LINE
-                isOverdue = scheduledHabit.HasDeadline && date.Date == DateTime.Today &&
-                           TimeOnly.FromDateTime(DateTime.Now) > (scheduledHabit?.DeadlineTime ?? TimeOnly.MaxValue) &&
-                           !(completion?.IsCompleted ?? false),
-                frequency = scheduledHabit.Frequency
+
+                // 🔥 ADD DEFERRAL FIELDS FROM SCHEDULEDHABIT
+                frequency = scheduledHabit.Frequency,
+                deferralsUsed = scheduledHabit.DeferralsUsed,
+                maxDeferrals = scheduledHabit.MaxDeferrals,
+                canStillBeDeferred = scheduledHabit.CanStillBeDeferred,
+                originalScheduledDate = scheduledHabit.OriginalScheduledDate?.ToString("yyyy-MM-dd"),
+                currentDueDate = scheduledHabit.CurrentDueDate?.ToString("yyyy-MM-dd"),
+
+                // Ad-hoc properties
+                isAdHoc = false,
+                adHocId = (int?)null
             });
         }
 
-        // Add ad-hoc tasks (unchanged)
-        foreach (var adHocTask in adHocTasks)
+        // Add ad-hoc tasks
+        foreach (var adHoc in adHocTasks)
         {
             allHabits.Add(new
             {
-                habitId = -1,
-                adHocId = adHocTask.Id,
-                name = adHocTask.Name,
-                description = adHocTask.Description,
-                isCompleted = adHocTask.IsCompleted,
+                habitId = 0, // Ad-hoc tasks don't have habit IDs
+                name = adHoc.Name,
+                description = adHoc.Description,
+                isCompleted = adHoc.IsCompleted,
                 isRequired = false,
                 isLocked = false,
-                isAdHoc = true,
-                completedAt = adHocTask.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss"),
                 hasDeadline = false,
-                deadlineTime = "",
-                timeRemaining = "", // 🔥 ADD THIS LINE
-                isOverdue = false
+                deadlineTime = (string)null,
+                timeRemaining = (string)null,
+                isOverdue = false,
+                urgencyLevel = "Normal",
+                reason = "Ad-hoc task",
+                priority = "Normal",
+
+                // No deferral fields for ad-hoc tasks
+                frequency = (string)null,
+                deferralsUsed = 0,
+                maxDeferrals = 0,
+                canStillBeDeferred = false,
+                originalScheduledDate = (string)null,
+                currentDueDate = (string)null,
+
+                // Ad-hoc properties
+                isAdHoc = true,
+                adHocId = adHoc.Id
             });
         }
 
-        // Calculate completion statistics
         var totalHabits = allHabits.Count;
-        var completedHabits = allHabits.Count(h => ((dynamic)h).isCompleted == true);
-        var requiredHabits = allHabits.Where(h => ((dynamic)h).isRequired == true).ToList();
-        var completedRequired = requiredHabits.Count(h => ((dynamic)h).isCompleted == true);
+        var completedHabits = allHabits.Count(h => (bool)((dynamic)h).isCompleted);
+        var requiredHabits = allHabits.Where(h => (bool)((dynamic)h).isRequired).ToList();
+        var completedRequired = requiredHabits.Count(h => (bool)((dynamic)h).isCompleted);
 
         return new
         {
