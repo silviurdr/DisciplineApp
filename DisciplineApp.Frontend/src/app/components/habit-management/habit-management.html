@@ -1,11 +1,16 @@
-<!-- habit-management.component.html -->
-<div class="habit-management">
-  <!-- Header -->
-  <div class="header">
-    <h2>Habit Management</h2>
-    <button class="add-btn" (click)="openAddForm()" [disabled]="loading">
-      ➕ Add New Habit
-    </button>
+<div class="habit-management-container">
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-content">
+      <div class="title-section">
+        <h1>HABIT MANAGEMENT</h1>
+        <p class="subtitle">Configure your daily, weekly, and monthly habits</p>
+      </div>
+      <button class="add-habit-btn" (click)="openAddForm()">
+        <span class="plus-icon">+</span>
+        Add New Habit
+      </button>
+    </div>
   </div>
 
   <!-- Loading State -->
@@ -14,173 +19,53 @@
     <p>Loading habits...</p>
   </div>
 
-  <!-- Error Message -->
-  <div *ngIf="error" class="error-message">
-    <span class="error-icon">⚠️</span>
-    {{ error }}
-    <button class="retry-btn" (click)="loadHabits()">Retry</button>
+  <!-- Error State -->
+  <div *ngIf="error" class="error-state">
+    <p>{{ error }}</p>
+    <button (click)="loadHabits()" class="retry-btn">Retry</button>
   </div>
 
-  <!-- Add/Edit Form -->
-  <div class="form-overlay" *ngIf="showAddForm">
-    <div class="habit-form">
-      <div class="form-header">
-        <h3>{{ editingHabit ? 'Edit Habit' : 'Add New Habit' }}</h3>
-        <button class="close-btn" (click)="closeForm()">✕</button>
-      </div>
-      
-      <form [formGroup]="habitForm" (ngSubmit)="saveHabit()">
-        <!-- Basic Information -->
-        <div class="form-section">
-          <h4>Basic Information</h4>
-          
-          <div class="form-group">
-            <label for="name">Habit Name *</label>
-            <input 
-              id="name"
-              type="text" 
-              formControlName="name"
-              placeholder="e.g., Exercise, Read, Clean Kitchen"
-              [class.error]="habitForm.get('name')?.touched && habitForm.get('name')?.errors">
-            <div class="error-text" *ngIf="getFieldError('name')">{{ getFieldError('name') }}</div>
-          </div>
-
-          <div class="form-group">
-            <label for="description">Description</label>
-            <textarea 
-              id="description"
-              formControlName="description"
-              placeholder="Describe what this habit involves..."
-              rows="3"
-              [class.error]="habitForm.get('description')?.touched && habitForm.get('description')?.errors"></textarea>
-            <div class="error-text" *ngIf="getFieldError('description')">{{ getFieldError('description') }}</div>
-          </div>
-        </div>
-
-        <!-- Frequency Configuration -->
-        <div class="form-section">
-          <h4>Frequency</h4>
-          
-     <div class="form-group">
-  <label for="frequency">How often? *</label>
-  
-  <!-- Custom Select Wrapper -->
-  <div class="custom-select-container">
-    <select id="frequency" formControlName="frequency" (change)="onFrequencyChange()" class="custom-select">
-      <option value="Daily">Daily</option>
-      <option value="EveryTwoDays">Every 2 Days (Rolling)</option>
-      <option value="Weekly">Weekly</option>
-      <option value="Monthly">Monthly</option>
-      <option value="Seasonal">Seasonal</option>
-    </select>
-  </div>
-</div>
-
-          <!-- Weekly Target -->
-          <div class="form-group" *ngIf="shouldShowTargetField(habitForm.get('frequency')?.value, 'weekly')">
-            <label for="weeklyTarget">Times per week</label>
-            <input 
-              id="weeklyTarget"
-              type="number" 
-              formControlName="weeklyTarget"
-              min="1" 
-              max="7"
-              placeholder="e.g., 3">
-            <div class="help-text">How many times per week should this habit be done?</div>
-          </div>
-
-          <!-- Monthly Target -->
-          <div class="form-group" *ngIf="shouldShowTargetField(habitForm.get('frequency')?.value, 'monthly')">
-            <label for="monthlyTarget">Times per month</label>
-            <input 
-              id="monthlyTarget"
-              type="number" 
-              formControlName="monthlyTarget"
-              min="1" 
-              max="31"
-              placeholder="e.g., 2">
-            <div class="help-text">How many times per month should this habit be done?</div>
-          </div>
-
-          <!-- Seasonal Target -->
-          <div class="form-group" *ngIf="shouldShowTargetField(habitForm.get('frequency')?.value, 'seasonal')">
-            <label for="seasonalTarget">Times per season</label>
-            <input 
-              id="seasonalTarget"
-              type="number" 
-              formControlName="seasonalTarget"
-              min="1" 
-              max="90"
-              placeholder="e.g., 3">
-            <div class="help-text">How many times per season (3 months) should this habit be done?</div>
-          </div>
-        </div>
-
-        <!-- Deadline Configuration -->
-        <div class="form-section">
-          <h4>Deadline (Optional)</h4>
-          
-          <div class="form-group">
-            <label class="checkbox-label">
-              <input type="checkbox" formControlName="hasDeadline">
-              Set daily deadline for this habit
-            </label>
-          </div>
-
-          <div class="form-group" *ngIf="habitForm.get('hasDeadline')?.value">
-            <label for="deadlineTime">Deadline Time</label>
-            <input 
-              id="deadlineTime"
-              type="time" 
-              formControlName="deadlineTime"
-              placeholder="18:00">
-            <div class="help-text">After this time, the habit will be marked as overdue</div>
-          </div>
-        </div>
-
-        <!-- Form Actions -->
-        <div class="form-actions">
-          <button type="submit" class="save-btn" [disabled]="habitForm.invalid || loading">
-            {{ editingHabit ? 'Update Habit' : 'Create Habit' }}
-          </button>
-          <button type="button" class="cancel-btn" (click)="closeForm()">Cancel</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Habits List -->
-  <div class="habits-container" *ngIf="!loading">
+  <!-- Habits Content -->
+  <div *ngIf="!loading && !error" class="habits-content">
+    
     <!-- Daily Habits -->
     <div class="habit-category" *ngIf="getDailyHabits().length > 0">
-      <h3>📅 Daily Habits</h3>
+      <div class="category-header">
+        <h2>Daily Habits</h2>
+        <span class="habit-count">{{ getDailyHabits().length }}</span>
+      </div>
+      
       <div class="habits-grid">
         <div *ngFor="let habit of getDailyHabits()" class="habit-card daily">
           <div class="habit-header">
-            <h4>{{ habit.name }}</h4>
+            <div class="habit-name">{{ habit.name }}</div>
             <div class="habit-status">
-              <span class="status-badge" [class.active]="habit.isActive">
-                {{ habit.isActive ? 'Active' : 'Paused' }}
+              <span class="status-badge" [class.active]="habit.isActive" [class.paused]="!habit.isActive">
+                {{ habit.isActive ? 'ACTIVE' : 'PAUSED' }}
               </span>
-              <span class="locked-badge" *ngIf="habit.isLocked">🔒</span>
             </div>
           </div>
           
-          <p class="habit-description">{{ habit.description }}</p>
+          <div class="habit-description" *ngIf="habit.description">{{ habit.description }}</div>
           
           <div class="habit-meta">
-            <span class="frequency-badge">{{ getFrequencyDetails(habit) }}</span>
-            <span class="deadline-badge" *ngIf="habit.hasDeadline">⏰ {{ habit.deadlineTime }}</span>
+            <div class="frequency-info">Every day</div>
+            <div class="deadline-info" *ngIf="habit.hasDeadline">{{ habit.deadlineTime }}</div>
           </div>
           
           <div class="habit-actions">
-            <button class="edit-btn" (click)="openEditForm(habit)">✏️ Edit</button>
-            <button class="toggle-btn" 
-                    [class.active]="habit.isActive"
-                    (click)="toggleHabitActive(habit)">
-              {{ habit.isActive ? '⏸️ Pause' : '▶️ Activate' }}
+            <button class="action-btn edit-btn" (click)="openEditForm(habit)" title="Edit habit">
+              ✎
             </button>
-            <button class="delete-btn" (click)="confirmDeleteHabit(habit)">🗑️ Delete</button>
+            <button class="action-btn toggle-btn" 
+                    [class.active]="habit.isActive"
+                    (click)="toggleHabitActive(habit)" 
+                    [title]="habit.isActive ? 'Pause habit' : 'Activate habit'">
+              {{ habit.isActive ? '⏸' : '▶' }}
+            </button>
+            <button class="action-btn delete-btn" (click)="confirmDeleteHabit(habit)" title="Delete habit">
+              🗑
+            </button>
           </div>
         </div>
       </div>
@@ -188,34 +73,42 @@
 
     <!-- Rolling Habits -->
     <div class="habit-category" *ngIf="getRollingHabits().length > 0">
-      <h3>🔄 Rolling Habits</h3>
+      <div class="category-header">
+        <h2>Rolling Habits</h2>
+        <span class="habit-count">{{ getRollingHabits().length }}</span>
+      </div>
+      
       <div class="habits-grid">
         <div *ngFor="let habit of getRollingHabits()" class="habit-card rolling">
           <div class="habit-header">
-            <h4>{{ habit.name }}</h4>
+            <div class="habit-name">{{ habit.name }}</div>
             <div class="habit-status">
-              <span class="status-badge" [class.active]="habit.isActive">
-                {{ habit.isActive ? 'Active' : 'Paused' }}
+              <span class="status-badge" [class.active]="habit.isActive" [class.paused]="!habit.isActive">
+                {{ habit.isActive ? 'ACTIVE' : 'PAUSED' }}
               </span>
-              <span class="locked-badge" *ngIf="habit.isLocked">🔒</span>
             </div>
           </div>
           
-          <p class="habit-description">{{ habit.description }}</p>
+          <div class="habit-description" *ngIf="habit.description">{{ habit.description }}</div>
           
           <div class="habit-meta">
-            <span class="frequency-badge">{{ getFrequencyDetails(habit) }}</span>
-            <span class="deadline-badge" *ngIf="habit.hasDeadline">⏰ {{ habit.deadlineTime }}</span>
+            <div class="frequency-info">Every 2 days</div>
+            <div class="deadline-info" *ngIf="habit.hasDeadline">{{ habit.deadlineTime }}</div>
           </div>
           
           <div class="habit-actions">
-            <button class="edit-btn" (click)="openEditForm(habit)">✏️ Edit</button>
-            <button class="toggle-btn" 
-                    [class.active]="habit.isActive"
-                    (click)="toggleHabitActive(habit)">
-              {{ habit.isActive ? '⏸️ Pause' : '▶️ Activate' }}
+            <button class="action-btn edit-btn" (click)="openEditForm(habit)" title="Edit habit">
+              ✎
             </button>
-            <button class="delete-btn" (click)="confirmDeleteHabit(habit)">🗑️ Delete</button>
+            <button class="action-btn toggle-btn" 
+                    [class.active]="habit.isActive"
+                    (click)="toggleHabitActive(habit)" 
+                    [title]="habit.isActive ? 'Pause habit' : 'Activate habit'">
+              {{ habit.isActive ? '⏸' : '▶' }}
+            </button>
+            <button class="action-btn delete-btn" (click)="confirmDeleteHabit(habit)" title="Delete habit">
+              🗑
+            </button>
           </div>
         </div>
       </div>
@@ -223,34 +116,42 @@
 
     <!-- Weekly Habits -->
     <div class="habit-category" *ngIf="getWeeklyHabits().length > 0">
-      <h3>📊 Weekly Habits</h3>
+      <div class="category-header">
+        <h2>Weekly Habits</h2>
+        <span class="habit-count">{{ getWeeklyHabits().length }}</span>
+      </div>
+      
       <div class="habits-grid">
         <div *ngFor="let habit of getWeeklyHabits()" class="habit-card weekly">
           <div class="habit-header">
-            <h4>{{ habit.name }}</h4>
+            <div class="habit-name">{{ habit.name }}</div>
             <div class="habit-status">
-              <span class="status-badge" [class.active]="habit.isActive">
-                {{ habit.isActive ? 'Active' : 'Paused' }}
+              <span class="status-badge" [class.active]="habit.isActive" [class.paused]="!habit.isActive">
+                {{ habit.isActive ? 'ACTIVE' : 'PAUSED' }}
               </span>
-              <span class="locked-badge" *ngIf="habit.isLocked">🔒</span>
             </div>
           </div>
           
-          <p class="habit-description">{{ habit.description }}</p>
+          <div class="habit-description" *ngIf="habit.description">{{ habit.description }}</div>
           
           <div class="habit-meta">
-            <span class="frequency-badge">{{ getFrequencyDetails(habit) }}</span>
-            <span class="deadline-badge" *ngIf="habit.hasDeadline">⏰ {{ habit.deadlineTime }}</span>
+            <div class="frequency-info">{{ habit.weeklyTarget }}x per week</div>
+            <div class="deadline-info" *ngIf="habit.hasDeadline">{{ habit.deadlineTime }}</div>
           </div>
           
           <div class="habit-actions">
-            <button class="edit-btn" (click)="openEditForm(habit)">✏️ Edit</button>
-            <button class="toggle-btn" 
-                    [class.active]="habit.isActive"
-                    (click)="toggleHabitActive(habit)">
-              {{ habit.isActive ? '⏸️ Pause' : '▶️ Activate' }}
+            <button class="action-btn edit-btn" (click)="openEditForm(habit)" title="Edit habit">
+              ✎
             </button>
-            <button class="delete-btn" (click)="confirmDeleteHabit(habit)">🗑️ Delete</button>
+            <button class="action-btn toggle-btn" 
+                    [class.active]="habit.isActive"
+                    (click)="toggleHabitActive(habit)" 
+                    [title]="habit.isActive ? 'Pause habit' : 'Activate habit'">
+              {{ habit.isActive ? '⏸' : '▶' }}
+            </button>
+            <button class="action-btn delete-btn" (click)="confirmDeleteHabit(habit)" title="Delete habit">
+              🗑
+            </button>
           </div>
         </div>
       </div>
@@ -258,34 +159,42 @@
 
     <!-- Monthly Habits -->
     <div class="habit-category" *ngIf="getMonthlyHabits().length > 0">
-      <h3>📅 Monthly Habits</h3>
+      <div class="category-header">
+        <h2>Monthly Habits</h2>
+        <span class="habit-count">{{ getMonthlyHabits().length }}</span>
+      </div>
+      
       <div class="habits-grid">
         <div *ngFor="let habit of getMonthlyHabits()" class="habit-card monthly">
           <div class="habit-header">
-            <h4>{{ habit.name }}</h4>
+            <div class="habit-name">{{ habit.name }}</div>
             <div class="habit-status">
-              <span class="status-badge" [class.active]="habit.isActive">
-                {{ habit.isActive ? 'Active' : 'Paused' }}
+              <span class="status-badge" [class.active]="habit.isActive" [class.paused]="!habit.isActive">
+                {{ habit.isActive ? 'ACTIVE' : 'PAUSED' }}
               </span>
-              <span class="locked-badge" *ngIf="habit.isLocked">🔒</span>
             </div>
           </div>
           
-          <p class="habit-description">{{ habit.description }}</p>
+          <div class="habit-description" *ngIf="habit.description">{{ habit.description }}</div>
           
           <div class="habit-meta">
-            <span class="frequency-badge">{{ getFrequencyDetails(habit) }}</span>
-            <span class="deadline-badge" *ngIf="habit.hasDeadline">⏰ {{ habit.deadlineTime }}</span>
+            <div class="frequency-info">{{ habit.monthlyTarget }}x per month</div>
+            <div class="deadline-info" *ngIf="habit.hasDeadline">{{ habit.deadlineTime }}</div>
           </div>
           
           <div class="habit-actions">
-            <button class="edit-btn" (click)="openEditForm(habit)">✏️ Edit</button>
-            <button class="toggle-btn" 
-                    [class.active]="habit.isActive"
-                    (click)="toggleHabitActive(habit)">
-              {{ habit.isActive ? '⏸️ Pause' : '▶️ Activate' }}
+            <button class="action-btn edit-btn" (click)="openEditForm(habit)" title="Edit habit">
+              ✎
             </button>
-            <button class="delete-btn" (click)="confirmDeleteHabit(habit)">🗑️ Delete</button>
+            <button class="action-btn toggle-btn" 
+                    [class.active]="habit.isActive"
+                    (click)="toggleHabitActive(habit)" 
+                    [title]="habit.isActive ? 'Pause habit' : 'Activate habit'">
+              {{ habit.isActive ? '⏸' : '▶' }}
+            </button>
+            <button class="action-btn delete-btn" (click)="confirmDeleteHabit(habit)" title="Delete habit">
+              🗑
+            </button>
           </div>
         </div>
       </div>
@@ -293,45 +202,193 @@
 
     <!-- Seasonal Habits -->
     <div class="habit-category" *ngIf="getSeasonalHabits().length > 0">
-      <h3>🌱 Seasonal Habits</h3>
+      <div class="category-header">
+        <h2>Seasonal Habits</h2>
+        <span class="habit-count">{{ getSeasonalHabits().length }}</span>
+      </div>
+      
       <div class="habits-grid">
         <div *ngFor="let habit of getSeasonalHabits()" class="habit-card seasonal">
           <div class="habit-header">
-            <h4>{{ habit.name }}</h4>
+            <div class="habit-name">{{ habit.name }}</div>
             <div class="habit-status">
-              <span class="status-badge" [class.active]="habit.isActive">
-                {{ habit.isActive ? 'Active' : 'Paused' }}
+              <span class="status-badge" [class.active]="habit.isActive" [class.paused]="!habit.isActive">
+                {{ habit.isActive ? 'ACTIVE' : 'PAUSED' }}
               </span>
-              <span class="locked-badge" *ngIf="habit.isLocked">🔒</span>
             </div>
           </div>
           
-          <p class="habit-description">{{ habit.description }}</p>
+          <div class="habit-description" *ngIf="habit.description">{{ habit.description }}</div>
           
           <div class="habit-meta">
-            <span class="frequency-badge">{{ getFrequencyDetails(habit) }}</span>
-            <span class="deadline-badge" *ngIf="habit.hasDeadline">⏰ {{ habit.deadlineTime }}</span>
+            <div class="frequency-info">{{ habit.seasonalTarget }}x per season</div>
+            <div class="deadline-info" *ngIf="habit.hasDeadline">{{ habit.deadlineTime }}</div>
           </div>
           
           <div class="habit-actions">
-            <button class="edit-btn" (click)="openEditForm(habit)">✏️ Edit</button>
-            <button class="toggle-btn" 
-                    [class.active]="habit.isActive"
-                    (click)="toggleHabitActive(habit)">
-              {{ habit.isActive ? '⏸️ Pause' : '▶️ Activate' }}
+            <button class="action-btn edit-btn" (click)="openEditForm(habit)" title="Edit habit">
+              ✎
             </button>
-            <button class="delete-btn" (click)="confirmDeleteHabit(habit)">🗑️ Delete</button>
+            <button class="action-btn toggle-btn" 
+                    [class.active]="habit.isActive"
+                    (click)="toggleHabitActive(habit)" 
+                    [title]="habit.isActive ? 'Pause habit' : 'Activate habit'">
+              {{ habit.isActive ? '⏸' : '▶' }}
+            </button>
+            <button class="action-btn delete-btn" (click)="confirmDeleteHabit(habit)" title="Delete habit">
+              🗑
+            </button>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Empty State -->
-    <div class="empty-state" *ngIf="habits.length === 0 && !loading">
+    <div *ngIf="habits.length === 0" class="empty-state">
       <div class="empty-icon">📋</div>
-      <h3>No habits yet</h3>
-      <p>Create your first habit to start building better daily routines.</p>
-      <button class="add-btn primary" (click)="openAddForm()">➕ Add Your First Habit</button>
+      <h3>No habits configured yet</h3>
+      <p>Start by adding your first habit to begin tracking your discipline journey.</p>
+      <button class="add-first-habit-btn" (click)="openAddForm()">
+        <span class="plus-icon">+</span>
+        Add Your First Habit
+      </button>
+    </div>
+  </div>
+
+  <!-- Add/Edit Habit Modal -->
+  <div *ngIf="showAddForm || editingHabit" class="modal-backdrop" (click)="cancelForm()">
+    <div class="habit-form-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{ editingHabit ? 'Edit Habit' : 'Add New Habit' }}</h3>
+        <button class="close-btn" (click)="cancelForm()">×</button>
+      </div>
+      
+      <form [formGroup]="habitForm" (ngSubmit)="saveHabit()" class="habit-form">
+        <div class="form-content">
+          <!-- Basic Information -->
+          <div class="form-section">
+            <h4>Basic Information</h4>
+            
+            <div class="form-group">
+              <label for="name">Habit Name *</label>
+              <input type="text" 
+                     id="name" 
+                     formControlName="name" 
+                     placeholder="e.g., Morning Exercise">
+              <div class="error-message" *ngIf="habitForm.get('name')?.invalid && habitForm.get('name')?.touched">
+                Habit name is required
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="description">Description</label>
+              <textarea id="description" 
+                        formControlName="description" 
+                        placeholder="Optional description of the habit"
+                        rows="3"></textarea>
+            </div>
+          </div>
+
+          <!-- Frequency Configuration -->
+          <div class="form-section">
+            <h4>Frequency</h4>
+            
+            <div class="form-group">
+              <label for="frequency">How often? *</label>
+              <select id="frequency" formControlName="frequency" (change)="onFrequencyChange()">
+                <option value="Daily">Daily</option>
+                <option value="EveryTwoDays">Every 2 Days (Rolling)</option>
+                <option value="Weekly">Weekly</option>
+                <option value="Monthly">Monthly</option>
+                <option value="Seasonal">Seasonal</option>
+              </select>
+            </div>
+
+            <!-- Weekly Target -->
+            <div class="form-group" *ngIf="habitForm.get('frequency')?.value === 'Weekly'">
+              <label for="weeklyTarget">Times per week</label>
+              <input type="number" 
+                     id="weeklyTarget" 
+                     formControlName="weeklyTarget" 
+                     min="1" 
+                     max="7"
+                     placeholder="e.g., 3">
+            </div>
+
+            <!-- Monthly Target -->
+            <div class="form-group" *ngIf="habitForm.get('frequency')?.value === 'Monthly'">
+              <label for="monthlyTarget">Times per month</label>
+              <input type="number" 
+                     id="monthlyTarget" 
+                     formControlName="monthlyTarget" 
+                     min="1" 
+                     max="31"
+                     placeholder="e.g., 2">
+            </div>
+
+            <!-- Seasonal Target -->
+            <div class="form-group" *ngIf="habitForm.get('frequency')?.value === 'Seasonal'">
+              <label for="seasonalTarget">Times per season</label>
+              <input type="number" 
+                     id="seasonalTarget" 
+                     formControlName="seasonalTarget" 
+                     min="1" 
+                     max="20"
+                     placeholder="e.g., 3">
+            </div>
+          </div>
+
+          <!-- Deadline Configuration -->
+          <div class="form-section">
+            <h4>Deadline (Optional)</h4>
+            
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" formControlName="hasDeadline">
+                Set a daily deadline for this habit
+              </label>
+            </div>
+
+            <div class="form-group" *ngIf="habitForm.get('hasDeadline')?.value">
+              <label for="deadlineTime">Deadline time</label>
+              <input type="time" 
+                     id="deadlineTime" 
+                     formControlName="deadlineTime"
+                     placeholder="e.g., 18:00">
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+          <button type="button" class="cancel-btn" (click)="cancelForm()">
+            Cancel
+          </button>
+          <button type="submit" class="save-btn" [disabled]="habitForm.invalid">
+            {{ editingHabit ? 'Update Habit' : 'Create Habit' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div *ngIf="habitToDelete" class="modal-backdrop" (click)="cancelDelete()">
+    <div class="delete-confirmation-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Delete Habit</h3>
+        <button class="close-btn" (click)="cancelDelete()">×</button>
+      </div>
+      
+      <div class="modal-content">
+        <p>Are you sure you want to delete the habit <strong>"{{ habitToDelete.name }}"</strong>?</p>
+        <p class="warning-text">This action cannot be undone.</p>
+      </div>
+      
+      <div class="modal-actions">
+        <button class="cancel-btn" (click)="cancelDelete()">Cancel</button>
+        <button class="delete-confirm-btn" (click)="deleteHabit()">Delete Habit</button>
+      </div>
     </div>
   </div>
 </div>

@@ -1,10 +1,10 @@
-// Fixed habit-management.component.ts - Complete working version
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+// Interfaces
 interface Habit {
   id: number;
   name: string;
@@ -59,13 +59,18 @@ enum HabitFrequency {
   styleUrls: ['./habit-management.scss']
 })
 export class HabitManagementComponent implements OnInit {
+  // Data Properties
   habits: Habit[] = [];
   loading = false;
   error: string | null = null;
   
+  // Form Properties
   showAddForm = false;
   editingHabit: Habit | null = null;
   habitForm: FormGroup;
+  
+  // Delete Confirmation
+  habitToDelete: Habit | null = null;
   
   private apiUrl = 'https://localhost:7025/api';
 
@@ -77,96 +82,23 @@ export class HabitManagementComponent implements OnInit {
     this.loadHabits();
   }
 
-private createHabitForm(): FormGroup {
-  return this.fb.group({
-    name: ['', [Validators.required, Validators.maxLength(100)]],
-    description: ['', [Validators.maxLength(500)]],
-    frequency: ['Daily', Validators.required],
-    weeklyTarget: [1], // Remove validators initially
-    monthlyTarget: [1], // Remove validators initially  
-    seasonalTarget: [1], // Remove validators initially
-    hasDeadline: [false],
-    deadlineTime: ['']
-  });
-}
+  // ===================================
+  // FORM MANAGEMENT
+  // ===================================
 
-private updateValidatorsForFrequency(frequency: string): void {
-  const weeklyControl = this.habitForm.get('weeklyTarget');
-  const monthlyControl = this.habitForm.get('monthlyTarget');
-  const seasonalControl = this.habitForm.get('seasonalTarget');
-
-  // Clear all validators first
-  weeklyControl?.clearValidators();
-  monthlyControl?.clearValidators();
-  seasonalControl?.clearValidators();
-
-  // Add validators only for the relevant frequency type
-  switch (frequency) {
-    case 'Weekly':
-      weeklyControl?.setValidators([Validators.min(1), Validators.max(7)]);
-      break;
-    case 'Monthly':
-      monthlyControl?.setValidators([Validators.min(1), Validators.max(31)]);
-      break;
-    case 'Seasonal':
-      seasonalControl?.setValidators([Validators.min(1), Validators.max(90)]);
-      break;
-    // Daily and EveryTwoDays don't need target validators
-  }
-
-  // Update validation status
-  weeklyControl?.updateValueAndValidity();
-  monthlyControl?.updateValueAndValidity();
-  seasonalControl?.updateValueAndValidity();
-}
-
-  // Helper method to convert numeric frequency to string
-  private getFrequencyString(frequency: number): string {
-    switch (frequency) {
-      case HabitFrequency.Daily: return 'Daily';
-      case HabitFrequency.EveryTwoDays: return 'EveryTwoDays';
-      case HabitFrequency.Weekly: return 'Weekly';
-      case HabitFrequency.Monthly: return 'Monthly';
-      case HabitFrequency.Seasonal: return 'Seasonal';
-      default: return 'Daily';
-    }
-  }
-
-  // API Methods
-  loadHabits(): void {
-    this.loading = true;
-    this.error = null;
-    
-    this.getAllHabits().subscribe({
-      next: (habits) => {
-        this.habits = habits;
-        this.loading = false;
-      },
-      error: (error) => {
-        console.error('Error loading habits:', error);
-        this.error = 'Failed to load habits. Please try again.';
-        this.loading = false;
-      }
+  private createHabitForm(): FormGroup {
+    return this.fb.group({
+      name: ['', [Validators.required, Validators.maxLength(100)]],
+      description: ['', [Validators.maxLength(500)]],
+      frequency: ['Daily', Validators.required],
+      weeklyTarget: [1],
+      monthlyTarget: [1],
+      seasonalTarget: [1],
+      hasDeadline: [false],
+      deadlineTime: ['']
     });
   }
 
-  private getAllHabits(): Observable<Habit[]> {
-    return this.http.get<Habit[]>(`${this.apiUrl}/habits`);
-  }
-
-  private createHabit(habit: CreateHabitRequest): Observable<Habit> {
-    return this.http.post<Habit>(`${this.apiUrl}/habits`, habit);
-  }
-
-  private updateHabit(id: number, habit: UpdateHabitRequest): Observable<Habit> {
-    return this.http.put<Habit>(`${this.apiUrl}/habits/${id}`, habit);
-  }
-
-  private deleteHabit(id: number): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/habits/${id}`);
-  }
-
-  // Form Management
   openAddForm(): void {
     this.showAddForm = true;
     this.editingHabit = null;
@@ -182,78 +114,77 @@ private updateValidatorsForFrequency(frequency: string): void {
     });
   }
 
-openEditForm(habit: Habit): void {
-  this.showAddForm = true;
-  this.editingHabit = habit;
-  
-  const frequencyString = this.getFrequencyString(habit.frequency);
-  
-  this.habitForm.patchValue({
-    name: habit.name,
-    description: habit.description,
-    frequency: frequencyString,
-    weeklyTarget: habit.weeklyTarget,
-    monthlyTarget: habit.monthlyTarget,
-    seasonalTarget: habit.seasonalTarget,
-    hasDeadline: habit.hasDeadline,
-    deadlineTime: habit.deadlineTime || ''
-  });
-  
-  // Update validators based on the frequency
-  this.updateValidatorsForFrequency(frequencyString);
-  
-  // Force form validation update
-  this.habitForm.updateValueAndValidity();
-}
-
-// Also add this to handle frequency changes in the form:
-onFrequencyChange(): void {
-  const frequency = this.habitForm.get('frequency')?.value;
-  if (frequency) {
-    this.updateValidatorsForFrequency(frequency);
+  openEditForm(habit: Habit): void {
+    this.editingHabit = habit;
+    this.showAddForm = true;
+    
+    const frequencyString = this.getFrequencyString(habit.frequency);
+    
+    this.habitForm.patchValue({
+      name: habit.name,
+      description: habit.description,
+      frequency: frequencyString,
+      weeklyTarget: habit.weeklyTarget || 1,
+      monthlyTarget: habit.monthlyTarget || 1,
+      seasonalTarget: habit.seasonalTarget || 1,
+      hasDeadline: habit.hasDeadline,
+      deadlineTime: habit.deadlineTime || ''
+    });
   }
-}
 
-debugFormStatus(): void {
-  console.log('🔍 FORM DEBUG:');
-  console.log('Form valid:', this.habitForm.valid);
-  console.log('Form invalid:', this.habitForm.invalid);
-  console.log('Loading state:', this.loading);
-  console.log('Button should be enabled:', !this.habitForm.invalid && !this.loading);
-  
-  console.log('Form errors:');
-  Object.keys(this.habitForm.controls).forEach(key => {
-    const control = this.habitForm.get(key);
-    if (control?.errors) {
-      console.log(`  ${key}:`, control.errors);
-    }
-  });
-  
-  console.log('Form values:');
-  console.log(this.habitForm.value);
-}
-
-  closeForm(): void {
+  cancelForm(): void {
     this.showAddForm = false;
     this.editingHabit = null;
     this.habitForm.reset();
   }
 
+  onFrequencyChange(): void {
+    const frequency = this.habitForm.get('frequency')?.value;
+    
+    // Reset targets when frequency changes
+    this.habitForm.patchValue({
+      weeklyTarget: frequency === 'Weekly' ? 1 : 1,
+      monthlyTarget: frequency === 'Monthly' ? 1 : 1,
+      seasonalTarget: frequency === 'Seasonal' ? 1 : 1
+    });
+  }
+
+  // ===================================
+  // DATA LOADING AND SAVING
+  // ===================================
+
+  loadHabits(): void {
+    this.loading = true;
+    this.error = null;
+
+    this.http.get<Habit[]>(`${this.apiUrl}/habits`).subscribe({
+      next: (habits) => {
+        this.habits = habits;
+        this.loading = false;
+        console.log('Habits loaded:', habits);
+      },
+      error: (error) => {
+        console.error('Error loading habits:', error);
+        this.error = 'Failed to load habits. Please try again.';
+        this.loading = false;
+      }
+    });
+  }
+
   saveHabit(): void {
     if (this.habitForm.invalid) {
-      this.markFormGroupTouched();
+      this.habitForm.markAllAsTouched();
       return;
     }
 
     const formValue = this.habitForm.value;
-    this.loading = true;
-
+    
     if (this.editingHabit) {
       // Update existing habit
       const updateRequest: UpdateHabitRequest = {
-        name: formValue.name,
-        description: formValue.description,
-        frequency: formValue.frequency, // String frequency
+        name: formValue.name.trim(),
+        description: formValue.description?.trim() || '',
+        frequency: formValue.frequency,
         weeklyTarget: formValue.weeklyTarget,
         monthlyTarget: formValue.monthlyTarget,
         seasonalTarget: formValue.seasonalTarget,
@@ -262,27 +193,23 @@ debugFormStatus(): void {
         deadlineTime: formValue.hasDeadline ? formValue.deadlineTime : undefined
       };
 
-      this.updateHabit(this.editingHabit.id, updateRequest).subscribe({
-        next: (updatedHabit) => {
-          const index = this.habits.findIndex(h => h.id === this.editingHabit!.id);
-          if (index !== -1) {
-            this.habits[index] = updatedHabit;
-          }
-          this.closeForm();
-          this.loading = false;
+      this.http.put(`${this.apiUrl}/habits/${this.editingHabit.id}`, updateRequest).subscribe({
+        next: () => {
+          console.log('Habit updated successfully');
+          this.loadHabits();
+          this.cancelForm();
         },
         error: (error) => {
           console.error('Error updating habit:', error);
           this.error = 'Failed to update habit. Please try again.';
-          this.loading = false;
         }
       });
     } else {
       // Create new habit
       const createRequest: CreateHabitRequest = {
-        name: formValue.name,
-        description: formValue.description,
-        frequency: formValue.frequency, // String frequency
+        name: formValue.name.trim(),
+        description: formValue.description?.trim() || '',
+        frequency: formValue.frequency,
         weeklyTarget: formValue.weeklyTarget,
         monthlyTarget: formValue.monthlyTarget,
         seasonalTarget: formValue.seasonalTarget,
@@ -290,26 +217,29 @@ debugFormStatus(): void {
         deadlineTime: formValue.hasDeadline ? formValue.deadlineTime : undefined
       };
 
-      this.createHabit(createRequest).subscribe({
-        next: (newHabit) => {
-          this.habits.push(newHabit);
-          this.closeForm();
-          this.loading = false;
+      this.http.post(`${this.apiUrl}/habits`, createRequest).subscribe({
+        next: () => {
+          console.log('Habit created successfully');
+          this.loadHabits();
+          this.cancelForm();
         },
         error: (error) => {
           console.error('Error creating habit:', error);
           this.error = 'Failed to create habit. Please try again.';
-          this.loading = false;
         }
       });
     }
   }
 
+  // ===================================
+  // HABIT ACTIONS
+  // ===================================
+
   toggleHabitActive(habit: Habit): void {
     const updateRequest: UpdateHabitRequest = {
       name: habit.name,
       description: habit.description,
-      frequency: this.getFrequencyString(habit.frequency), // Convert to string
+      frequency: this.getFrequencyString(habit.frequency),
       weeklyTarget: habit.weeklyTarget,
       monthlyTarget: habit.monthlyTarget,
       seasonalTarget: habit.seasonalTarget,
@@ -318,104 +248,98 @@ debugFormStatus(): void {
       deadlineTime: habit.deadlineTime
     };
 
-    this.updateHabit(habit.id, updateRequest).subscribe({
-      next: (updatedHabit) => {
-        const index = this.habits.findIndex(h => h.id === habit.id);
-        if (index !== -1) {
-          this.habits[index] = updatedHabit;
-        }
+    this.http.put(`${this.apiUrl}/habits/${habit.id}`, updateRequest).subscribe({
+      next: () => {
+        console.log(`Habit ${habit.isActive ? 'paused' : 'activated'} successfully`);
+        this.loadHabits();
       },
       error: (error) => {
-        console.error('Error toggling habit status:', error);
+        console.error('Error toggling habit:', error);
         this.error = 'Failed to update habit status. Please try again.';
       }
     });
   }
 
   confirmDeleteHabit(habit: Habit): void {
-    if (confirm(`Are you sure you want to delete "${habit.name}"? This action cannot be undone.`)) {
-      this.deleteHabit(habit.id).subscribe({
-        next: () => {
-          this.habits = this.habits.filter(h => h.id !== habit.id);
-        },
-        error: (error) => {
-          console.error('Error deleting habit:', error);
-          this.error = 'Failed to delete habit. Please try again.';
-        }
-      });
-    }
+    this.habitToDelete = habit;
   }
 
-  // Helper Methods
-  private markFormGroupTouched(): void {
-    Object.keys(this.habitForm.controls).forEach(key => {
-      this.habitForm.get(key)?.markAsTouched();
+  cancelDelete(): void {
+    this.habitToDelete = null;
+  }
+
+  deleteHabit(): void {
+    if (!this.habitToDelete) return;
+
+    this.http.delete(`${this.apiUrl}/habits/${this.habitToDelete.id}`).subscribe({
+      next: () => {
+        console.log('Habit deleted successfully');
+        this.loadHabits();
+        this.cancelDelete();
+      },
+      error: (error) => {
+        console.error('Error deleting habit:', error);
+        this.error = 'Failed to delete habit. Please try again.';
+        this.cancelDelete();
+      }
     });
   }
 
-  getFieldError(fieldName: string): string {
-    const field = this.habitForm.get(fieldName);
-    if (field?.touched && field?.errors) {
-      if (field.errors['required']) return `${fieldName} is required`;
-      if (field.errors['maxlength']) return `${fieldName} is too long`;
-      if (field.errors['min']) return `Value too small`;
-      if (field.errors['max']) return `Value too large`;
-    }
-    return '';
-  }
+  // ===================================
+  // UTILITY METHODS
+  // ===================================
 
-  // Categorization
   getDailyHabits(): Habit[] {
-    return this.habits.filter(h => h.frequency === HabitFrequency.Daily);
+    return this.habits.filter(habit => habit.frequency === HabitFrequency.Daily);
   }
 
   getRollingHabits(): Habit[] {
-    return this.habits.filter(h => h.frequency === HabitFrequency.EveryTwoDays);
+    return this.habits.filter(habit => habit.frequency === HabitFrequency.EveryTwoDays);
   }
 
   getWeeklyHabits(): Habit[] {
-    return this.habits.filter(h => h.frequency === HabitFrequency.Weekly);
+    return this.habits.filter(habit => habit.frequency === HabitFrequency.Weekly);
   }
 
   getMonthlyHabits(): Habit[] {
-    return this.habits.filter(h => h.frequency === HabitFrequency.Monthly);
+    return this.habits.filter(habit => habit.frequency === HabitFrequency.Monthly);
   }
 
   getSeasonalHabits(): Habit[] {
-    return this.habits.filter(h => h.frequency === HabitFrequency.Seasonal);
+    return this.habits.filter(habit => habit.frequency === HabitFrequency.Seasonal);
   }
 
-  getFrequencyDisplayName(frequency: number): string {
+  private getFrequencyString(frequency: number): string {
     switch (frequency) {
-      case HabitFrequency.Daily: return 'Every day';
-      case HabitFrequency.EveryTwoDays: return 'Every 2 days';
-      case HabitFrequency.Weekly: return 'Weekly';
-      case HabitFrequency.Monthly: return 'Monthly';
-      case HabitFrequency.Seasonal: return 'Seasonal';
-      default: return `Unknown (${frequency})`;
+      case HabitFrequency.Daily:
+        return 'Daily';
+      case HabitFrequency.EveryTwoDays:
+        return 'EveryTwoDays';
+      case HabitFrequency.Weekly:
+        return 'Weekly';
+      case HabitFrequency.Monthly:
+        return 'Monthly';
+      case HabitFrequency.Seasonal:
+        return 'Seasonal';
+      default:
+        return 'Daily';
     }
   }
 
   getFrequencyDetails(habit: Habit): string {
     switch (habit.frequency) {
+      case HabitFrequency.Daily:
+        return 'Every day';
+      case HabitFrequency.EveryTwoDays:
+        return 'Every 2 days';
       case HabitFrequency.Weekly:
-        return `${habit.weeklyTarget}x per week`;
+        return `${habit.weeklyTarget || 1}x per week`;
       case HabitFrequency.Monthly:
-        return `${habit.monthlyTarget}x per month`;
+        return `${habit.monthlyTarget || 1}x per month`;
       case HabitFrequency.Seasonal:
-        return `${habit.seasonalTarget}x per season`;
+        return `${habit.seasonalTarget || 1}x per season`;
       default:
-        return this.getFrequencyDisplayName(habit.frequency);
+        return 'Unknown';
     }
-  }
-
-  shouldShowTargetField(frequency: string, targetType: string): boolean {
-    return (frequency === 'Weekly' && targetType === 'weekly') ||
-           (frequency === 'Monthly' && targetType === 'monthly') ||
-           (frequency === 'Seasonal' && targetType === 'seasonal');
-  }
-
-  trackByFn(index: number, item: Habit): number {
-    return item.id;
   }
 }
