@@ -12,102 +12,172 @@
 }
 
 /* ===================================
-   HEADER SECTION
+   HEADER SECTION (CORRECTED)
    =================================== */
-
 .header {
+  background: linear-gradient(135deg,
+    rgba(33, 150, 243, 0.15) 0%,
+    rgba(63, 81, 181, 0.15) 35%,
+    rgba(103, 58, 183, 0.15) 70%,
+    rgba(156, 39, 176, 0.15) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(100, 181, 246, 0.2);
+  border-radius: 20px;
+  padding: 30px;
+  margin-bottom: 30px;
+  position: relative;
+  overflow: hidden;
+}
+.header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(100, 181, 246, 0.1) 0%, transparent 70%);
+  animation: floatBackground 20s ease-in-out infinite;
+  z-index: 0;
+}
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(156, 39, 176, 0.08) 0%, transparent 70%);
+  animation: floatBackground 25s ease-in-out infinite reverse;
+  z-index: 0;
+}
+.header .header-content {
+  position: relative;
+  z-index: 1;
+}
+.header .app-title-section {
   text-align: center;
-  margin-bottom: 40px;
-  padding-top: 20px;
-  
-  .title {
-    color: #64b5f6;
-    margin: 0 0 15px 0;
-    font-size: 2.5rem;
-    font-weight: bold;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  }
-
-  .week-title {
-    color: #90caf9;
-    font-size: 1.1rem;
-    font-weight: 500;
-    margin: 10px 0;
-  }
+  margin-bottom: 25px;
+}
+.header .week-info {
+  color: #90caf9;
+  font-size: 1rem;
+  font-weight: 500;
+  opacity: 0.9;
+}
+.header .progress-overview {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+  align-items: center;
+}
+.header .week-progress .progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+.header .week-progress .progress-header .progress-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #64b5f6;
+  margin: 0;
+}
+.header .week-progress .progress-header .progress-percentage {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #66bb6a;
+  margin: 0;
+}
+.header .week-progress .progress-bar-container {
+  position: relative;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+.header .week-progress .progress-bar-container .progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #4caf50, #66bb6a, #81c784);
+  border-radius: 8px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.header .grace-info {
+  text-align: center;
+  padding: 16px 20px;
+  background: rgba(76, 175, 80, 0.15);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+.header .grace-info .grace-icon {
+  font-size: 1.5rem;
+  margin-bottom: 8px;
+  display: block;
+}
+.header .grace-info .grace-count {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #66bb6a;
+  margin: 0 0 4px 0;
+}
+.header .grace-info .grace-label {
+  font-size: 0.85rem;
+  color: #a5d6a7;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+@keyframes floatBackground {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(180deg); }
 }
 
 /* ===================================
-   WEEKLY OVERVIEW SECTION
+   WEEKLY HABIT SUMMARY SECTION (Formerly Weekly Overview)
    =================================== */
 
 .weekly-overview {
+  /* This container is now just for the habit summary */
+  margin-bottom: 30px;
+}
+.weekly-overview .progress-card {
+  /* Hiding the old progress card as it's now in the main header */
+  display: none;
+}
+.weekly-overview .habit-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 0; /* Removed top margin */
+  padding: 20px;
   background: rgba(20, 20, 40, 0.6);
   border-radius: 15px;
-  padding: 20px;
-  margin-bottom: 30px;
   border: 1px solid rgba(100, 181, 246, 0.3);
-
-  .progress-card {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-
-    h3 {
-      color: #2196f3;
-      margin: 0;
-      font-size: 1.3rem;
-    }
-
-    .grace-info {
-      display: flex;
-      gap: 15px;
-      font-size: 0.9rem;
-      
-      .grace-remaining {
-        color: #4caf50;
-      }
-      
-      .grace-used {
-        color: #ff9800;
-      }
-    }
-  }
-
-  .habit-summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 10px;
-    margin-top: 15px;
-
-    .habit-progress {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 12px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 8px;
-      
-      &.on-track {
-        border-left: 3px solid #4caf50;
-      }
-      
-      &.behind {
-        border-left: 3px solid #f44336;
-      }
-
-      .habit-name {
-        font-size: 0.9rem;
-        color: #ccc;
-      }
-
-      .habit-count {
-        font-weight: bold;
-        color: #fff;
-      }
-    }
-  }
 }
+.weekly-overview .habit-summary .habit-progress {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+.weekly-overview .habit-summary .habit-progress.on-track {
+  border-left: 3px solid #4caf50;
+}
+.weekly-overview .habit-summary .habit-progress.behind {
+  border-left: 3px solid #f44336;
+}
+.weekly-overview .habit-summary .habit-progress .habit-name {
+  font-size: 0.9rem;
+  color: #ccc;
+}
+.weekly-overview .habit-summary .habit-progress .habit-count {
+  font-weight: bold;
+  color: #fff;
+}
+
 
 /* ===================================
    WEEKLY CALENDAR GRID
@@ -115,769 +185,648 @@
 
 .weekly-calendar {
   margin-bottom: 30px;
-
-  .calendar-week {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 10px;
-
-    .calendar-day {
-      background: rgba(20, 20, 40, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 15px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      min-height: 120px;
-
-      &:hover {
-        border-color: rgba(100, 181, 246, 0.3);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      }
-
-      &.today {
-        border: 2px solid #2196f3;
-        background: linear-gradient(135deg, rgba(33, 150, 243, 0.2), rgba(33, 150, 243, 0.1));
-        box-shadow: 0 0 20px rgba(33, 150, 243, 0.3);
-      }
-
-      &.completed {
-        background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.1));
-        border-color: #4caf50;
-      }
-
-      &.partial {
-        background: linear-gradient(135deg, rgba(255, 152, 0, 0.3), rgba(255, 152, 0, 0.1));
-        border-color: #ff9800;
-      }
-
-      &.future {
-        opacity: 0.6;
-        cursor: default;
-      }
-
-      .day-header {
-        text-align: center;
-        margin-bottom: 10px;
-
-        .day-name {
-          font-size: 0.8rem;
-          color: #64b5f6;
-          margin-bottom: 5px;
-        }
-
-        .day-number {
-          font-size: 1.5rem;
-          font-weight: bold;
-          color: #fff;
-        }
-      }
-
-      .day-content {
-        .completion-status {
-          text-align: center;
-          margin-bottom: 10px;
-
-          .status-icon {
-            font-size: 1.5rem;
-            
-            &.incomplete {
-              color: #666;
-            }
-            
-            &.partial {
-              color: #ff9800;
-            }
-            
-            &:not(.incomplete):not(.partial) {
-              color: #4caf50;
-            }
-          }
-        }
-
-        .progress-indicator {
-          .progress-bar {
-            width: 100%;
-            height: 4px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 2px;
-            overflow: hidden;
-            margin-bottom: 5px;
-
-            .progress-fill {
-              height: 100%;
-              background: linear-gradient(90deg, #64b5f6, #42a5f5);
-              transition: width 0.3s ease;
-            }
-          }
-
-          .progress-text {
-            text-align: center;
-            font-size: 0.7rem;
-            color: #aaa;
-          }
-        }
-      }
-    }
-  }
+}
+.weekly-calendar .calendar-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+}
+.weekly-calendar .calendar-week .calendar-day {
+  background: rgba(20, 20, 40, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 120px;
+}
+.weekly-calendar .calendar-week .calendar-day:hover {
+  border-color: rgba(100, 181, 246, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.weekly-calendar .calendar-week .calendar-day.today {
+  border: 2px solid #2196f3;
+  background: linear-gradient(135deg, rgba(33, 150, 243, 0.2), rgba(33, 150, 243, 0.1));
+  box-shadow: 0 0 20px rgba(33, 150, 243, 0.3);
+}
+.weekly-calendar .calendar-week .calendar-day.completed {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.1));
+  border-color: #4caf50;
+}
+.weekly-calendar .calendar-week .calendar-day.partial {
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.3), rgba(255, 152, 0, 0.1));
+  border-color: #ff9800;
+}
+.weekly-calendar .calendar-week .calendar-day.future {
+  opacity: 0.6;
+  cursor: default;
+}
+.weekly-calendar .calendar-week .calendar-day .day-header {
+  text-align: center;
+  margin-bottom: 10px;
+}
+.weekly-calendar .calendar-week .calendar-day .day-header .day-name {
+  font-size: 0.8rem;
+  color: #64b5f6;
+  margin-bottom: 5px;
+}
+.weekly-calendar .calendar-week .calendar-day .day-header .day-number {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #fff;
+}
+.weekly-calendar .calendar-week .calendar-day .day-content .completion-status {
+  text-align: center;
+  margin-bottom: 10px;
+}
+.weekly-calendar .calendar-week .calendar-day .day-content .completion-status .status-icon.incomplete {
+  color: #666;
+}
+.weekly-calendar .calendar-week .calendar-day .day-content .completion-status .status-icon.partial {
+  color: #ff9800;
+}
+.weekly-calendar .calendar-week .calendar-day .day-content .completion-status .status-icon:not(.incomplete):not(.partial) {
+  color: #4caf50;
+}
+.weekly-calendar .calendar-week .calendar-day .day-content .progress-indicator .progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+.weekly-calendar .calendar-week .calendar-day .day-content .progress-indicator .progress-bar .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #64b5f6, #42a5f5);
+  transition: width 0.3s ease;
+}
+.weekly-calendar .calendar-week .calendar-day .day-content .progress-indicator .progress-text {
+  text-align: center;
+  font-size: 0.7rem;
+  color: #aaa;
 }
 
 /* ===================================
-   SMART SCHEDULE SECTION
+   IMPROVED SMART SCHEDULE SECTION
    =================================== */
 
 .smart-schedule {
-  h2 {
-    color: #64b5f6;
-    margin-bottom: 20px;
-    font-size: 1.8rem;
-  }
-
-  .warnings-section {
-    background: linear-gradient(135deg, rgba(244, 67, 54, 0.2), rgba(244, 67, 54, 0.1));
-    padding: 15px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    border-left: 4px solid #f44336;
-
-    .warning-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: #fff;
-      margin-bottom: 8px;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-
-      .warning-icon {
-        font-size: 1.2rem;
-      }
-    }
-  }
-
-  .grace-section {
-    text-align: center;
-    margin: 20px 0;
-    padding: 20px;
-    background: linear-gradient(135deg, rgba(156, 39, 176, 0.3), rgba(156, 39, 176, 0.1));
-    border-radius: 12px;
-    border: 1px solid rgba(156, 39, 176, 0.3);
-
-    .grace-button {
-      background: linear-gradient(135deg, #9c27b0, #8e24aa);
-      color: #fff;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: bold;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      margin-bottom: 10px;
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(156, 39, 176, 0.4);
-      }
-    }
-
-    .grace-explanation {
-      color: #e1bee7;
-      font-size: 0.9rem;
-      margin: 0;
-    }
-  }
+  background: rgba(20, 20, 40, 0.8);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 30px;
+  border: 1px solid rgba(100, 181, 246, 0.2);
+  backdrop-filter: blur(10px);
 }
-
-/* ===================================
-   ENHANCED HABIT ITEMS with Flexibility
-   =================================== */
-
-.scheduled-habits {
-  .habit-item {
-    background: rgba(20, 20, 40, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 15px;
-    display: flex;
-    align-items: flex-start;
-    gap: 15px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      border-color: rgba(100, 181, 246, 0.3);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    /* Completion States */
-    &.completed {
-      background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(76, 175, 80, 0.05));
-      border-left: 4px solid #4caf50;
-      opacity: 0.8;
-    }
-
-    &.required {
-      border-left: 4px solid #2196f3;
-    }
-
-    &.optional {
-      border-left: 4px solid #9e9e9e;
-    }
-
-    /* Urgency States */
-    &.urgent {
-      border-left: 4px solid #ff9800;
-      background: linear-gradient(135deg, rgba(255, 152, 0, 0.1), rgba(255, 152, 0, 0.05));
-    }
-
-    &.critical {
-      border-left: 4px solid #f44336;
-      background: linear-gradient(135deg, rgba(244, 67, 54, 0.1), rgba(244, 67, 54, 0.05));
-      animation: criticalPulse 2s ease-in-out infinite alternate;
-    }
-
-    &.overdue {
-      border-left: 4px solid #f44336;
-      background: linear-gradient(135deg, rgba(244, 67, 54, 0.2), rgba(244, 67, 54, 0.1));
-    }
-
-    /* NEW: Flexibility States */
-    &.flexibility-safe {
-      border-left: 4px solid #28a745;
-      background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.05));
-    }
-    
-    &.flexibility-warning {
-      border-left: 4px solid #ffc107;
-      background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 193, 7, 0.05));
-    }
-    
-    &.flexibility-urgent {
-      border-left: 4px solid #fd7e14;
-      background: linear-gradient(135deg, rgba(253, 126, 20, 0.1), rgba(253, 126, 20, 0.05));
-    }
-    
-    &.flexibility-critical {
-      border-left: 4px solid #dc3545;
-      background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.05));
-      animation: criticalPulse 2s ease-in-out infinite alternate;
-    }
-
-    &.ad-hoc {
-      border-left: 4px solid #9c27b0;
-      background: linear-gradient(135deg, rgba(156, 39, 176, 0.1), rgba(156, 39, 176, 0.05));
-    }
-
-    &.locked {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-  }
+.smart-schedule .schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
 }
-
-/* ===================================
-   HABIT CHECKBOX STYLING
-   =================================== */
-
-.habit-checkbox {
-  flex-shrink: 0;
-  
-  input[type="checkbox"] {
-    width: 20px;
-    height: 20px;
-    margin: 0;
-    cursor: pointer;
-    accent-color: #2196f3;
-    
-    &:disabled {
-      cursor: not-allowed;
-      opacity: 0.5;
-    }
-  }
-
-  label {
-    cursor: pointer;
-    
-    &.disabled {
-      cursor: not-allowed;
-    }
-  }
-}
-
-/* ===================================
-   HABIT CONTENT SECTION
-   =================================== */
-
-.habit-content {
-  flex: 1;
-
-  .habit-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 10px;
-
-    .habit-name {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #fff;
-      margin: 0;
-
-      &.locked-text {
-        color: #888;
-      }
-    }
-
-    .habit-badges {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-
-      .priority-badge,
-      .time-remaining-badge,
-      .overdue-badge,
-      .ad-hoc-badge {
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-size: 0.7rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-
-        &.required {
-          background: #2196f3;
-          color: white;
-        }
-
-        &.optional {
-          background: rgba(158, 158, 158, 0.2);
-          color: #9e9e9e;
-          border: 1px solid #9e9e9e;
-        }
-
-        &.urgent {
-          background: rgba(255, 152, 0, 0.2);
-          color: #ff9800;
-          border: 1px solid #ff9800;
-        }
-
-        &.critical {
-          background: rgba(244, 67, 54, 0.2);
-          color: #f44336;
-          border: 1px solid #f44336;
-          animation: badgePulse 1.5s infinite;
-        }
-      }
-
-      .overdue-badge {
-        background: rgba(244, 67, 54, 0.2);
-        color: #f44336;
-        border: 1px solid #f44336;
-        animation: badgePulse 1.5s infinite;
-      }
-
-      .ad-hoc-badge {
-        background: rgba(156, 39, 176, 0.2);
-        color: #9c27b0;
-        border: 1px solid #9c27b0;
-      }
-
-      /* NEW: Flexibility Badge */
-      .flexibility-badge {
-        padding: 4px 8px;
-        border-radius: 6px;
-        font-size: 0.7rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid currentColor;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-
-        &.flexibility-safe {
-          color: #28a745;
-          background: rgba(40, 167, 69, 0.15);
-          border-color: #28a745;
-        }
-
-        &.flexibility-warning {
-          color: #ffc107;
-          background: rgba(255, 193, 7, 0.15);
-          border-color: #ffc107;
-        }
-
-        &.flexibility-urgent {
-          color: #fd7e14;
-          background: rgba(253, 126, 20, 0.15);
-          border-color: #fd7e14;
-        }
-
-        &.flexibility-critical {
-          color: #dc3545;
-          background: rgba(220, 53, 69, 0.15);
-          border-color: #dc3545;
-          animation: badgePulse 1.5s infinite;
-        }
-      }
-    }
-  }
-
-  .habit-description {
-    color: #bbb;
-    font-size: 0.9rem;
-    margin: 5px 0;
-    line-height: 1.4;
-  }
-
-  .habit-reason {
-    color: #888;
-    font-size: 0.8rem;
-    font-style: italic;
-    margin: 5px 0;
-  }
-
-  /* NEW: Flexibility Status Display */
-  .flexibility-status {
-    margin: 10px 0;
-    padding: 8px 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    border-left: 3px solid currentColor;
-
-    .flexibility-details {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 5px;
-
-      .flexibility-text {
-        font-size: 0.8rem;
-        font-weight: 600;
-      }
-
-      .deferrals-info {
-        font-size: 0.7rem;
-        color: #aaa;
-      }
-    }
-
-    .deferral-progress {
-      margin-top: 5px;
-
-      .deferral-progress-bar {
-        width: 100%;
-        height: 4px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 2px;
-        overflow: hidden;
-
-        .deferral-progress-fill {
-          height: 100%;
-          transition: width 0.3s ease;
-          border-radius: 2px;
-        }
-      }
-    }
-  }
-}
-
-/* ===================================
-   HABIT ACTIONS SECTION
-   =================================== */
-
-.habit-actions {
+.smart-schedule .schedule-header .header-left {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.smart-schedule .schedule-header .header-left h2 {
+  color: #64b5f6;
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+.smart-schedule .schedule-header .header-left .inline-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.smart-schedule .schedule-header .add-quick-task-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #4caf50, #66bb6a);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+.smart-schedule .schedule-header .add-quick-task-btn .plus-icon {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+.smart-schedule .schedule-header .add-quick-task-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4);
+  background: linear-gradient(135deg, #45a049, #5cb85c);
+}
+.smart-schedule .schedule-header .add-quick-task-btn:active {
+  transform: translateY(0);
+}
+
+
+/* ===================================
+   INLINE STAT CHIPS
+   =================================== */
+
+.stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+  backdrop-filter: blur(5px);
+  transition: all 0.3s ease;
+}
+.stat-chip .stat-value {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.stat-chip .stat-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.9;
+}
+.stat-chip.required {
+  background: rgba(33, 150, 243, 0.15);
+  color: #64b5f6;
+  border-color: rgba(33, 150, 243, 0.3);
+}
+.stat-chip.required:hover {
+  background: rgba(33, 150, 243, 0.25);
+  border-color: rgba(33, 150, 243, 0.5);
+}
+.stat-chip.optional {
+  background: rgba(156, 39, 176, 0.15);
+  color: #ba68c8;
+  border-color: rgba(156, 39, 176, 0.3);
+}
+.stat-chip.optional:hover {
+  background: rgba(156, 39, 176, 0.25);
+  border-color: rgba(156, 39, 176, 0.5);
+}
+.stat-chip.grace {
+  background: rgba(76, 175, 80, 0.15);
+  color: #66bb6a;
+  border-color: rgba(76, 175, 80, 0.3);
+  animation: gracePulse 2s ease-in-out infinite;
+}
+.stat-chip.grace .stat-value {
+  font-size: 1rem;
+}
+.stat-chip.grace:hover {
+  background: rgba(76, 175, 80, 0.25);
+  border-color: rgba(76, 175, 80, 0.5);
+}
+
+
+/* ===================================
+   COMPACT TASK GRID
+   =================================== */
+
+.task-grid {
+  display: grid;
+  gap: 12px;
+}
+.task-grid .task-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.task-grid .task-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: transparent;
+  transition: all 0.3s ease;
+}
+.task-grid .task-card:hover:not(.locked) {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(100, 181, 246, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.task-grid .task-card.completed {
+  background: rgba(76, 175, 80, 0.08);
+  border-color: rgba(76, 175, 80, 0.3);
+}
+.task-grid .task-card.completed::before {
+  background: #4caf50;
+}
+.task-grid .task-card.completed .task-name {
+  opacity: 0.7;
+}
+.task-grid .task-card.urgent::before {
+  background: #ff9800;
+}
+.task-grid .task-card.urgent .task-card {
+  border-color: rgba(255, 152, 0, 0.3);
+}
+.task-grid .task-card.overdue::before {
+  background: #f44336;
+}
+.task-grid .task-card.overdue {
+  border-color: rgba(244, 67, 54, 0.3);
+  animation: subtlePulse 2s ease-in-out infinite;
+}
+.task-grid .task-card.ad-hoc::before {
+  background: #9c27b0;
+}
+.task-grid .task-card.ad-hoc {
+  border-color: rgba(156, 39, 176, 0.3);
+}
+.task-grid .task-card.locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.task-grid .task-card.locked .task-content {
+  cursor: not-allowed;
+}
+
+/* ===================================
+   TASK CHECKBOX STYLING
+   =================================== */
+
+.task-checkbox {
+  position: relative;
+  flex-shrink: 0;
+}
+.task-checkbox input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+.task-checkbox input[type="checkbox"]:checked ~ .checkmark {
+  background: linear-gradient(135deg, #4caf50, #66bb6a);
+  border-color: #4caf50;
+}
+.task-checkbox input[type="checkbox"]:checked ~ .checkmark::after {
+  display: block;
+}
+.task-checkbox input[type="checkbox"]:disabled ~ .checkmark {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.task-checkbox .checkmark {
+  display: block;
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+.task-checkbox .checkmark:hover {
+  border-color: rgba(100, 181, 246, 0.6);
+  background: rgba(100, 181, 246, 0.1);
+}
+.task-checkbox .checkmark::after {
+  content: '';
+  position: absolute;
+  display: none;
+  left: 7px;
+  top: 3px;
+  width: 6px;
+  height: 12px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+
+/* ===================================
+   TASK CONTENT
+   =================================== */
+
+.task-content {
+  flex: 1;
+  cursor: default;
+  min-width: 0; /* Allows text truncation */
+}
+.task-content .task-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.task-content .task-main .task-name {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0;
+  line-height: 1.4;
+  flex: 1;
+  min-width: 0;
+}
+.task-content .task-main .task-name.completed-text {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+.task-content .task-main .task-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  flex-shrink: 0;
+}
+.task-content .task-description {
+  color: #bbb;
+  font-size: 0.85rem;
+  margin: 0 0 8px 0;
+  line-height: 1.3;
+  opacity: 0.8;
+}
+.task-content .time-remaining {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.task-content .time-remaining.urgent {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ff9800;
+}
+.task-content .time-remaining.critical {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+  animation: subtlePulse 1.5s ease-in-out infinite;
+}
+
+
+/* ===================================
+   BADGE STYLES
+   =================================== */
+
+.badge {
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+.badge.required {
+  background: rgba(33, 150, 243, 0.2);
+  color: #64b5f6;
+  border: 1px solid rgba(33, 150, 243, 0.3);
+}
+.badge.deadline {
+    background: rgba(244, 67, 54, 0.2);
+    color: #ef5350;
+    border: 1px solid rgba(244, 67, 54, 0.3);
+}
+.badge.time-remaining {
+    background: rgba(255, 152, 0, 0.2);
+    color: #ffb74d;
+    border: 1px solid rgba(255, 152, 0, 0.3);
+}
+.badge.ad-hoc {
+  background: rgba(156, 39, 176, 0.2);
+  color: #ba68c8;
+  border: 1px solid rgba(156, 39, 176, 0.3);
+}
+.badge.priority.urgent {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ffb74d;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+}
+.badge.priority.critical {
+  background: rgba(244, 67, 54, 0.2);
+  color: #ef5350;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  animation: badgePulse 2s ease-in-out infinite;
+}
+.badge.overdue {
+  background: rgba(244, 67, 54, 0.3);
+  color: #ffcdd2;
+  border: 1px solid rgba(244, 67, 54, 0.5);
+}
+
+
+/* ===================================
+   TASK ACTIONS
+   =================================== */
+
+.task-actions {
+  display: flex;
   gap: 8px;
   flex-shrink: 0;
-
-  .move-tomorrow-btn,
-  .complete-btn,
-  .edit-btn {
-    padding: 8px 16px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-
-    &:disabled,
-    &.disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      
-      &:hover {
-        transform: none;
-      }
-    }
-  }
-
-  .move-tomorrow-btn {
-    background: #007bff;
-    color: white;
-    
-    &:hover:not(:disabled):not(.disabled) {
-      background: #0056b3;
-      transform: translateY(-1px);
-    }
-  }
-
-  .complete-btn {
-    background: #28a745;
-    color: white;
-    
-    &:hover:not(:disabled) {
-      background: #218838;
-      transform: translateY(-1px);
-    }
-
-    &.pulsing {
-      animation: completePulse 2s infinite;
-    }
-  }
-
-  .edit-btn {
-    background: #6c757d;
-    color: white;
-    
-    &:hover:not(:disabled) {
-      background: #545b62;
-      transform: translateY(-1px);
-    }
-  }
 }
-
-/* ===================================
-   DAY STATUS SUMMARY
-   =================================== */
-
-.day-status-summary {
-  background: rgba(20, 20, 40, 0.6);
-  padding: 20px;
-  border-radius: 12px;
-  margin-top: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-
-  .status-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-
-    h3 {
-      color: #64b5f6;
-      margin: 0;
-    }
-
-    .completion-percentage {
-      color: #aaa;
-      font-size: 0.9rem;
-    }
-  }
-
-  .status-details {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 10px;
-    margin-bottom: 15px;
-
-    .status-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 12px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 6px;
-
-      .status-label {
-        color: #ccc;
-        font-size: 0.9rem;
-      }
-
-      .status-value {
-        color: #fff;
-        font-weight: 600;
-
-        &.grace-available {
-          color: #4caf50;
-        }
-      }
-    }
-  }
-
-  .recommendations {
-    h4 {
-      color: #64b5f6;
-      margin: 0 0 10px 0;
-      font-size: 1rem;
-    }
-
-    .recommendation-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: #fff;
-      margin-bottom: 8px;
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-
-      .recommendation-icon {
-        font-size: 1.2rem;
-      }
-    }
-  }
-}
-
-/* ===================================
-   LOADING AND ERROR STATES
-   =================================== */
-
-.loading-state,
-.error-state {
-  text-align: center;
-  padding: 40px;
+.task-actions .action-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
   color: #ccc;
-
-  .loading-spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid rgba(255, 255, 255, 0.1);
-    border-left: 4px solid #2196f3;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 20px;
-  }
-
-  .error-icon {
-    font-size: 3rem;
-    margin-bottom: 20px;
-  }
-
-  h3 {
-    color: #fff;
-    margin-bottom: 10px;
-  }
-
-  .retry-button {
-    background: #2196f3;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
-    cursor: pointer;
-    margin-top: 20px;
-    transition: background 0.2s ease;
-
-    &:hover {
-      background: #1976d2;
-    }
-  }
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
 }
-
-/* ===================================
-   ADD TASK SECTION
-   =================================== */
-
-.add-task-section {
-  text-align: center;
-  margin-top: 30px;
-
-  .add-task-btn {
-    background: linear-gradient(135deg, #4caf50, #66bb6a);
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-
-    &:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
-    }
-  }
-}
-
-/* ===================================
-   DEBUG PANEL (Hidden by default)
-   =================================== */
-
-.debug-panel {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: rgba(0, 0, 0, 0.9);
+.task-actions .action-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
   color: #fff;
-  padding: 10px;
-  border-radius: 8px;
-  font-family: monospace;
-  font-size: 0.8rem;
-  max-width: 300px;
-  z-index: 1000;
-
-  h4 {
-    margin: 0 0 10px 0;
-    color: #64b5f6;
-  }
-
-  pre {
-    white-space: pre-wrap;
-    word-break: break-word;
-    max-height: 200px;
-    overflow-y: auto;
-  }
+  transform: translateY(-1px);
 }
+.task-actions .action-btn.defer-btn:hover {
+  background: rgba(255, 152, 0, 0.3);
+  color: #ff9800;
+}
+.task-actions .action-btn.edit-btn:hover {
+  background: rgba(156, 39, 176, 0.3);
+  color: #ba68c8;
+}
+
+
+/* ===================================
+   NO TASKS STATE
+   =================================== */
+
+.no-tasks {
+  text-align: center;
+  padding: 40px 20px;
+  color: #aaa;
+}
+.no-tasks .no-tasks-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+.no-tasks h3 {
+  color: #64b5f6;
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+}
+.no-tasks p {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+/* ===================================
+   DAY SUMMARY
+   =================================== */
+
+.day-summary {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.day-summary .summary-stats {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.day-summary .summary-stats .stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.day-summary .summary-stats .stat-item .stat-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #64b5f6;
+}
+.day-summary .summary-stats .stat-item .stat-value.grace-available {
+  font-size: 1.3rem;
+  color: #4caf50;
+}
+.day-summary .summary-stats .stat-item .stat-label {
+  font-size: 0.8rem;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+
+/* ===================================
+   RECOMMENDATIONS
+   =================================== */
+
+.recommendations {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(33, 150, 243, 0.1);
+  border-radius: 8px;
+  border-left: 4px solid #2196f3;
+}
+.recommendations h4 {
+  color: #64b5f6;
+  margin: 0 0 12px 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+.recommendations .recommendation-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.recommendations .recommendation-list .recommendation-item {
+  color: #e3f2fd;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin-bottom: 8px;
+  padding-left: 16px;
+  position: relative;
+}
+.recommendations .recommendation-list .recommendation-item::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: #64b5f6;
+  font-weight: bold;
+}
+.recommendations .recommendation-list .recommendation-item:last-child {
+  margin-bottom: 0;
+}
+
 
 /* ===================================
    ANIMATIONS
    =================================== */
 
-@keyframes criticalPulse {
-  0%, 100% { 
-    box-shadow: 0 0 5px rgba(244, 67, 54, 0.3); 
+@keyframes warningPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
   }
-  50% { 
-    box-shadow: 0 0 20px rgba(244, 67, 54, 0.6); 
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes criticalPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.03);
+    box-shadow: 0 0 0 4px rgba(220, 53, 69, 0);
   }
 }
 
 @keyframes badgePulse {
-  0%, 100% { 
-    opacity: 1; 
+  0%, 100% {
+    opacity: 1;
   }
-  50% { 
-    opacity: 0.7; 
-  }
-}
-
-@keyframes completePulse {
-  0%, 100% { 
-    transform: scale(1); 
-  }
-  50% { 
-    transform: scale(1.05); 
+  50% {
+    opacity: 0.7;
   }
 }
 
 @keyframes spin {
-  0% { 
-    transform: rotate(0deg); 
+  0% {
+    transform: rotate(0deg);
   }
-  100% { 
-    transform: rotate(360deg); 
+  100% {
+    transform: rotate(360deg);
   }
 }
 
@@ -889,45 +838,47 @@
   .calendar-container {
     padding: 15px;
   }
-
   .header .title {
     font-size: 2rem;
   }
-
   .weekly-calendar .calendar-week {
     grid-template-columns: 1fr;
     gap: 8px;
   }
-
   .calendar-day {
     min-height: auto !important;
   }
-
-  .habit-item {
+  .smart-schedule {
+    padding: 16px;
+  }
+  .smart-schedule .schedule-header {
     flex-direction: column;
-    gap: 10px;
-
-    .habit-checkbox {
-      align-self: flex-start;
-    }
-
-    .habit-actions {
-      flex-direction: row;
-      justify-content: flex-start;
-    }
+    align-items: stretch;
   }
-
-  .habit-badges {
+  .smart-schedule .schedule-header h2 {
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .smart-schedule .schedule-header .add-quick-task-btn {
+    align-self: center;
+  }
+  .task-card {
     flex-direction: column;
-    align-items: flex-start !important;
+    align-items: stretch;
+    gap: 12px;
   }
-
-  .weekly-overview .habit-summary {
-    grid-template-columns: 1fr;
+  .task-card .task-content .task-main {
+    flex-direction: column;
+    gap: 8px;
   }
-
-  .day-status-summary .status-details {
-    grid-template-columns: 1fr;
+  .task-card .task-content .task-main .task-badges {
+    justify-content: flex-start;
+  }
+  .task-card .task-actions {
+    align-self: flex-end;
+  }
+  .summary-stats {
+    gap: 16px;
   }
 }
 
@@ -935,27 +886,18 @@
   .calendar-container {
     padding: 10px;
   }
-
   .header .title {
     font-size: 1.8rem;
   }
-
-  .habit-item {
-    padding: 15px;
+  .task-card {
+    padding: 12px;
   }
-
-  .habit-actions {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .move-tomorrow-btn,
-  .complete-btn,
-  .edit-btn {
-    width: 100%;
-    text-align: center;
+  .badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
   }
 }
+
 
 /* ===================================
    ACCESSIBILITY IMPROVEMENTS
@@ -980,2540 +922,9 @@ button:focus {
 @media (prefers-contrast: high) {
   .calendar-container {
     background: #000;
+    color: #fff;
   }
-
-  .habit-item {
-    border: 2px solid #fff;
-    background: #111;
-  }
-
-  .habit-name {
-    color: #fff !important;
-  }
-}
-
-/* ===================================
-   PRINT STYLES
-   =================================== */
-
-@media print {
-  .calendar-container {
-    background: white !important;
-    color: black !important;
-    padding: 20px;
-  }
-
-  .habit-item {
-    break-inside: avoid;
-    border: 1px solid #ccc;
-    background: white;
-    margin-bottom: 10px;
-  }
-
-  .habit-actions,
-  .add-task-section,
-  .debug-panel {
-    display: none;
-  }
-
-  .habit-checkbox input[type="checkbox"]:checked::after {
-    content: "✓";
-    font-weight: bold;
-  }
-}
-
-.habit-summary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 10px;
-  margin-top: 15px;
-
-  .habit-progress {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    
-    &.on-track {
-      border-left: 3px solid #4caf50;
-    }
-    
-    &.behind {
-      border-left: 3px solid #f44336;
-    }
-
-    .habit-name {
-      font-size: 0.9rem;
-      color: #ccc;
-      flex: 1;
-    }
-
-    .habit-count {
-      font-weight: bold;
-      color: #fff;
-      margin-right: 8px;
-    }
-    
-    .habit-percentage {
-      font-size: 0.8rem;
-      color: #aaa;
-    }
-  }
-}
-
-
-/* ===================================
-   MODAL STYLES
-   =================================== */
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  backdrop-filter: blur(2px);
-}
-
-.modal-content {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-  max-width: 500px;
-  width: 90%;
-  max-height: 90vh;
-  overflow: hidden;
-  animation: modalSlideIn 0.3s ease-out;
-}
-
-@keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-30px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
-  background: #f8f9fa;
-
-  h3 {
-    margin: 0;
-    color: #333;
-    font-weight: 600;
-  }
-
-  .close-btn {
-    background: none;
-    border: none;
-    font-size: 24px;
-    color: #666;
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-
-    &:hover {
-      background: #e0e0e0;
-      color: #333;
-    }
-  }
-}
-
-.modal-body {
-  padding: 24px;
-  max-height: 60vh;
-  overflow-y: auto;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 24px;
-  border-top: 1px solid #e0e0e0;
-  background: #f8f9fa;
-}
-
-/* ===================================
-   FORM STYLES
-   =================================== */
-
-.form-group {
-  margin-bottom: 20px;
-
-  label {
-    display: block;
-    margin-bottom: 6px;
-    color: #333;
-    font-weight: 500;
-    font-size: 0.9rem;
-  }
-}
-
-.form-input,
-.form-textarea {
-  width: 100%;
-  padding: 12px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-  font-family: inherit;
-
-  &:focus {
-    outline: none;
-    border-color: #4caf50;
-    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
-  }
-
-  &::placeholder {
-    color: #999;
-  }
-}
-
-.form-textarea {
-  resize: vertical;
-  min-height: 80px;
-}
-
-.error-message {
-  background: #ffebee;
-  color: #c62828;
-  padding: 12px;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  margin-top: 16px;
-  border-left: 4px solid #f44336;
-}
-
-/* ===================================
-   MODAL BUTTON STYLES
-   =================================== */
-
-.cancel-btn,
-.save-btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 80px;
-}
-
-.cancel-btn {
-  background: #f5f5f5;
-  color: #666;
-
-  &:hover {
-    background: #e0e0e0;
-    color: #333;
-  }
-}
-
-.save-btn {
-  background: linear-gradient(135deg, #4caf50, #66bb6a);
-  color: white;
-
-  &:hover:not(:disabled) {
-    background: linear-gradient(135deg, #45a049, #5cb85c);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-  }
-
-  &:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-  }
-}
-
-/* ===================================
-   IMPROVED SMART SCHEDULE SECTION
-   =================================== */
-
-.smart-schedule {
-  background: rgba(20, 20, 40, 0.8);
-  border-radius: 16px;
-  padding: 24px;
-  margin-bottom: 30px;
-  border: 1px solid rgba(100, 181, 246, 0.2);
-  backdrop-filter: blur(10px);
-
-  .schedule-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 15px;
-
-    h2 {
-      color: #64b5f6;
-      margin: 0;
-      font-size: 1.6rem;
-      font-weight: 600;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    }
-
-    .add-quick-task-btn {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: linear-gradient(135deg, #4caf50, #66bb6a);
-      color: white;
-      border: none;
-      padding: 10px 16px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
-
-      .plus-icon {
-        font-size: 1.2rem;
-        font-weight: bold;
-      }
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4);
-        background: linear-gradient(135deg, #45a049, #5cb85c);
-      }
-
-      &:active {
-        transform: translateY(0);
-      }
-    }
-  }
-}
-
-/* ===================================
-   COMPACT TASK GRID
-   =================================== */
-
-.task-grid {
-  display: grid;
-  gap: 12px;
-  
-  .task-card {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 16px;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-
-    &::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      background: transparent;
-      transition: all 0.3s ease;
-    }
-
-    &:hover:not(.locked) {
-      background: rgba(255, 255, 255, 0.06);
-      border-color: rgba(100, 181, 246, 0.3);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    // Task States
-    &.completed {
-      background: rgba(76, 175, 80, 0.08);
-      border-color: rgba(76, 175, 80, 0.3);
-
-      &::before {
-        background: #4caf50;
-      }
-
-      .task-name {
-        opacity: 0.7;
-      }
-    }
-
-    &.urgent {
-      &::before {
-        background: #ff9800;
-      }
-      
-      .task-card {
-        border-color: rgba(255, 152, 0, 0.3);
-      }
-    }
-
-    &.overdue {
-      &::before {
-        background: #f44336;
-      }
-      
-      border-color: rgba(244, 67, 54, 0.3);
-      animation: subtlePulse 2s ease-in-out infinite;
-    }
-
-    &.ad-hoc {
-      &::before {
-        background: #9c27b0;
-      }
-      
-      border-color: rgba(156, 39, 176, 0.3);
-    }
-
-    &.locked {
-      opacity: 0.5;
-      cursor: not-allowed;
-      
-      .task-content {
-        cursor: not-allowed;
-      }
-    }
-  }
-}
-
-/* ===================================
-   TASK CHECKBOX STYLING
-   =================================== */
-
-.task-checkbox {
-  position: relative;
-  flex-shrink: 0;
-
-  input[type="checkbox"] {
-    position: absolute;
-    opacity: 0;
-    cursor: pointer;
-    height: 0;
-    width: 0;
-
-    &:checked ~ .checkmark {
-      background: linear-gradient(135deg, #4caf50, #66bb6a);
-      border-color: #4caf50;
-
-      &::after {
-        display: block;
-      }
-    }
-
-    &:disabled ~ .checkmark {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-  }
-
-  .checkmark {
-    display: block;
-    width: 24px;
-    height: 24px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-
-    &:hover {
-      border-color: rgba(100, 181, 246, 0.6);
-      background: rgba(100, 181, 246, 0.1);
-    }
-
-    // Checkmark icon
-    &::after {
-      content: '';
-      position: absolute;
-      display: none;
-      left: 7px;
-      top: 3px;
-      width: 6px;
-      height: 12px;
-      border: solid white;
-      border-width: 0 2px 2px 0;
-      transform: rotate(45deg);
-    }
-  }
-}
-
-/* ===================================
-   TASK CONTENT
-   =================================== */
-
-.task-content {
-  flex: 1;
-  cursor: default;
-  min-width: 0; // Allows text truncation
-
-  .task-main {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 6px;
-
-    .task-name {
-      color: #fff;
-      font-size: 1rem;
-      font-weight: 500;
-      margin: 0;
-      line-height: 1.4;
-      flex: 1;
-      min-width: 0;
-      
-      &.completed-text {
-        text-decoration: line-through;
-        opacity: 0.7;
-      }
-    }
-
-    .task-badges {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      align-items: center;
-      flex-shrink: 0;
-    }
-  }
-
-  .task-description {
-    color: #bbb;
-    font-size: 0.85rem;
-    margin: 0 0 8px 0;
-    line-height: 1.3;
-    opacity: 0.8;
-  }
-
-  .time-remaining {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: rgba(255, 193, 7, 0.2);
-    color: #ffc107;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    
-    &.urgent {
-      background: rgba(255, 152, 0, 0.2);
-      color: #ff9800;
-    }
-    
-    &.critical {
-      background: rgba(244, 67, 54, 0.2);
-      color: #f44336;
-      animation: subtlePulse 1.5s ease-in-out infinite;
-    }
-  }
-}
-
-/* ===================================
-   BADGE STYLES
-   =================================== */
-
-.badge {
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-
-  &.required {
-    background: rgba(33, 150, 243, 0.2);
-    color: #64b5f6;
-    border: 1px solid rgba(33, 150, 243, 0.3);
-  }
-
-  &.ad-hoc {
-    background: rgba(156, 39, 176, 0.2);
-    color: #ba68c8;
-    border: 1px solid rgba(156, 39, 176, 0.3);
-  }
-
-  &.priority {
-    &.urgent {
-      background: rgba(255, 152, 0, 0.2);
-      color: #ffb74d;
-      border: 1px solid rgba(255, 152, 0, 0.3);
-    }
-
-    &.critical {
-      background: rgba(244, 67, 54, 0.2);
-      color: #ef5350;
-      border: 1px solid rgba(244, 67, 54, 0.3);
-      animation: badgePulse 2s ease-in-out infinite;
-    }
-  }
-
-  &.overdue {
-    background: rgba(244, 67, 54, 0.3);
-    color: #ffcdd2;
-    border: 1px solid rgba(244, 67, 54, 0.5);
-  }
-}
-
-/* ===================================
-   TASK ACTIONS
-   =================================== */
-
-.task-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-
-  .action-btn {
-    width: 32px;
-    height: 32px;
-    border: none;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    color: #ccc;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.9rem;
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.2);
-      color: #fff;
-      transform: translateY(-1px);
-    }
-
-    &.defer-btn:hover {
-      background: rgba(255, 152, 0, 0.3);
-      color: #ff9800;
-    }
-
-    &.edit-btn:hover {
-      background: rgba(156, 39, 176, 0.3);
-      color: #ba68c8;
-    }
-  }
-}
-
-/* ===================================
-   NO TASKS STATE
-   =================================== */
-
-.no-tasks {
-  text-align: center;
-  padding: 40px 20px;
-  color: #aaa;
-
-  .no-tasks-icon {
-    font-size: 3rem;
-    margin-bottom: 16px;
-  }
-
-  h3 {
-    color: #64b5f6;
-    margin: 0 0 8px 0;
-    font-size: 1.2rem;
-  }
-
-  p {
-    margin: 0;
-    font-size: 0.9rem;
-    opacity: 0.8;
-  }
-}
-
-/* ===================================
-   DAY SUMMARY
-   =================================== */
-
-.day-summary {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-
-  .summary-stats {
-    display: flex;
-    justify-content: center;
-    gap: 24px;
-    flex-wrap: wrap;
-
-    .stat-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-
-      .stat-value {
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #64b5f6;
-
-        &.grace-available {
-          font-size: 1.3rem;
-          color: #4caf50;
-        }
-      }
-
-      .stat-label {
-        font-size: 0.8rem;
-        color: #aaa;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-    }
-  }
-}
-
-/* ===================================
-   RECOMMENDATIONS
-   =================================== */
-
-.recommendations {
-  margin-top: 20px;
-  padding: 16px;
-  background: rgba(33, 150, 243, 0.1);
-  border-radius: 8px;
-  border-left: 4px solid #2196f3;
-
-  h4 {
-    color: #64b5f6;
-    margin: 0 0 12px 0;
-    font-size: 1rem;
-    font-weight: 600;
-  }
-
-  .recommendation-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-
-    .recommendation-item {
-      color: #e3f2fd;
-      font-size: 0.9rem;
-      line-height: 1.4;
-      margin-bottom: 8px;
-      padding-left: 16px;
-      position: relative;
-
-      &::before {
-        content: '→';
-        position: absolute;
-        left: 0;
-        color: #64b5f6;
-        font-weight: bold;
-      }
-
-      &:last-child {
-        margin-bottom: 0;
-      }
-    }
-  }
-}
-
-/* ===================================
-   ANIMATIONS
-   =================================== */
-
-@keyframes subtlePulse {
-  0%, 100% { 
-    opacity: 1; 
-  }
-  50% { 
-    opacity: 0.8; 
-  }
-}
-
-@keyframes badgePulse {
-  0%, 100% { 
-    opacity: 1; 
-  }
-  50% { 
-    opacity: 0.7; 
-  }
-}
-
-/* ===================================
-   RESPONSIVE DESIGN
-   =================================== */
-
-@media (max-width: 768px) {
-  .smart-schedule {
-    padding: 16px;
-
-    .schedule-header {
-      flex-direction: column;
-      align-items: stretch;
-
-      h2 {
-        text-align: center;
-        margin-bottom: 12px;
-      }
-
-      .add-quick-task-btn {
-        align-self: center;
-      }
-    }
-  }
-
-  .task-card {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-
-    .task-content {
-      .task-main {
-        flex-direction: column;
-        gap: 8px;
-
-        .task-badges {
-          justify-content: flex-start;
-        }
-      }
-    }
-
-    .task-actions {
-      align-self: flex-end;
-    }
-  }
-
-  .summary-stats {
-    gap: 16px;
-  }
-}
-
-@media (max-width: 480px) {
-  .task-card {
-    padding: 12px;
-  }
-
-  .badge {
-    font-size: 0.65rem;
-    padding: 2px 6px;
-  }
-}
-
-/* ===================================
-   IMPROVED TASK ACTIONS - MORE VISIBLE BUTTONS
-   =================================== */
-
-.task-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-
-  .action-btn {
-    width: 36px;
-    height: 36px;
-    border: none;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.15);
-    color: #ccc;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(5px);
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.25);
-      color: #fff;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      border-color: rgba(255, 255, 255, 0.4);
-    }
-
-    &:active {
-      transform: translateY(0);
-    }
-
-    &.defer-btn {
-      &:hover {
-        background: rgba(255, 152, 0, 0.4);
-        color: #ff9800;
-        border-color: rgba(255, 152, 0, 0.6);
-        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
-      }
-    }
-
-    &.edit-btn {
-      &:hover {
-        background: rgba(156, 39, 176, 0.4);
-        color: #ba68c8;
-        border-color: rgba(156, 39, 176, 0.6);
-        box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
-      }
-    }
-
-    // Disabled state for completed tasks
-    &:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-      background: rgba(255, 255, 255, 0.05);
-      color: #666;
-      border-color: rgba(255, 255, 255, 0.1);
-
-      &:hover {
-        transform: none;
-        box-shadow: none;
-        background: rgba(255, 255, 255, 0.05);
-        color: #666;
-        border-color: rgba(255, 255, 255, 0.1);
-      }
-    }
-  }
-}
-
-/* ===================================
-   COMPLETED TASK MODIFICATIONS
-   =================================== */
-
-.task-card {
-  &.completed {
-    background: rgba(76, 175, 80, 0.08);
-    border-color: rgba(76, 175, 80, 0.3);
-
-    &::before {
-      background: #4caf50;
-    }
-
-    .task-name {
-      opacity: 0.7;
-      text-decoration: line-through;
-    }
-
-    .task-description {
-      opacity: 0.5;
-    }
-
-    .task-badges .badge {
-      opacity: 0.6;
-    }
-
-    .time-remaining {
-      opacity: 0.5;
-    }
-
-    // Hide action buttons for completed ad-hoc tasks
-    &.ad-hoc .task-actions {
-      .action-btn {
-        opacity: 0.3;
-        pointer-events: none;
-        cursor: not-allowed;
-      }
-    }
-
-    // Only show defer button for completed regular habits (if they support unchecking)
-    &:not(.ad-hoc) .task-actions {
-      .defer-btn {
-        opacity: 0.3;
-        pointer-events: none;
-      }
-    }
-  }
-}
-
-/* ===================================
-   ENHANCED VISIBILITY FOR ACTION BUTTONS
-   =================================== */
-
-.task-card:hover .task-actions {
-  .action-btn {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.3);
-  }
-}
-
-/* Always show action buttons on mobile */
-@media (max-width: 768px) {
-  .task-actions {
-    .action-btn {
-      background: rgba(255, 255, 255, 0.2);
-      border-color: rgba(255, 255, 255, 0.3);
-    }
-  }
-}
-
-/* ===================================
-   BUTTON TOOLTIPS (optional enhancement)
-   =================================== */
-
-.action-btn {
-  position: relative;
-
-  &::after {
-    content: attr(title);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-    z-index: 1000;
-    margin-bottom: 5px;
-  }
-
-  &:hover::after {
-    opacity: 1;
-  }
-}
-
-/* ===================================
-   UPDATED HEADER WITH INLINE STATS
-   =================================== */
-
-.smart-schedule {
-  .schedule-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 15px;
-
-    .header-left {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      flex: 1;
-      min-width: 0;
-
-      h2 {
-        color: #64b5f6;
-        margin: 0;
-        font-size: 1.6rem;
-        font-weight: 600;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-      }
-
-      .inline-stats {
-        display: flex;
-        gap: 12px;
-        flex-wrap: wrap;
-        align-items: center;
-      }
-    }
-
-    .add-quick-task-btn {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: linear-gradient(135deg, #4caf50, #66bb6a);
-      color: white;
-      border: none;
-      padding: 10px 16px;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
-      flex-shrink: 0;
-      align-self: flex-start;
-
-      .plus-icon {
-        font-size: 1.2rem;
-        font-weight: bold;
-      }
-
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 16px rgba(76, 175, 80, 0.4);
-        background: linear-gradient(135deg, #45a049, #5cb85c);
-      }
-
-      &:active {
-        transform: translateY(0);
-      }
-    }
-  }
-}
-
-/* ===================================
-   INLINE STAT CHIPS
-   =================================== */
-
-.stat-chip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  border: 1px solid transparent;
-  backdrop-filter: blur(5px);
-  transition: all 0.3s ease;
-
-  .stat-value {
-    font-weight: 600;
-    font-size: 0.9rem;
-  }
-
-  .stat-label {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    opacity: 0.9;
-  }
-
-  &.required {
-    background: rgba(33, 150, 243, 0.15);
-    color: #64b5f6;
-    border-color: rgba(33, 150, 243, 0.3);
-
-    &:hover {
-      background: rgba(33, 150, 243, 0.25);
-      border-color: rgba(33, 150, 243, 0.5);
-    }
-  }
-
-  &.optional {
-    background: rgba(156, 39, 176, 0.15);
-    color: #ba68c8;
-    border-color: rgba(156, 39, 176, 0.3);
-
-    &:hover {
-      background: rgba(156, 39, 176, 0.25);
-      border-color: rgba(156, 39, 176, 0.5);
-    }
-  }
-
-  &.grace {
-    background: rgba(76, 175, 80, 0.15);
-    color: #66bb6a;
-    border-color: rgba(76, 175, 80, 0.3);
-    animation: gracePulse 2s ease-in-out infinite;
-
-    .stat-value {
-      font-size: 1rem;
-    }
-
-    &:hover {
-      background: rgba(76, 175, 80, 0.25);
-      border-color: rgba(76, 175, 80, 0.5);
-    }
-  }
-}
-
-/* ===================================
-   RESPONSIVE ADJUSTMENTS
-   =================================== */
-
-@media (max-width: 768px) {
-  .smart-schedule .schedule-header {
-    flex-direction: column;
-    align-items: stretch;
-
-    .header-left {
-      align-items: center;
-      text-align: center;
-
-      h2 {
-        margin-bottom: 8px;
-      }
-
-      .inline-stats {
-        justify-content: center;
-        gap: 8px;
-      }
-    }
-
-    .add-quick-task-btn {
-      align-self: center;
-      margin-top: 8px;
-    }
-  }
-
-  .stat-chip {
-    padding: 5px 10px;
-    font-size: 0.8rem;
-
-    .stat-value {
-      font-size: 0.85rem;
-    }
-
-    .stat-label {
-      font-size: 0.7rem;
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .smart-schedule .schedule-header .header-left .inline-stats {
-    .stat-chip {
-      flex: 1;
-      justify-content: center;
-      min-width: 70px;
-    }
-  }
-}
-
-/* ===================================
-   GRACE PULSE ANIMATION
-   =================================== */
-
-@keyframes gracePulse {
-  0%, 100% { 
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% { 
-    opacity: 0.8;
-    transform: scale(1.02);
-  }
-}
-
-/* ===================================
-   REMOVE OLD DAY SUMMARY (since stats moved to header)
-   =================================== */
-
-.day-summary {
-  display: none; /* Hide the old summary section */
-}
-
-/* ===================================
-   MOBILE RESPONSIVE
-   =================================== */
-
-@media (max-width: 600px) {
-  .modal-content {
-    width: 95%;
-    margin: 10px;
-  }
-
-  .modal-header,
-  .modal-body,
-  .modal-footer {
-    padding: 16px;
-  }
-
-  .modal-footer {
-    flex-direction: column;
-    gap: 8px;
-
-    .cancel-btn,
-    .save-btn {
-      width: 100%;
-    }
-  }
-}
-
-/* ===================================
-   DEFERRAL LABELS
-   =================================== */
-
-.task-actions {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-  align-items: center; // Align buttons and labels
-
-  .deferral-label {
-    font-size: 0.7rem;
-    padding: 3px 6px;
-    border-radius: 4px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    transition: all 0.2s ease;
-
-    &.safe {
-      background: rgba(40, 167, 69, 0.2);
-      color: #28a745;
-      border: 1px solid rgba(40, 167, 69, 0.3);
-    }
-
-    &.warning {
-      background: rgba(255, 193, 7, 0.2);
-      color: #ffc107;
-      border: 1px solid rgba(255, 193, 7, 0.3);
-      animation: warningPulse 2s ease-in-out infinite;
-    }
-
-    &.critical {
-      background: rgba(220, 53, 69, 0.2);
-      color: #dc3545;
-      border: 1px solid rgba(220, 53, 69, 0.3);
-      animation: criticalPulse 1.5s ease-in-out infinite;
-    }
-
-    &:hover {
-      transform: scale(1.05);
-    }
-  }
-
-  // Updated action button styles to work with labels
-  .action-btn {
-    width: 36px;
-    height: 36px;
-    border: none;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.15);
-    color: #ccc;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(5px);
-
-    &:hover:not(:disabled) {
-      background: rgba(255, 255, 255, 0.25);
-      color: #fff;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      border-color: rgba(255, 255, 255, 0.4);
-    }
-
-    &:active {
-      transform: translateY(0);
-    }
-
-    &.defer-btn {
-      &:hover:not(:disabled) {
-        background: rgba(255, 152, 0, 0.4);
-        color: #ff9800;
-        border-color: rgba(255, 152, 0, 0.6);
-        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
-      }
-
-      &.disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-        background: rgba(244, 67, 54, 0.2);
-        color: #f44336;
-        border-color: rgba(244, 67, 54, 0.3);
-
-        &:hover {
-          transform: none;
-          box-shadow: none;
-          background: rgba(244, 67, 54, 0.2);
-          color: #f44336;
-          border-color: rgba(244, 67, 54, 0.3);
-        }
-      }
-    }
-
-    &.edit-btn {
-      &:hover:not(:disabled) {
-        background: rgba(156, 39, 176, 0.4);
-        color: #ba68c8;
-        border-color: rgba(156, 39, 176, 0.6);
-        box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
-      }
-    }
-
-    &:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-      background: rgba(255, 255, 255, 0.05);
-      color: #666;
-      border-color: rgba(255, 255, 255, 0.1);
-
-      &:hover {
-        transform: none;
-        box-shadow: none;
-        background: rgba(255, 255, 255, 0.05);
-        color: #666;
-        border-color: rgba(255, 255, 255, 0.1);
-      }
-    }
-  }
-}
-
-/* ===================================
-   LABEL ANIMATIONS
-   =================================== */
-
-@keyframes warningPulse {
-  0%, 100% { 
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% { 
-    opacity: 0.8;
-    transform: scale(1.02);
-  }
-}
-
-@keyframes criticalPulse {
-  0%, 100% { 
-    opacity: 1;
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
-  }
-  50% { 
-    opacity: 0.9;
-    transform: scale(1.03);
-    box-shadow: 0 0 0 4px rgba(220, 53, 69, 0);
-  }
-}
-
-/* ===================================
-   RESPONSIVE ADJUSTMENTS
-   =================================== */
-
-@media (max-width: 768px) {
-  .task-actions {
-    flex-direction: column;
-    gap: 6px;
-    align-items: stretch;
-
-    .deferral-label {
-      text-align: center;
-      font-size: 0.65rem;
-    }
-
-    .action-btn {
-      width: 100%;
-      height: 32px;
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .task-actions {
-    .deferral-label {
-      font-size: 0.6rem;
-      padding: 2px 4px;
-    }
-  }
-}
-
-/* ===================================
-   IMPROVED HEADER SECTION
-   =================================== */
-
-.header {
-  background: linear-gradient(135deg, 
-    rgba(33, 150, 243, 0.15) 0%, 
-    rgba(63, 81, 181, 0.15) 35%,
-    rgba(103, 58, 183, 0.15) 70%,
-    rgba(156, 39, 176, 0.15) 100%);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(100, 181, 246, 0.2);
-  border-radius: 20px;
-  padding: 30px;
-  margin-bottom: 30px;
-  position: relative;
-  overflow: hidden;
-
-  // Animated background elements
-  &::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(100, 181, 246, 0.1) 0%, transparent 70%);
-    animation: floatBackground 20s ease-in-out infinite;
-    z-index: -1;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: -50%;
-    right: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(156, 39, 176, 0.08) 0%, transparent 70%);
-    animation: floatBackground 25s ease-in-out infinite reverse;
-    z-index: -1;
-  }
-
-  .header-content {
-    position: relative;
-    z-index: 1;
-  }
-
-  .app-title-section {
-    text-align: center;
-    margin-bottom: 25px;
-
-    .app-title {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      margin-bottom: 8px;
-
-      .app-icon {
-        font-size: 2.5rem;
-        background: linear-gradient(135deg, #64b5f6, #42a5f5);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        filter: drop-shadow(0 2px 4px rgba(100, 181, 246, 0.3));
-      }
-
-      h1 {
-        font-size: 2.2rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, #64b5f6 0%, #90caf9 50%, #bbdefb 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin: 0;
-        text-shadow: 0 2px 8px rgba(100, 181, 246, 0.3);
-        letter-spacing: -0.5px;
-      }
-    }
-
-    .week-info {
-      color: #90caf9;
-      font-size: 1rem;
-      font-weight: 500;
-      opacity: 0.9;
-      margin-bottom: 20px;
-    }
-  }
-
-  .navigation-tabs {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    margin-bottom: 25px;
-
-    .nav-tab {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 20px;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 12px;
-      color: #ccc;
-      text-decoration: none;
-      font-weight: 500;
-      transition: all 0.3s ease;
-      backdrop-filter: blur(10px);
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.15);
-        color: #fff;
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-        border-color: rgba(100, 181, 246, 0.4);
-      }
-
-      &.active {
-        background: linear-gradient(135deg, rgba(100, 181, 246, 0.3), rgba(63, 81, 181, 0.3));
-        color: #fff;
-        border-color: rgba(100, 181, 246, 0.5);
-        box-shadow: 0 4px 15px rgba(100, 181, 246, 0.3);
-
-        &:hover {
-          transform: translateY(-1px);
-        }
-      }
-
-      .tab-icon {
-        font-size: 1.1rem;
-      }
-    }
-  }
-
-  .progress-overview {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 20px;
-    align-items: center;
-
-    .week-progress {
-      .progress-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        margin-bottom: 12px;
-
-        .progress-title {
-          font-size: 1.3rem;
-          font-weight: 600;
-          color: #64b5f6;
-          margin: 0;
-        }
-
-        .progress-percentage {
-          font-size: 2rem;
-          font-weight: 700;
-          background: linear-gradient(135deg, #4caf50, #66bb6a);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          margin: 0;
-        }
-      }
-
-      .progress-bar-container {
-        position: relative;
-        height: 12px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-
-        .progress-bar {
-          height: 100%;
-          background: linear-gradient(90deg, #4caf50, #66bb6a, #81c784);
-          border-radius: 8px;
-          transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          overflow: hidden;
-
-          &::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            animation: shimmer 2s infinite;
-          }
-        }
-      }
-    }
-
-    .grace-info {
-      text-align: center;
-      padding: 16px 20px;
-      background: rgba(76, 175, 80, 0.15);
-      border: 1px solid rgba(76, 175, 80, 0.3);
-      border-radius: 12px;
-      backdrop-filter: blur(10px);
-
-      .grace-icon {
-        font-size: 1.5rem;
-        margin-bottom: 8px;
-        display: block;
-      }
-
-      .grace-count {
-        font-size: 1.4rem;
-        font-weight: 700;
-        color: #66bb6a;
-        margin: 0 0 4px 0;
-      }
-
-      .grace-label {
-        font-size: 0.85rem;
-        color: #a5d6a7;
-        margin: 0;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-    }
-  }
-}
-
-/* ===================================
-   ANIMATIONS
-   =================================== */
-
-@keyframes floatBackground {
-  0%, 100% {
-    transform: translateY(0) rotate(0deg);
-    opacity: 0.5;
-  }
-  33% {
-    transform: translateY(-20px) rotate(1deg);
-    opacity: 0.7;
-  }
-  66% {
-    transform: translateY(10px) rotate(-1deg);
-    opacity: 0.6;
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
-  }
-}
-
-/* ===================================
-   RESPONSIVE DESIGN
-   =================================== */
-
-@media (max-width: 768px) {
-  .header {
-    padding: 20px;
-    border-radius: 16px;
-
-    .app-title-section {
-      .app-title {
-        flex-direction: column;
-        gap: 8px;
-
-        h1 {
-          font-size: 1.8rem;
-        }
-      }
-    }
-
-    .navigation-tabs {
-      flex-wrap: wrap;
-      gap: 8px;
-
-      .nav-tab {
-        padding: 10px 16px;
-        font-size: 0.9rem;
-      }
-    }
-
-    .progress-overview {
-      grid-template-columns: 1fr;
-      gap: 15px;
-      text-align: center;
-
-      .grace-info {
-        max-width: 200px;
-        margin: 0 auto;
-      }
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .header {
-    padding: 16px;
-
-    .app-title-section {
-      .app-title h1 {
-        font-size: 1.6rem;
-      }
-
-      .week-info {
-        font-size: 0.9rem;
-      }
-    }
-
-    .navigation-tabs {
-      .nav-tab {
-        flex: 1;
-        justify-content: center;
-        min-width: 0;
-
-        .tab-text {
-          display: none;
-        }
-      }
-    }
-
-    .progress-overview {
-      .week-progress {
-        .progress-header {
-          flex-direction: column;
-          gap: 8px;
-          text-align: center;
-
-          .progress-percentage {
-            font-size: 1.6rem;
-          }
-        }
-      }
-    }
-  }
-}
-
-
-/* ===================================
-   UPDATED HEADER SECTION - FIXED
-   =================================== */
-
-.header {
-  background: linear-gradient(135deg, 
-    rgba(33, 150, 243, 0.15) 0%, 
-    rgba(63, 81, 181, 0.15) 35%,
-    rgba(103, 58, 183, 0.15) 70%,
-    rgba(156, 39, 176, 0.15) 100%);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(100, 181, 246, 0.2);
-  border-radius: 20px;
-  padding: 30px;
-  margin-bottom: 30px;
-  position: relative;
-  overflow: hidden;
-
-  // Animated background elements
-  &::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(100, 181, 246, 0.1) 0%, transparent 70%);
-    animation: floatBackground 20s ease-in-out infinite;
-    z-index: -1;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: -50%;
-    right: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(156, 39, 176, 0.08) 0%, transparent 70%);
-    animation: floatBackground 25s ease-in-out infinite reverse;
-    z-index: -1;
-  }
-
-  .header-content {
-    position: relative;
-    z-index: 2; // Increased z-index to ensure content is visible
-  }
-
-  .app-title-section {
-    text-align: center;
-    margin-bottom: 30px; // Increased margin
-
-    .app-title {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 15px;
-      margin-bottom: 12px;
-
-      .app-icon {
-        font-size: 2.8rem;
-        background: linear-gradient(135deg, #64b5f6, #42a5f5);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        filter: drop-shadow(0 2px 4px rgba(100, 181, 246, 0.3));
-        flex-shrink: 0;
-      }
-
-      h1 {
-        font-size: 2.8rem; // Increased font size
-        font-weight: 700;
-        color: #ffffff; // Use solid white color instead of gradient
-        text-shadow: 0 3px 12px rgba(100, 181, 246, 0.4);
-        margin: 0;
-        letter-spacing: -0.5px;
-        line-height: 1.1;
-        position: relative;
-        z-index: 3; // High z-index for visibility
-      }
-    }
-
-    .week-info {
-      color: #b3e5fc;
-      font-size: 1.1rem;
-      font-weight: 500;
-      opacity: 0.95;
-      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    }
-  }
-
-  .progress-overview {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 25px;
-    align-items: center;
-
-    .week-progress {
-      .progress-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        margin-bottom: 12px;
-
-        .progress-title {
-          font-size: 1.4rem;
-          font-weight: 600;
-          color: #81d4fa;
-          margin: 0;
-          text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-        }
-
-        .progress-percentage {
-          font-size: 2.2rem;
-          font-weight: 700;
-          color: #66bb6a; // Use solid green color
-          margin: 0;
-          text-shadow: 0 2px 8px rgba(102, 187, 106, 0.4);
-        }
-      }
-
-      .progress-bar-container {
-        position: relative;
-        height: 14px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-
-        .progress-bar {
-          height: 100%;
-          background: linear-gradient(90deg, #4caf50, #66bb6a, #81c784);
-          border-radius: 10px;
-          transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          overflow: hidden;
-
-          &::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            animation: shimmer 2s infinite;
-          }
-        }
-      }
-    }
-
-    .grace-info {
-      text-align: center;
-      padding: 18px 22px;
-      background: rgba(76, 175, 80, 0.18);
-      border: 1px solid rgba(76, 175, 80, 0.35);
-      border-radius: 14px;
-      backdrop-filter: blur(12px);
-      min-width: 100px;
-
-      .grace-icon {
-        font-size: 1.6rem;
-        margin-bottom: 8px;
-        display: block;
-        filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.3));
-      }
-
-      .grace-count {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #81c784;
-        margin: 0 0 4px 0;
-        text-shadow: 0 2px 6px rgba(129, 199, 132, 0.4);
-      }
-
-      .grace-label {
-        font-size: 0.85rem;
-        color: #c8e6c9;
-        margin: 0;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        font-weight: 500;
-      }
-    }
-  }
-}
-
-/* Remove navigation tabs since they're already at the top */
-
-/* ===================================
-   ANIMATIONS (keep existing)
-   =================================== */
-
-@keyframes floatBackground {
-  0%, 100% {
-    transform: translateY(0) rotate(0deg);
-    opacity: 0.5;
-  }
-  33% {
-    transform: translateY(-20px) rotate(1deg);
-    opacity: 0.7;
-  }
-  66% {
-    transform: translateY(10px) rotate(-1deg);
-    opacity: 0.6;
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
-  }
-}
-
-/* ===================================
-   RESPONSIVE DESIGN
-   =================================== */
-
-@media (max-width: 768px) {
-  .header {
-    padding: 22px;
-    border-radius: 16px;
-
-    .app-title-section {
-      margin-bottom: 25px;
-
-      .app-title {
-        flex-direction: column;
-        gap: 10px;
-
-        h1 {
-          font-size: 2.2rem;
-        }
-      }
-
-      .week-info {
-        font-size: 1rem;
-      }
-    }
-
-    .progress-overview {
-      grid-template-columns: 1fr;
-      gap: 20px;
-      text-align: center;
-
-      .grace-info {
-        max-width: 200px;
-        margin: 0 auto;
-      }
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .header {
-    padding: 18px;
-
-    .app-title-section {
-      .app-title {
-        h1 {
-          font-size: 1.9rem;
-        }
-
-        .app-icon {
-          font-size: 2.4rem;
-        }
-      }
-
-      .week-info {
-        font-size: 0.95rem;
-      }
-    }
-
-    .progress-overview {
-      .week-progress {
-        .progress-header {
-          flex-direction: column;
-          gap: 8px;
-          text-align: center;
-
-          .progress-percentage {
-            font-size: 1.8rem;
-          }
-        }
-      }
-    }
-  }
-}
-
-.weekly-overview {
-  // Hide the progress card since it's now in the header
-  .progress-card {
-    display: none;
-  }
-
-  // Keep only the habit summary
-  .habit-summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 10px;
-    
-    // Remove margin-top since there's no progress card above it now
-    margin-top: 0;
-
-    .habit-progress {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 12px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 8px;
-      
-      &.on-track {
-        border-left: 3px solid #4caf50;
-      }
-      
-      &.behind {
-        border-left: 3px solid #f44336;
-      }
-
-      .habit-name {
-        font-size: 0.9rem;
-        color: #ccc;
-      }
-
-      .habit-count {
-        font-weight: bold;
-        color: #fff;
-      }
-    }
-  }
-}
-
-/* ===================================
-   FIXED PROGRESS PERCENTAGE STYLING
-   =================================== */
-
-.header {
-  background: linear-gradient(135deg, 
-    rgba(33, 150, 243, 0.15) 0%, 
-    rgba(63, 81, 181, 0.15) 35%,
-    rgba(103, 58, 183, 0.15) 70%,
-    rgba(156, 39, 176, 0.15) 100%);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(100, 181, 246, 0.2);
-  border-radius: 20px;
-  padding: 30px;
-  margin-bottom: 30px;
-  position: relative;
-  overflow: hidden;
-
-  .header-content {
-    position: relative;
-    z-index: 10; // Increased z-index to ensure visibility
-  }
-
-  .progress-overview {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 25px;
-    align-items: center;
-
-    .week-progress {
-      .progress-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center; // Changed from baseline to center for better alignment
-        margin-bottom: 12px;
-        min-height: 40px; // Ensure minimum height for proper spacing
-        flex-wrap: nowrap; // Prevent wrapping
-        gap: 15px; // Add gap between title and percentage
-
-        .progress-title {
-          font-size: 1.4rem;
-          font-weight: 600;
-          color: #81d4fa;
-          margin: 0;
-          text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-          white-space: nowrap; // Prevent text wrapping
-          flex-shrink: 0; // Prevent shrinking
-        }
-
-        .progress-percentage {
-          font-size: 2.2rem;
-          font-weight: 700;
-          color: #66bb6a; // Solid green color
-          margin: 0;
-          text-shadow: 0 2px 8px rgba(102, 187, 106, 0.4);
-          white-space: nowrap; // Prevent text wrapping
-          flex-shrink: 0; // Prevent shrinking
-          min-width: fit-content; // Ensure enough space for content
-          position: relative;
-          z-index: 15; // High z-index for visibility
-          // Remove any background clip that might interfere
-          background: none !important;
-          -webkit-background-clip: unset !important;
-          -webkit-text-fill-color: #66bb6a !important;
-        }
-      }
-
-      .progress-bar-container {
-        position: relative;
-        height: 14px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-
-        .progress-bar {
-          height: 100%;
-          background: linear-gradient(90deg, #4caf50, #66bb6a, #81c784);
-          border-radius: 10px;
-          transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          overflow: hidden;
-
-          &::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            animation: shimmer 2s infinite;
-          }
-        }
-      }
-    }
-  }
-}
-
-/* ===================================
-   RESPONSIVE DESIGN IMPROVEMENTS
-   =================================== */
-
-@media (max-width: 768px) {
-  .header {
-    padding: 22px;
-    border-radius: 16px;
-
-    .progress-overview {
-      grid-template-columns: 1fr;
-      gap: 20px;
-      text-align: center;
-
-      .week-progress {
-        .progress-header {
-          flex-direction: row; // Keep horizontal layout
-          justify-content: space-between;
-          align-items: center;
-          gap: 10px;
-
-          .progress-title {
-            font-size: 1.2rem;
-          }
-
-          .progress-percentage {
-            font-size: 1.8rem;
-          }
-        }
-      }
-    }
-  }
-}
-
-/* ===================================
-   FIXED PROGRESS PERCENTAGE STYLING
-   =================================== */
-
-.header {
-  background: linear-gradient(135deg, 
-    rgba(33, 150, 243, 0.15) 0%, 
-    rgba(63, 81, 181, 0.15) 35%,
-    rgba(103, 58, 183, 0.15) 70%,
-    rgba(156, 39, 176, 0.15) 100%);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(100, 181, 246, 0.2);
-  border-radius: 20px;
-  padding: 30px;
-  margin-bottom: 30px;
-  position: relative;
-  overflow: hidden;
-
-  .header-content {
-    position: relative;
-    z-index: 10; // Increased z-index to ensure visibility
-  }
-
-  .progress-overview {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 25px;
-    align-items: center;
-
-    .week-progress {
-      .progress-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center; // Changed from baseline to center for better alignment
-        margin-bottom: 12px;
-        min-height: 40px; // Ensure minimum height for proper spacing
-        flex-wrap: nowrap; // Prevent wrapping
-        gap: 15px; // Add gap between title and percentage
-
-        .progress-title {
-          font-size: 1.4rem;
-          font-weight: 600;
-          color: #81d4fa;
-          margin: 0;
-          text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-          white-space: nowrap; // Prevent text wrapping
-          flex-shrink: 0; // Prevent shrinking
-        }
-
-        .progress-percentage {
-          font-size: 2.2rem;
-          font-weight: 700;
-          color: #66bb6a; // Solid green color
-          margin: 0;
-          text-shadow: 0 2px 8px rgba(102, 187, 106, 0.4);
-          white-space: nowrap; // Prevent text wrapping
-          flex-shrink: 0; // Prevent shrinking
-          min-width: fit-content; // Ensure enough space for content
-          position: relative;
-          z-index: 15; // High z-index for visibility
-          // Remove any background clip that might interfere
-          background: none !important;
-          -webkit-background-clip: unset !important;
-          -webkit-text-fill-color: #66bb6a !important;
-        }
-      }
-
-      .progress-bar-container {
-        position: relative;
-        height: 14px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-
-        .progress-bar {
-          height: 100%;
-          background: linear-gradient(90deg, #4caf50, #66bb6a, #81c784);
-          border-radius: 10px;
-          transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          overflow: hidden;
-
-          &::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            animation: shimmer 2s infinite;
-          }
-        }
-      }
-    }
-  }
-}
-
-/* ===================================
-   RESPONSIVE DESIGN IMPROVEMENTS
-   =================================== */
-
-@media (max-width: 768px) {
-  .header {
-    padding: 22px;
-    border-radius: 16px;
-
-    .progress-overview {
-      grid-template-columns: 1fr;
-      gap: 20px;
-      text-align: center;
-
-      .week-progress {
-        .progress-header {
-          flex-direction: row; // Keep horizontal layout
-          justify-content: space-between;
-          align-items: center;
-          gap: 10px;
-
-          .progress-title {
-            font-size: 1.2rem;
-          }
-
-          .progress-percentage {
-            font-size: 1.8rem;
-          }
-        }
-      }
-    }
-  }
-}
-
-.header {
-  background: linear-gradient(135deg, 
-    rgba(33, 150, 243, 0.15) 0%, 
-    rgba(63, 81, 181, 0.15) 35%,
-    rgba(103, 58, 183, 0.15) 70%,
-    rgba(156, 39, 176, 0.15) 100%);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(100, 181, 246, 0.2);
-  border-radius: 20px;
-  padding: 30px;
-  margin-bottom: 30px;
-  position: relative;
-  overflow: hidden;
-
-  .header-content {
-    position: relative;
-    z-index: 10; // Increased z-index to ensure visibility
-  }
-
-  .progress-overview {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 25px;
-    align-items: center;
-
-    .week-progress {
-      .progress-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center; // Changed from baseline to center for better alignment
-        margin-bottom: 12px;
-        min-height: 40px; // Ensure minimum height for proper spacing
-        flex-wrap: nowrap; // Prevent wrapping
-        gap: 15px; // Add gap between title and percentage
-
-        .progress-title {
-          font-size: 1.4rem;
-          font-weight: 600;
-          color: #81d4fa;
-          margin: 0;
-          text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-          white-space: nowrap; // Prevent text wrapping
-          flex-shrink: 0; // Prevent shrinking
-        }
-
-        .progress-percentage {
-          font-size: 2.2rem;
-          font-weight: 700;
-          color: #66bb6a; // Solid green color
-          margin: 0;
-          text-shadow: 0 2px 8px rgba(102, 187, 106, 0.4);
-          white-space: nowrap; // Prevent text wrapping
-          flex-shrink: 0; // Prevent shrinking
-          min-width: fit-content; // Ensure enough space for content
-          position: relative;
-          z-index: 15; // High z-index for visibility
-          // Remove any background clip that might interfere
-          background: none !important;
-          -webkit-background-clip: unset !important;
-          -webkit-text-fill-color: #66bb6a !important;
-        }
-      }
-
-      .progress-bar-container {
-        position: relative;
-        height: 14px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        overflow: hidden;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-
-        .progress-bar {
-          height: 100%;
-          background: linear-gradient(90deg, #4caf50, #66bb6a, #81c784);
-          border-radius: 10px;
-          transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          overflow: hidden;
-
-          &::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-            animation: shimmer 2s infinite;
-          }
-        }
-      }
-    }
-  }
-}
-
-/* ===================================
-   RESPONSIVE DESIGN IMPROVEMENTS
-   =================================== */
-
-@media (max-width: 768px) {
-  .header {
-    padding: 22px;
-    border-radius: 16px;
-
-    .progress-overview {
-      grid-template-columns: 1fr;
-      gap: 20px;
-      text-align: center;
-
-      .week-progress {
-        .progress-header {
-          flex-direction: row; // Keep horizontal layout
-          justify-content: space-between;
-          align-items: center;
-          gap: 10px;
-
-          .progress-title {
-            font-size: 1.2rem;
-          }
-
-          .progress-percentage {
-            font-size: 1.8rem;
-          }
-        }
-      }
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .header {
-    padding: 18px;
-
-    .progress-overview {
-      .week-progress {
-        .progress-header {
-          flex-direction: column; // Stack vertically on small screens
-          gap: 8px;
-          text-align: center;
-          align-items: center;
-
-          .progress-title {
-            font-size: 1.1rem;
-          }
-
-          .progress-percentage {
-            font-size: 1.6rem;
-          }
-        }
-      }
-    }
+  .calendar-day {
+    border-width: 2px;
   }
 }
