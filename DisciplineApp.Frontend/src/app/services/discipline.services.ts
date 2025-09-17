@@ -547,6 +547,25 @@ getMonthDataWithRealTimeToday(year: number, month: number): Observable<DayData[]
       );
   }
 
+  smartDeferTask(habitId: number, fromDate: string, reason?: string): Observable<{
+  success: boolean;
+  message: string;
+  newDueDate?: string;
+  deferralsUsed?: number;
+  remainingDeferrals?: number;
+}> {
+  const request = {
+    habitId: habitId,
+    fromDate: fromDate,
+    reason: reason || 'User requested'
+  };
+
+  return this.http.post<any>(`${this.baseUrl}/smart-defer-task`, request)
+    .pipe(
+      catchError(this.handleError)
+    );
+}
+
   // ===================================
   // UTILITY METHODS
   // ===================================

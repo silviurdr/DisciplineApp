@@ -572,6 +572,221 @@ public class WeeklyScheduleService
         // Schedule if we need to complete more tasks than remaining weeks
         return remainingCompletions >= remainingWeeks;
     }
+
+    public async Task<SmartDeferralResult> SmartDeferTask(int habitId, DateTime fromDate, string reason)
+    {
+        var habit = await _context.Habits.FindAsync(habitId);
+        if (habit == null)
+        {
+            return new SmartDeferralResult
+            {
+                Success = false,
+                Message = "Habit not found"
+            };
+        }
+
+        // Check if habit has remaining deferrals
+        var currentDeferralInfo = await CalculateDeferralInfo(habit, fromDate);
+        if (currentDeferralInfo.DeferralsUsed >= currentDeferralInfo.MaxDeferrals)
+        {
+            return new SmartDeferralResult
+            {
+                Success = false,
+                Message = $"No more deferrals available for this task. You've used all {currentDeferralInfo.MaxDeferrals} deferrals."
+            };
+        }
+
+        // Find next available date
+        var nextAvailableDate = await FindNextAvailableDate(habit, fromDate);
+        if (nextAvailableDate == null)
+        {
+            return new SmartDeferralResult
+            {
+                Success = false,
+                Message = GetDeferralBlockedMessage(habit, fromDate)
+            };
+        }
+
+        // Create the deferral
+        await CreateDeferralRecord(habitId, fromDate, nextAvailableDate.Value, reason);
+
+        return new SmartDeferralResult
+        {
+            Success = true,
+            Message = $"Task moved to {nextAvailableDate.Value:dddd, MMM dd}",
+            NewDueDate = nextAvailableDate.Value,
+            DeferralsUsed = currentDeferralInfo.DeferralsUsed + 1,
+            RemainingDeferrals = currentDeferralInfo.MaxDeferrals - (currentDeferralInfo.DeferralsUsed + 1)
+        };
+    }
+
+    private async Task<DateTime?> FindNextAvailableDate(Habit habit, DateTime fromDate)
+    {
+        var searchDate = fromDate.AddDays(1); // Start from tomorrow
+        var maxSearchDays = GetMaxSearchDays(habit, fromDate);
+
+        for (int i = 0; i < maxSearchDays; i++)
+        {
+            var checkDate = searchDate.AddDays(i);
+
+            // Check if this date is within the valid period for this habit
+            if (!IsDateWithinValidPeriod(habit, checkDate, fromDate))
+                break;
+
+            // Check if this habit already exists on this date
+            if (!await IsHabitAlreadyScheduled(habit.Id, checkDate))
+            {
+                return checkDate;
+            }
+        }
+
+        return null; // No available date found
+    }
+
+    private bool IsDateWithinValidPeriod(Habit habit, DateTime checkDate, DateTime originalDate)
+    {
+        switch (habit.Frequency)
+        {
+            case HabitFrequency.Daily:
+                return false; // Daily tasks can't be moved - they're needed every day
+
+            case HabitFrequency.Weekly:
+                // Weekly tasks must stay within the same week
+                var weekStart = GetWeekStart(originalDate);
+                var weekEnd = weekStart.AddDays(6);
+                return checkDate >= weekStart && checkDate <= weekEnd;
+
+            case HabitFrequency.EveryTwoDays:
+                // Rolling tasks can move within a 4-day window
+                return checkDate <= originalDate.AddDays(3);
+
+            case HabitFrequency.Monthly:
+                // Monthly tasks must stay within the same month
+                return checkDate.Year == originalDate.Year &&
+                       checkDate.Month == originalDate.Month;
+
+            case HabitFrequency.Seasonal:
+                // Seasonal tasks must stay within the season (March-October)
+                return checkDate.Month >= 3 && checkDate.Month <= 10;
+
+            default:
+                return false;
+        }
+    }
+
+    private async Task<bool> IsHabitAlreadyScheduled(int habitId, DateTime checkDate)
+    {
+        // Check if habit is already scheduled naturally on this date
+        var weekStart = GetWeekStart(checkDate);
+        var weekSchedule = await GenerateWeekSchedule(weekStart);
+
+        var daySchedule = weekSchedule.DailySchedules.FirstOrDefault(d => d.Date.Date == checkDate.Date);
+        if (daySchedule?.ScheduledHabits.Any(h => h.HabitId == habitId) == true)
+            return true;
+
+        // Check if habit is already deferred TO this date
+        var existingDeferral = await _context.TaskDeferrals
+            .AnyAsync(d => d.HabitId == habitId &&
+                          d.DeferredToDate.Date == checkDate.Date &&
+                          !d.IsCompleted);
+
+        return existingDeferral;
+    }
+
+    private int GetMaxSearchDays(Habit habit, DateTime fromDate)
+    {
+        switch (habit.Frequency)
+        {
+            case HabitFrequency.Daily:
+                return 0; // Can't move daily tasks
+            case HabitFrequency.EveryTwoDays:
+                return 3; // 3-day window
+            case HabitFrequency.Weekly:
+                var weekEnd = GetWeekStart(fromDate).AddDays(6);
+                return (int)(weekEnd - fromDate).TotalDays;
+            case HabitFrequency.Monthly:
+                var monthEnd = new DateTime(fromDate.Year, fromDate.Month, 1).AddMonths(1).AddDays(-1);
+                return Math.Min(14, (int)(monthEnd - fromDate).TotalDays); // Max 2 weeks search
+            case HabitFrequency.Seasonal:
+                return 30; // Search up to 30 days ahead
+            default:
+                return 7;
+        }
+    }
+
+    private string GetDeferralBlockedMessage(Habit habit, DateTime fromDate)
+    {
+        switch (habit.Frequency)
+        {
+            case HabitFrequency.Daily:
+                return "Daily habits cannot be moved - they are required every day.";
+
+            case HabitFrequency.Weekly:
+                var weekEnd = GetWeekStart(fromDate).AddDays(6);
+                return $"Cannot move this weekly task. All remaining days this week (until {weekEnd:MMM dd}) already have this habit scheduled.";
+
+            case HabitFrequency.EveryTwoDays:
+                return "Cannot move this task. All available dates within the 2-day cycle already have this habit scheduled.";
+
+            case HabitFrequency.Monthly:
+                return "Cannot move this monthly task. All remaining days this month already have this habit scheduled.";
+
+            case HabitFrequency.Seasonal:
+                return "Cannot move this seasonal task. All nearby dates already have this habit scheduled.";
+
+            default:
+                return "Cannot move this task. No available dates found.";
+        }
+    }
+
+    private async Task CreateDeferralRecord(int habitId, DateTime fromDate, DateTime toDate, string reason)
+    {
+        // Check if deferral record already exists
+        var existingDeferral = await _context.TaskDeferrals
+            .FirstOrDefaultAsync(d => d.HabitId == habitId &&
+                               d.OriginalDate.Date == fromDate.Date &&
+                               !d.IsCompleted);
+
+        if (existingDeferral != null)
+        {
+            // Update existing deferral
+            existingDeferral.DeferralsUsed++;
+            existingDeferral.DeferredToDate = toDate;
+            existingDeferral.Reason = reason;
+        }
+        else
+        {
+            // Create new deferral
+            _context.TaskDeferrals.Add(new TaskDeferral
+            {
+                HabitId = habitId,
+                OriginalDate = fromDate,
+                DeferredToDate = toDate,
+                DeferralsUsed = 1,
+                Reason = reason,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    private DateTime GetWeekStart(DateTime date)
+    {
+        var dayOfWeek = (int)date.DayOfWeek;
+        var mondayOffset = (dayOfWeek == 0) ? -6 : -(dayOfWeek - 1);
+        return date.AddDays(mondayOffset);
+    }
+
+    // Result model for smart deferral
+    public class SmartDeferralResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public DateTime? NewDueDate { get; set; }
+        public int DeferralsUsed { get; set; }
+        public int RemainingDeferrals { get; set; }
+    }
 }
 
 // Supporting models

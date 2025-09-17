@@ -770,6 +770,47 @@ public class DisciplineController : ControllerBase
         }
     }
 
+    [HttpPost("smart-defer-task")]
+    public async Task<IActionResult> SmartDeferTask([FromBody] SmartDeferTaskRequest request)
+    {
+        try
+        {
+            var result = await _scheduleService.SmartDeferTask(
+                request.HabitId,
+                DateTime.Parse(request.FromDate),
+                request.Reason ?? "User requested"
+            );
+
+            if (result.Success)
+            {
+                return Ok(new
+                {
+                    success = true,
+                    message = result.Message,
+                    newDueDate = result.NewDueDate?.ToString("yyyy-MM-dd"),
+                    deferralsUsed = result.DeferralsUsed,
+                    remainingDeferrals = result.RemainingDeferrals
+                });
+            }
+            else
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = result.Message
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new
+            {
+                success = false,
+                message = $"Error deferring task: {ex.Message}"
+            });
+        }
+    }
+
     private int CalculateWeeklyTarget(Habit habit)
     {
         return habit.Frequency switch
@@ -869,5 +910,12 @@ public class DeferTaskRequest
 {
     public int HabitId { get; set; }
     public DateTime FromDate { get; set; }
+    public string? Reason { get; set; }
+}
+
+public class SmartDeferTaskRequest
+{
+    public int HabitId { get; set; }
+    public string FromDate { get; set; } = string.Empty;
     public string? Reason { get; set; }
 }

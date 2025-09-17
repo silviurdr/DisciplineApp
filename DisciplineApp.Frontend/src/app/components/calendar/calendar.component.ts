@@ -340,22 +340,31 @@ loadCurrentWeekData(): void {
     return 'Move to Tomorrow';
   }
 
-  getMoveButtonTooltip(habit: ScheduledHabit): string {
-    const flexInfo = this.getFlexibilityInfo(habit);
-    if (!flexInfo) return 'Daily tasks cannot be moved';
-    
-    if (flexInfo.remainingDeferrals === 0) {
-      return 'No more deferrals available - must complete today';
-    }
-    
-    return `${flexInfo.statusText}`;
+getMoveButtonTooltip(habit: ScheduledHabit): string {
+  if (this.isDailyHabit(habit)) {
+    return 'Daily habits cannot be moved - required every day';
   }
+
+  const flexInfo = this.getFlexibilityInfo(habit);
+  if (!flexInfo) return 'This task cannot be moved';
+  
+  if (flexInfo.remainingDeferrals === 0) {
+    return 'No more deferrals available - must complete today';
+  }
+  
+  if (habit.frequency?.toLowerCase().includes('weekly')) {
+    return `Move to next available day this week (${flexInfo.remainingDeferrals} moves left)`;
+  }
+  
+  return `Move to next available date (${flexInfo.remainingDeferrals} moves left)`;
+}
 
   // ===================================
   // ACTION METHODS
   // ===================================
 
- moveTaskToTomorrow(habit: ScheduledHabit): void {
+ 
+moveTaskToTomorrow(habit: ScheduledHabit): void {
   // Prevent moving completed tasks
   if (habit.isCompleted) {
     console.log('Cannot move completed tasks');
@@ -364,61 +373,89 @@ loadCurrentWeekData(): void {
 
   // Prevent moving daily habits
   if (this.isDailyHabit(habit)) {
-    alert('Daily habits cannot be moved to tomorrow');
+    this.showDeferralMessage('Daily habits cannot be moved - they are required every day.', 'error');
     return;
   }
-    if (!this.canActuallyMoveHabit(habit)) {
-      const flexInfo = this.getFlexibilityInfo(habit);
-      const message = flexInfo ? 
-        `Cannot move ${habit.name}: ${flexInfo.statusText}` :
-        `Cannot move ${habit.name}: Daily tasks must be completed today`;
-      alert(message);
-      return;
-    }
 
-    const today = new Date().toISOString().split('T')[0];
-    
-    // Use flexible task service if available
-    if (this.disciplineService.deferTask) {
-      this.disciplineService.deferTask(habit.habitId, today, 'User requested').subscribe({
-        next: (updatedTask) => {
-          console.log('Task deferred successfully:', updatedTask);
-          
-          // Update the habit in the current day's data
-          if (this.todayData?.allHabits) {
-            const index = this.todayData.allHabits.findIndex(h => h.habitId === habit.habitId);
-            if (index !== -1) {
-              this.todayData.allHabits[index].deferralsUsed = (habit.deferralsUsed || 0) + 1;
-            }
-          }
-          
-          alert(`${habit.name} moved to tomorrow. ${updatedTask.statusLabel || 'Task rescheduled successfully.'}`);
-          this.loadCurrentWeekData();
-        },
-        error: (error) => {
-          console.error('Error moving task:', error);
-          alert('Failed to move task. Please try again.');
-        }
-      });
-    } else {
-      // Fallback to original move logic
-      this.disciplineService.moveTaskToTomorrow({
-        habitId: habit.habitId,
-        currentDate: today,
-        reason: 'User requested'
-      }).subscribe({
-        next: (response) => {
-          console.log('Task moved:', response);
-          alert(`${habit.name} moved to tomorrow`);
-          this.loadCurrentWeekData();
-        },
-        error: (error) => {
-          console.error('Error moving task:', error);
-          alert('Failed to move task. Please try again.');
-        }
-      });
-    }
+  // Check if can actually move
+  if (!this.canActuallyMoveHabit(habit)) {
+    const flexInfo = this.getFlexibilityInfo(habit);
+    const message = flexInfo ? 
+      'No more deferrals available - must complete today' : 
+      'This task cannot be moved';
+    this.showDeferralMessage(message, 'error');
+    return;
   }
+
+  // Show loading state
+  this.showDeferralMessage('Finding next available date...', 'info');
+
+  // Use smart deferral
+  const today = new Date().toISOString().split('T')[0];
+  
+  this.disciplineService.smartDeferTask(habit.habitId, today, 'Moved by user')
+    .subscribe({
+      next: (response) => {
+        if (response.success) {
+          // Success message with details
+          const newDate = new Date(response.newDueDate!).toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'short',
+            day: 'numeric'
+          });
+          
+          const message = `✅ ${response.message}\nDeferrals used: ${response.deferralsUsed}/${response.deferralsUsed! + response.remainingDeferrals!}`;
+          this.showDeferralMessage(message, 'success');
+          
+          // Reload data to reflect changes
+          this.loadCurrentWeekData();
+        } else {
+          // Show specific error message from backend
+          this.showDeferralMessage(response.message, 'warning');
+        }
+      },
+      error: (error) => {
+        console.error('Smart defer error:', error);
+        this.showDeferralMessage('Failed to move task. Please try again.', 'error');
+      }
+    });
+}
+
+private showDeferralMessage(message: string, type: 'success' | 'warning' | 'error' | 'info'): void {
+  // Create a toast notification or alert
+  const alertClass = {
+    'success': 'alert-success',
+    'warning': 'alert-warning', 
+    'error': 'alert-danger',
+    'info': 'alert-info'
+  }[type];
+
+  // Simple alert for now - you can replace with a toast library
+  alert(message);
+  
+  // Or if you want to show it in the UI temporarily:
+  /*
+  const alertDiv = document.createElement('div');
+  alertDiv.className = `alert ${alertClass} fixed-alert`;
+  alertDiv.textContent = message;
+  alertDiv.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  `;
+  
+  document.body.appendChild(alertDiv);
+  
+  setTimeout(() => {
+    alertDiv.remove();
+  }, 4000);
+  */
+}
+
 
   toggleRegularHabit(habit: ScheduledHabit): void {
     if (habit.isLocked) {
@@ -772,6 +809,11 @@ calculateWeeklyHabitProgress(): {habitName: string, completed: number, total: nu
   this.currentWeekDays.forEach(day => {
     if (day.allHabits) {
       day.allHabits.forEach(habit => {
+        // 🔥 SKIP AD-HOC TASKS - only count scheduled/default habits
+        if (habit.isAdHoc) {
+          return; // Skip this habit entirely
+        }
+        
         const habitName = habit.name;
         
         if (!habitStats.has(habitName)) {
