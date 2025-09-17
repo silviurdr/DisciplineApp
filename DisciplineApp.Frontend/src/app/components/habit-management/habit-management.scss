@@ -123,7 +123,7 @@
    HABIT CATEGORY SECTIONS
    =================================== */
 .habit-category {
-  background: #2a2b3d;
+  background:#2a2b3d;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: 24px;
@@ -352,7 +352,7 @@
 .empty-state {
   text-align: center;
   padding: 80px 20px;
-  background: #2d3748;
+  background: #2a2b3d;
   border-radius: 16px;
   border: 1px solid rgba(100, 181, 246, 0.2);
 }
@@ -398,7 +398,7 @@
 }
 
 /* ===================================
-   MODAL STYLES
+   MODAL STYLES - UPDATED WITH #2a2b3d
    =================================== */
 .modal-backdrop {
   position: fixed;
@@ -422,7 +422,7 @@
   max-width: 600px;
   max-height: 80vh;
   overflow-y: auto;
-  border: 1px solid rgba(100, 181, 246, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .modal-header {
@@ -430,7 +430,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 24px 24px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   margin-bottom: 24px;
 }
 
@@ -458,7 +458,7 @@
 }
 
 /* ===================================
-   HABIT FORM STYLES
+   HABIT FORM STYLES - UPDATED WITH #2a2b3d
    =================================== */
 .habit-form {
   display: flex;
@@ -499,8 +499,8 @@
 .form-group textarea,
 .form-group select {
   width: 100%;
-  background: rgba(45, 55, 72, 0.8);
-  border: 1px solid rgba(100, 181, 246, 0.2);
+  background: #2a2b3d;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   padding: 12px;
   color: #e2e8f0;
@@ -548,14 +548,14 @@
 }
 
 /* ===================================
-   FORM ACTIONS
+   FORM ACTIONS - UPDATED WITH #2a2b3d
    =================================== */
 .form-actions {
   padding: 20px 24px;
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-  background: rgba(45, 55, 72, 0.4);
+  background: #2a2b3d;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -600,7 +600,7 @@
 }
 
 /* ===================================
-   DELETE CONFIRMATION MODAL
+   DELETE CONFIRMATION MODAL - UPDATED WITH #2a2b3d
    =================================== */
 .delete-confirmation-modal {
   max-width: 400px;
@@ -627,7 +627,7 @@
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-  background: rgba(45, 55, 72, 0.4);
+  background: #2a2b3d;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
