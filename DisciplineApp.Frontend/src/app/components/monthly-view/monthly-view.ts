@@ -160,32 +160,39 @@ private generateCalendarWithRealData(weekData: WeekData): void {
   
   // Then update with real data from the week API
   weekData.days.forEach(weekDay => {
-    const matchingDay = this.calendarDays.find(calDay => 
-      calDay.dateString === weekDay.date
-    );
+    const matchingDay = this.calendarDays.find(calDay => {
+      const calendarDateStr = calDay.dateString;
+      const weekDayDateStr = weekDay.date;
+      
+      console.log(`Comparing: Calendar[${calendarDateStr}] vs Week[${weekDayDateStr}]`);
+      return calendarDateStr === weekDayDateStr;
+    });
     
-    if (matchingDay && matchingDay.isCurrentMonth && !matchingDay.isFuture) {
+    if (matchingDay && matchingDay.isCurrentMonth) {
+      console.log(`Updating day ${matchingDay.dayNumber} with real data: ${weekDay.completedHabits}/${weekDay.totalHabits}`);
+      
       // Update with real completion data
-      matchingDay.isCompleted = weekDay.isCompleted || false;
-      matchingDay.isPartiallyCompleted = weekDay.isPartiallyCompleted || false;
       matchingDay.completedHabits = weekDay.completedHabits || 0;
       matchingDay.totalHabits = weekDay.totalHabits || 0;
       matchingDay.completionPercentage = matchingDay.totalHabits > 0 ? 
         Math.round((matchingDay.completedHabits / matchingDay.totalHabits) * 100) : 0;
       
-      // 🔥 KEY FIX: Ensure proper completion status logic
-      if (matchingDay.totalHabits > 0) {
-        if (matchingDay.completedHabits === matchingDay.totalHabits) {
-          matchingDay.isCompleted = true;
+      // 🔥 CRITICAL: TODAY is always IN-PROGRESS, past days are binary complete/fail
+      if (matchingDay.isToday) {
+        // Today: Show progress (partial diamond) regardless of completion
+        matchingDay.isCompleted = false;
+        matchingDay.isPartiallyCompleted = matchingDay.totalHabits > 0;
+      } else if (!matchingDay.isFuture) {
+        // Past days: Binary complete/fail logic
+        if (matchingDay.totalHabits > 0) {
+          matchingDay.isCompleted = (matchingDay.completedHabits === matchingDay.totalHabits);
           matchingDay.isPartiallyCompleted = false;
-        } else if (matchingDay.completedHabits === 0) {
-          matchingDay.isCompleted = false;
-          matchingDay.isPartiallyCompleted = false; // Failed = no completion
         } else {
-          matchingDay.isCompleted = false;
-          matchingDay.isPartiallyCompleted = true; // Partial = some but not all
+          matchingDay.isCompleted = true; // Free days are complete
+          matchingDay.isPartiallyCompleted = false;
         }
       }
+      // Future days keep their default false values
     }
   });
 }
