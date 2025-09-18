@@ -1,6 +1,6 @@
 /* ===================================
    HABIT MANAGEMENT COMPONENT STYLES
-   Matching Calendar Component Design
+   Updated to Match Weekly/Monthly Calendar Grey/Black Theme
    =================================== */
 
 .habit-management-container {
@@ -17,7 +17,7 @@
    =================================== */
 .header-section {
   background: #2a2b3d;
-  border: 1px solid rgba(100, 181, 246, 0.2);
+  border: 1px solid rgba(139, 143, 163, 0.2);
   border-radius: 16px;
   padding: 30px;
   margin-bottom: 30px;
@@ -31,18 +31,18 @@
 }
 
 .title-section h1 {
-  color: #e2e8f0;
+  color: #d1d3db;
   margin: 0 0 8px 0;
-  font-size: 1.4rem;
-  font-weight: 600;
+  font-size: 1.2rem;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .title-section .subtitle {
-  color: #94a3b8;
+  color: #6b6f80;
   margin: 0;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   opacity: 0.9;
 }
 
@@ -51,8 +51,8 @@
   align-items: center;
   gap: 6px;
   background: transparent;
-  color: #94a3b8;
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: #8b8fa3;
+  border: 1px solid rgba(139, 143, 163, 0.3);
   padding: 8px 12px;
   border-radius: 6px;
   font-size: 0.85rem;
@@ -63,9 +63,9 @@
 }
 
 .add-habit-btn:hover {
-  background: rgba(148, 163, 184, 0.1);
-  border-color: rgba(148, 163, 184, 0.5);
-  color: #e2e8f0;
+  background: rgba(139, 143, 163, 0.1);
+  border-color: rgba(139, 143, 163, 0.5);
+  color: #d1d3db;
 }
 
 .add-habit-btn .plus-icon {
@@ -82,21 +82,21 @@
   padding: 60px 20px;
   background: #2a2b3d;
   border-radius: 16px;
-  border: 1px solid rgba(100, 181, 246, 0.2);
+  border: 1px solid rgba(139, 143, 163, 0.2);
 }
 
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid rgba(100, 181, 246, 0.3);
-  border-top: 4px solid #64b5f6;
+  border: 4px solid rgba(139, 143, 163, 0.3);
+  border-top: 4px solid #8b8fa3;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 16px;
 }
 
 .retry-btn {
-  background: #64b5f6;
+  background: #8b8fa3;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -107,7 +107,7 @@
 }
 
 .retry-btn:hover {
-  background: #42a5f5;
+  background: #6b6f80;
 }
 
 /* ===================================
@@ -140,20 +140,20 @@
 }
 
 .category-header h2 {
-  color: #e2e8f0;
+  color: #d1d3db;
   margin: 0;
-  font-size: 1.4rem;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 500;
 }
 
 .habit-count {
-  background: rgba(100, 181, 246, 0.2);
-  color: #64b5f6;
+  background: rgba(139, 143, 163, 0.2);
+  color: #8b8fa3;
   padding: 4px 12px;
   border-radius: 12px;
   font-size: 0.85rem;
   font-weight: 500;
-  border: 1px solid rgba(100, 181, 246, 0.3);
+  border: 1px solid rgba(139, 143, 163, 0.3);
 }
 
 /* ===================================
@@ -190,7 +190,7 @@
 
 .habit-card:hover {
   background: rgba(45, 55, 72, 0.8);
-  border-color: rgba(100, 181, 246, 0.3);
+  border-color: rgba(139, 143, 163, 0.3);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
@@ -205,7 +205,7 @@
 }
 
 .habit-card.weekly::before {
-  background: #2196f3;
+  background: #8b8fa3;
 }
 
 .habit-card.monthly::before {
@@ -228,9 +228,9 @@
 }
 
 .habit-name {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #e2e8f0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #d1d3db;
   line-height: 1.3;
   flex: 1;
 }
@@ -263,8 +263,8 @@
 }
 
 .habit-description {
-  color: #94a3b8;
-  font-size: 0.9rem;
+  color: #6b6f80;
+  font-size: 0.8rem;
   line-height: 1.4;
   margin-bottom: 16px;
   opacity: 0.9;
@@ -279,19 +279,19 @@
 }
 
 .frequency-info {
-  color: #64b5f6;
-  font-size: 0.85rem;
+  color: #6b6f80;
+  font-size: 0.75rem;
   font-weight: 500;
-  background: rgba(100, 181, 246, 0.1);
+  background: rgba(107, 111, 128, 0.1);
   padding: 4px 8px;
   border-radius: 6px;
 }
 
 .deadline-info {
-  color: #ffc107;
-  font-size: 0.8rem;
+  color: #d4a053;
+  font-size: 0.75rem;
   font-weight: 500;
-  background: rgba(255, 193, 7, 0.1);
+  background: rgba(212, 160, 83, 0.1);
   padding: 4px 8px;
   border-radius: 6px;
 }
@@ -311,7 +311,7 @@
   border: none;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
+  color: #8b8fa3;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -322,13 +322,13 @@
 
 .action-btn:hover {
   background: rgba(255, 255, 255, 0.15);
-  color: #e2e8f0;
+  color: #d1d3db;
   transform: translateY(-1px);
 }
 
 .edit-btn:hover {
-  background: rgba(100, 181, 246, 0.2);
-  color: #64b5f6;
+  background: rgba(139, 143, 163, 0.2);
+  color: #8b8fa3;
 }
 
 .toggle-btn.active {
@@ -354,7 +354,7 @@
   padding: 80px 20px;
   background: #2a2b3d;
   border-radius: 16px;
-  border: 1px solid rgba(100, 181, 246, 0.2);
+  border: 1px solid rgba(139, 143, 163, 0.2);
 }
 
 .empty-icon {
@@ -364,24 +364,21 @@
 }
 
 .empty-state h3 {
-  color: #e2e8f0;
+  color: #8b8fa3;
   margin: 0 0 12px 0;
-  font-size: 1.4rem;
-  font-weight: 600;
+  font-size: 1.2rem;
+  font-weight: 500;
 }
 
 .empty-state p {
-  color: #94a3b8;
+  color: #6b6f80;
   margin: 0 0 24px 0;
-  font-size: 1rem;
+  font-size: 0.9rem;
   opacity: 0.8;
 }
 
 .add-first-habit-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: #4caf50;
+  background: #8b8fa3;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -389,16 +386,19 @@
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .add-first-habit-btn:hover {
-  background: #45a049;
-  transform: translateY(-2px);
+  background: #6b6f80;
+  transform: translateY(-1px);
 }
 
 /* ===================================
-   MODAL STYLES - UPDATED WITH #2a2b3d
+   MODAL STYLES
    =================================== */
 .modal-backdrop {
   position: fixed;
@@ -406,81 +406,32 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
   padding: 20px;
+  z-index: 1000;
 }
 
 .habit-form-modal,
 .delete-confirmation-modal {
   background: #2a2b3d;
+  border: 1px solid rgba(139, 143, 163, 0.2);
   border-radius: 16px;
+  padding: 30px;
+  max-width: 500px;
   width: 100%;
-  max-width: 600px;
-  max-height: 80vh;
+  max-height: 90vh;
   overflow-y: auto;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 24px 24px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  margin-bottom: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
 
 .modal-header h3 {
-  color: #e2e8f0;
-  margin: 0;
-  font-size: 1.4rem;
-  font-weight: 600;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: #94a3b8;
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
-}
-
-/* ===================================
-   HABIT FORM STYLES - UPDATED WITH #2a2b3d
-   =================================== */
-.habit-form {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-content {
-  padding: 0 24px 24px;
-  flex: 1;
-}
-
-.form-section {
-  margin-bottom: 32px;
-}
-
-.form-section h4 {
-  color: #64b5f6;
-  margin: 0 0 16px 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(100, 181, 246, 0.2);
+  color: #8b8fa3;
+  margin: 0 0 20px 0;
+  font-size: 1.2rem;
+  font-weight: 500;
 }
 
 .form-group {
@@ -489,153 +440,84 @@
 
 .form-group label {
   display: block;
-  color: #e2e8f0;
+  color: #6b6f80;
+  font-size: 0.85rem;
   font-weight: 500;
-  margin-bottom: 8px;
-  font-size: 0.9rem;
+  margin-bottom: 6px;
 }
 
-.form-group input,
-.form-group textarea,
-.form-group select {
+.form-control {
   width: 100%;
-  background: #2a2b3d;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
   padding: 12px;
-  color: #e2e8f0;
-  font-size: 0.9rem;
+  border: 1px solid rgba(107, 111, 128, 0.3);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #8b8fa3;
+  font-size: 0.85rem;
   transition: border-color 0.2s ease;
+  box-sizing: border-box;
 }
 
-.form-group input:focus,
-.form-group textarea:focus,
-.form-group select:focus {
+.form-control:focus {
   outline: none;
-  border-color: #64b5f6;
-  box-shadow: 0 0 0 3px rgba(100, 181, 246, 0.1);
+  border-color: #6b6f80;
+  background: rgba(255, 255, 255, 0.12);
 }
 
-.form-group input::placeholder,
-.form-group textarea::placeholder {
-  color: #94a3b8;
+.form-control::placeholder {
+  color: #5a5e70;
 }
 
-.form-group select {
-  cursor: pointer;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  margin-bottom: 0;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  margin: 0;
-  cursor: pointer;
-  accent-color: #64b5f6;
-}
-
-.error-message {
-  color: #ef5350;
-  font-size: 0.8rem;
-  margin-top: 4px;
-}
-
-/* ===================================
-   FORM ACTIONS - UPDATED WITH #2a2b3d
-   =================================== */
-.form-actions {
-  padding: 20px 24px;
+.form-actions,
+.modal-actions {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-  background: #2a2b3d;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 24px;
+}
+
+.save-btn,
+.cancel-btn,
+.delete-confirm-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .save-btn {
   background: #4caf50;
   color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 10px 20px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.9rem;
 }
 
-.save-btn:hover:not(:disabled) {
+.save-btn:hover {
   background: #45a049;
   transform: translateY(-1px);
 }
 
 .save-btn:disabled {
-  opacity: 0.5;
+  background: #6b6f80;
   cursor: not-allowed;
   transform: none;
 }
 
 .cancel-btn {
   background: transparent;
-  color: #94a3b8;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  border-radius: 8px;
-  padding: 10px 20px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.9rem;
+  color: #8b8fa3;
+  border: 1px solid rgba(139, 143, 163, 0.3);
 }
 
 .cancel-btn:hover {
-  background: rgba(148, 163, 184, 0.1);
-  border-color: rgba(148, 163, 184, 0.5);
-  color: #e2e8f0;
-}
-
-/* ===================================
-   DELETE CONFIRMATION MODAL - UPDATED WITH #2a2b3d
-   =================================== */
-.delete-confirmation-modal {
-  max-width: 400px;
-}
-
-.delete-confirmation-modal .modal-content {
-  padding: 0 24px 24px;
-}
-
-.delete-confirmation-modal .modal-content p {
-  color: #e2e8f0;
-  margin: 0 0 12px 0;
-  line-height: 1.5;
-}
-
-.warning-text {
-  color: #ffb74d !important;
-  font-weight: 500;
-  font-size: 0.9rem;
-}
-
-.modal-actions {
-  padding: 20px 24px;
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  background: #2a2b3d;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(139, 143, 163, 0.1);
+  color: #d1d3db;
 }
 
 .delete-confirm-btn {
   background: #f44336;
   color: white;
-  border: none;
-  border-radius: 8px;
   padding: 10px 20px;
   font-weight: 600;
   cursor: pointer;
@@ -757,7 +639,7 @@ input:focus,
 button:focus,
 textarea:focus,
 select:focus {
-  outline: 2px solid #64b5f6;
+  outline: 2px solid #8b8fa3;
   outline-offset: 2px;
 }
 
