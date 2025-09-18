@@ -161,6 +161,15 @@ loadCurrentWeekData(): void {
         new Date(day.date).toDateString() === today.toDateString()
       ) || null;
 
+      if (this.todayData && this.todayData.allHabits) {
+  this.todayData.allHabits.forEach(habit => {
+    if (habit.hasDeadline) {
+      habit.timeRemaining = this.calculateTimeRemaining(habit) || undefined;
+      habit.isOverdue = this.isHabitOverdue(habit);
+    }
+  });
+}
+
       // ==========================================================
       // ✨ LOGIC TO CALCULATE "MUST DO" STATUS
       // ==========================================================
@@ -762,20 +771,33 @@ cancelEditTask(): void {
     return false;
   }
 
-  getUrgencyLevel(timeRemaining: string): 'normal' | 'urgent' | 'critical' {
-    if (!timeRemaining) return 'normal';
-    
-    const hourMatch = timeRemaining.match(/(\d+)h/);
-    const minuteMatch = timeRemaining.match(/(\d+)m/);
-    
-    const hours = hourMatch ? parseInt(hourMatch[1]) : 0;
-    const minutes = minuteMatch ? parseInt(minuteMatch[1]) : 0;
-    const totalMinutes = hours * 60 + minutes;
-    
-    if (totalMinutes <= 30) return 'critical';
-    if (totalMinutes <= 120) return 'urgent';
-    return 'normal';
+ getUrgencyLevel(timeRemaining: string | null): string {
+  if (!timeRemaining) return 'normal';
+  
+  // Extract minutes from timeRemaining string
+  const minutesMatch = timeRemaining.match(/(\d+)m/);
+  const hoursMatch = timeRemaining.match(/(\d+)h/);
+  
+  const totalMinutes = (hoursMatch ? parseInt(hoursMatch[1]) * 60 : 0) + 
+                      (minutesMatch ? parseInt(minutesMatch[1]) : 0);
+  
+  if (totalMinutes <= 30) return 'critical';
+  if (totalMinutes <= 120) return 'urgent'; // 2 hours
+  return 'normal';
+}
+
+private isHabitOverdue(habit: any): boolean {
+  if (!habit.hasDeadline || !habit.deadlineTime || habit.isCompleted) {
+    return false;
   }
+
+  const now = new Date();
+  const [hours, minutes] = habit.deadlineTime.split(':').map(Number);
+  const deadline = new Date();
+  deadline.setHours(hours, minutes, 0, 0);
+  
+  return now > deadline;
+}
 
   // Date utility methods
   getDayName(date: Date | string): string {
@@ -867,6 +889,8 @@ calculateWeeklyHabitProgress(): {habitName: string, completed: number, total: nu
     }
   });
 
+  
+
   // Calculate days remaining in the week (today + future days)
   const daysRemaining = this.currentWeekDays.filter(d => this.isToday(d.date) || this.isFuture(d.date)).length;
 
@@ -884,6 +908,36 @@ calculateWeeklyHabitProgress(): {habitName: string, completed: number, total: nu
     };
   });
 }
+private calculateTimeRemaining(habit: any): string | null {
+  if (!habit.hasDeadline || !habit.deadlineTime || habit.isCompleted) {
+    return null;
+  }
+
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  
+  // Parse the deadline time (assuming it comes as "HH:mm" format)
+  const [hours, minutes] = habit.deadlineTime.split(':').map(Number);
+  const deadline = new Date();
+  deadline.setHours(hours, minutes, 0, 0);
+  
+  // If deadline has passed today, it's overdue
+  if (now > deadline) {
+    return null; // Will show as overdue
+  }
+  
+  // Calculate time remaining
+  const timeDiff = deadline.getTime() - now.getTime();
+  const hoursLeft = Math.floor(timeDiff / (1000 * 60 * 60));
+  const minutesLeft = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (hoursLeft > 0) {
+    return `${hoursLeft}h ${minutesLeft}m`;
+  } else {
+    return `${minutesLeft}m`;
+  }
+}
+
 
   getCompletionPercentage(day: DayData): number {
     if (!day.totalHabits || day.totalHabits === 0) return 0;
