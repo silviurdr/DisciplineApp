@@ -58,17 +58,17 @@
 
     <!-- Calendar Grid -->
     <div class="calendar-grid">
-      <div 
-        *ngFor="let day of calendarDays" 
-        class="calendar-day"
-        [class.other-month]="!day.isCurrentMonth"
-        [class.today]="day.isToday"
-        [class.future]="day.isFuture"
-        [class.completed]="day.isCompleted && day.isCurrentMonth"
-        [class.incomplete]="!day.isCompleted && day.isCurrentMonth && !day.isFuture && day.totalHabits > 0"
-        [class.free-day]="day.totalHabits === 0 && day.isCurrentMonth && !day.isFuture && !day.isBeforeStreakStart"
-        [class.ignored-day]="day.isBeforeStreakStart"
-        (click)="onDayClick(day)">
+<div 
+  *ngFor="let day of calendarDays" 
+  class="calendar-day"
+  [class.other-month]="!day.isCurrentMonth"
+  [class.today]="day.isToday"
+  [class.future]="day.isFuture"
+  [class.completed]="day.isCompleted && day.isCurrentMonth && !day.isToday"
+  [class.incomplete]="!day.isCompleted && day.isCurrentMonth && !day.isFuture && day.totalHabits > 0 && !day.isToday"
+  [class.free-day]="day.totalHabits === 0 && day.isCurrentMonth && !day.isFuture && !day.isBeforeStreakStart"
+  [class.ignored-day]="day.isBeforeStreakStart"
+  (click)="onDayClick(day)">
         
         <!-- Day Number -->
         <div class="day-number">{{ day.dayNumber }}</div>
@@ -94,11 +94,10 @@
           </div>
         </div>
         
-        <!-- Task Count (show completion ratio) -->
-<!--         <div class="task-count-weekly" 
-             *ngIf="day.isCurrentMonth && day.totalHabits > 0 && !day.projectedReward">
-          <span class="count-text">{{ day.completedHabits || 0 }}/{{ day.totalHabits || 0 }}</span>
-        </div> -->
+<div class="task-count-weekly" 
+     *ngIf="day.isCurrentMonth && day.isFuture && day.totalHabits > 0 && !day.projectedReward">
+  <span class="count-text">0/{{ day.totalHabits || 0 }}</span>
+</div>
 
         <!-- PRESERVE EXISTING: Progress Display for Days with Tasks -->
 <div class="task-summary" 

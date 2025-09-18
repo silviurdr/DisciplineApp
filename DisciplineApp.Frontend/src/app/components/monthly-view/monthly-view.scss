@@ -849,3 +849,24 @@
     }
   }
 }
+
+
+.calendar-grid .calendar-day {
+  background: #2a2b3d;
+  border: 1px solid #35364a;
+
+  &.today {
+    background: #4a3728 !important;  /* Force orange background */
+    border-color: rgba(255, 152, 0, 0.3) !important;
+  }
+
+  &.completed:not(.today) {
+    background: #2d4a2b;
+    border-color: rgba(76, 175, 80, 0.3);
+  }
+
+  &.incomplete:not(.today) {
+    background: #4a2828;
+    border-color: rgba(244, 67, 54, 0.3);
+  }
+}

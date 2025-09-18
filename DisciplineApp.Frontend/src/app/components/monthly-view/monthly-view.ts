@@ -120,38 +120,82 @@ loadMonthData(): void {
   this.loading = true;
   this.error = null;
 
-  // Get today's real-time data and real historical data for past days
   const today = new Date();
   const isCurrentMonth = today.getMonth() === this.currentMonth && today.getFullYear() === this.currentYear;
 
   if (isCurrentMonth) {
-    // Get the entire current week's real data (includes today and recent past days)
+    // For current month, get real data for current week and generate projected data for future days
     this.disciplineService.getCurrentWeek()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (weekData: WeekData) => {
-          // Generate calendar with real week data
           this.generateCalendarWithRealData(weekData);
+          this.generateProjectedTasksForFutureDays(); // New method
           this.calculateProjectedRewards();
           this.loading = false;
         },
         error: (error) => {
           console.error('Error loading week data:', error);
           this.generateCalendarWithTodayData(null);
+          this.generateProjectedTasksForFutureDays();
           this.loading = false;
         }
       });
   } else {
-    // For other months, generate calendar without real-time data
     this.generateCalendarWithTodayData(null);
+    this.generateProjectedTasksForFutureDays();
     this.loading = false;
   }
-
-  
 
   this.loadMonthlyStats();
 }
 
+private generateProjectedTasksForFutureDays(): void {
+  this.calendarDays.forEach(day => {
+    if (day.isFuture && day.isCurrentMonth) {
+      // Generate consistent task counts for future days based on your habit schedule
+      // This should match your actual weekly scheduling logic
+      
+      const dayOfWeek = day.date.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      let projectedTasks = 0;
+      
+      // Daily habits (always present)
+      projectedTasks += 4; // Phone Lock, Clean Eating, Reading, Brushing Teeth
+      
+      // Weekly habits (based on day of week)
+      if ([1, 3, 5].includes(dayOfWeek)) { // Mon, Wed, Fri
+        projectedTasks += 1; // Gym (4x per week, distributed)
+      }
+      if (dayOfWeek === 6) { // Saturday
+        projectedTasks += 1; // Gym (4th session)
+      }
+      if ([2, 4].includes(dayOfWeek)) { // Tue, Thu
+        projectedTasks += 1; // Vacuum/Sweep (2x per week)
+      }
+      if (dayOfWeek === 0) { // Sunday
+        projectedTasks += 1; // Clean Bathroom (1x per week)
+      }
+      
+      // Every two days habits
+      if ([0, 2, 4, 6].includes(dayOfWeek)) { // Rolling schedule
+        projectedTasks += 1; // Clean Dishes
+      }
+      
+      // Monthly habits (spread throughout month)
+      const dayOfMonth = day.date.getDate();
+      if (dayOfMonth === 15) {
+        projectedTasks += 1; // Kitchen Deep Clean
+      }
+      
+      // Update the day with projected data
+      day.totalHabits = projectedTasks;
+      day.completedHabits = 0; // Future days start with 0 completed
+      day.completionPercentage = 0;
+      day.isCompleted = false;
+      day.isPartiallyCompleted = false;
+    }
+  });
+}
 // Update the generateCalendarWithRealData method:
 
 private generateCalendarWithRealData(weekData: WeekData): void {
@@ -223,7 +267,7 @@ private generateCalendarWithRealData(weekData: WeekData): void {
       const currentDate = new Date(startDate);
       currentDate.setDate(startDate.getDate() + i);
       
-      const dateString = currentDate.toISOString().split('T')[0];
+      const dateString = new Date(currentDate.getTime() - (currentDate.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
       const isCurrentMonth = currentDate.getMonth() === this.currentMonth;
       const isToday = currentDate.toDateString() === today.toDateString();
       const isFuture = currentDate > today;
