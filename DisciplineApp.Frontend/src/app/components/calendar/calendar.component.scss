@@ -1096,3 +1096,90 @@ button:focus-visible {
   font-size: 0.7rem;
   font-weight: 500;
 }
+
+
+/* Enhanced Optional Chip Styling */
+.task-content .task-priority.optional {
+  background: rgba(34, 197, 94, 0.15); /* Soft green background */
+  color: #4ade80; /* Light green text */
+  border: 1px solid rgba(34, 197, 94, 0.3); /* Green border */
+  font-weight: 500;
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 12px; /* More rounded, pill-like shape */
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* Alternative: More subtle styling */
+.task-content .task-priority.optional-subtle {
+  background: #374151; /* Dark gray background */
+  color: #9ca3af; /* Light gray text */
+  border: 1px solid #4b5563; /* Gray border */
+  font-weight: 400;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 8px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Alternative: Blue accent styling */
+.task-content .task-priority.optional-blue {
+  background: rgba(59, 130, 246, 0.15); /* Soft blue background */
+  color: #60a5fa; /* Light blue text */
+  border: 1px solid rgba(59, 130, 246, 0.3); /* Blue border */
+  font-weight: 500;
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Alternative: Minimalist outline style */
+.task-content .task-priority.optional-outline {
+  background: transparent;
+  color: #8b8fa3;
+  border: 1px solid #4a4d66;
+  font-weight: 400;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Add hover effects for interactive feel */
+.task-content .task-priority.optional:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.5);
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+.task-content .task-priority.optional {
+  background: rgba(34, 197, 94, 0.15); /* Soft green background */
+  color: #4ade80; /* Light green text */
+  border: 1px solid rgba(34, 197, 94, 0.3); /* Green border */
+  font-weight: 500;
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 12px; /* Pill-like shape */
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+/* Add hover effect for better interaction */
+.task-content .task-priority.optional:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.5);
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}

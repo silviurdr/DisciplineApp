@@ -136,20 +136,34 @@ public class DisciplineController : ControllerBase
         // Add ad-hoc tasks
         foreach (var adHocTask in adHocTasks)
         {
+            // Determine priority based on deadline
+            string priority = "Required"; // Default priority
+
+            if (adHocTask.DeadlineDate != null)
+            {
+                var deadlineDate = adHocTask.DeadlineDate.Value.Date;
+                var currentDate = DateTime.Today;
+
+                // If deadline is later than current day, make it optional
+                if (deadlineDate > currentDate)
+                {
+                    priority = "Optional";
+                }
+            }
+
             allHabits.Add(new
             {
                 habitId = 0, // Ad-hoc tasks don't have habit IDs
                 name = adHocTask.Name,
                 description = adHocTask.Description,
                 isCompleted = adHocTask.IsCompleted,
-                isRequired = true,
+                isRequired = priority == "Required", // Update this based on calculated priority
                 isLocked = false,
-                // Replace all usages of adHocTask.HasDeadline with (adHocTask.DeadlineDate != null)
                 hasDeadline = adHocTask.DeadlineDate != null,
                 deadlineTime = "23:59",
-                priority = "Required",
+                priority = priority, // Use calculated priority instead of hardcoded "Required"
                 reason = "Ad-hoc task",
-                deadlineDate = adHocTask.DeadlineDate?.ToString("yyyy-MM-dd"), // ADD THIS LINE!
+                deadlineDate = adHocTask.DeadlineDate?.ToString("yyyy-MM-dd"),
 
                 // Deferral info (not applicable for ad-hoc)
                 frequency = "AdHoc",
@@ -157,11 +171,14 @@ public class DisciplineController : ControllerBase
                 maxDeferrals = 0,
                 canStillBeDeferred = false,
                 originalScheduledDate = (string?)null,
-                currentDueDate = date.ToString("yyyy-MM-dd"),
 
-                // Status fields
+                // Identification
                 isAdHoc = true,
-                adHocId = adHocTask.Id
+                adHocId = adHocTask.Id,
+
+                // Timing and urgency
+                isOverdue = false, // You can implement overdue logic later if needed
+                timeRemaining = (string?)null
             });
         }
 
@@ -609,23 +626,49 @@ public class DisciplineController : ControllerBase
         // Add ad-hoc tasks
         foreach (var adHocTask in adHocTasks)
         {
+            // Determine priority based on deadline
+            string priority = "Required"; // Default priority
+
+            if (adHocTask.DeadlineDate != null)
+            {
+                var deadlineDate = adHocTask.DeadlineDate.Value.Date;
+                var currentDate = DateTime.Today;
+
+                // If deadline is later than current day, make it optional
+                if (deadlineDate > currentDate)
+                {
+                    priority = "Optional";
+                }
+            }
+
             allHabits.Add(new
             {
                 habitId = 0, // Ad-hoc tasks don't have habit IDs
                 name = adHocTask.Name,
                 description = adHocTask.Description,
                 isCompleted = adHocTask.IsCompleted,
-                isRequired = true, // Ad-hoc tasks are not required for day completion
-                isLocked = false, // Ad-hoc tasks are never locked
-                reason = "Ad-hoc task",
-                priority = "Required",
-                completedAt = adHocTask.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss"),
-                hasDeadline = false,
+                isRequired = priority == "Required", // Update this based on calculated priority
+                isLocked = false,
+                hasDeadline = adHocTask.DeadlineDate != null,
                 deadlineTime = "23:59",
-                isOverdue = false,
-                isAdHoc = true, // Mark as ad-hoc
-                adHocId = adHocTask.Id, // Include the ad-hoc task ID
-                deadlineDate = adHocTask.DeadlineDate
+                priority = priority, // Use calculated priority instead of hardcoded "Required"
+                reason = "Ad-hoc task",
+                deadlineDate = adHocTask.DeadlineDate?.ToString("yyyy-MM-dd"),
+
+                // Deferral info (not applicable for ad-hoc)
+                frequency = "AdHoc",
+                deferralsUsed = 0,
+                maxDeferrals = 0,
+                canStillBeDeferred = false,
+                originalScheduledDate = (string?)null,
+
+                // Identification
+                isAdHoc = true,
+                adHocId = adHocTask.Id,
+
+                // Timing and urgency
+                isOverdue = false, // You can implement overdue logic later if needed
+                timeRemaining = (string?)null
             });
         }
 

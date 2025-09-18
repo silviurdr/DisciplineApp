@@ -148,10 +148,10 @@
   </span>
 
   <!-- 🔥 FIX 1: Only show OPTIONAL priority (hide REQUIRED) -->
-  <span *ngIf="habit.priority && habit.priority === 'Optional'" 
-        class="task-priority">
-    {{ habit.priority }}
-  </span>
+<span *ngIf="habit.priority && habit.priority === 'Optional'" 
+      class="task-priority optional">
+  Optional
+</span>
 
   <!-- Show frequency chip -->
   <span *ngIf="habit.frequency" class="task-frequency">
