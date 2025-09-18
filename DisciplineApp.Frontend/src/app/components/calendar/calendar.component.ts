@@ -701,7 +701,8 @@ addAdHocTask(): void {
     name: this.newTaskName.trim(),
     description: this.newTaskDescription.trim(),
     date: today,
-    deadlineDate: this.hasDeadline ? this.deadlineDate : undefined  
+    deadlineDate: this.hasDeadline ? this.deadlineDate : undefined,  
+    deadlineTime: "23:59"
   }).subscribe({
     next: (response) => {
       console.log('Ad-hoc task added successfully:', response);
@@ -793,9 +794,9 @@ private isHabitOverdue(habit: any): boolean {
 
   const now = new Date();
   const [hours, minutes] = habit.deadlineTime.split(':').map(Number);
-  const deadline = new Date();
+  const deadline = habit.deadlineDate ? new Date(habit.deadlineDate) : new Date();
   deadline.setHours(hours, minutes, 0, 0);
-  
+  if(deadline > now) return false
   return now > deadline;
 }
 

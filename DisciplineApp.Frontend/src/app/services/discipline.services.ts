@@ -283,7 +283,8 @@ getMonthlyStats(year: number, month: number): Observable<any> {
     name: string; 
     description: string; 
     date: string
-    deadlineDate?: string 
+    deadlineDate?: string
+    deadlineTime?: string 
   }): Observable<any> {
     return this.http.post(`${this.baseUrl}/add-adhoc-task`, request)
       .pipe(

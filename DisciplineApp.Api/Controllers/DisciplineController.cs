@@ -146,7 +146,7 @@ public class DisciplineController : ControllerBase
                 isLocked = false,
                 // Replace all usages of adHocTask.HasDeadline with (adHocTask.DeadlineDate != null)
                 hasDeadline = adHocTask.DeadlineDate != null,
-                deadlineTime = adHocTask.DeadlineDate != null ? adHocTask.DeadlineDate?.ToString("HH:mm") : null,
+                deadlineTime = "23:59",
                 priority = "Required",
                 reason = "Ad-hoc task",
 
@@ -620,7 +620,7 @@ public class DisciplineController : ControllerBase
                 priority = "Required",
                 completedAt = adHocTask.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss"),
                 hasDeadline = false,
-                deadlineTime = (string)null,
+                deadlineTime = "23:59",
                 isOverdue = false,
                 isAdHoc = true, // Mark as ad-hoc
                 adHocId = adHocTask.Id, // Include the ad-hoc task ID
