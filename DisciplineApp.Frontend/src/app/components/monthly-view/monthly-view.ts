@@ -116,46 +116,79 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
   // DATA LOADING METHODS
   // ===================================
 
-  loadMonthData(): void {
-    this.loading = true;
-    this.error = null;
+loadMonthData(): void {
+  this.loading = true;
+  this.error = null;
 
-    // Get today's real-time data and use mock data for other days
-    const today = new Date();
-    const isCurrentMonth = today.getMonth() === this.currentMonth && today.getFullYear() === this.currentYear;
+  // Get today's real-time data and real historical data for past days
+  const today = new Date();
+  const isCurrentMonth = today.getMonth() === this.currentMonth && today.getFullYear() === this.currentYear;
 
-    if (isCurrentMonth) {
-      // Get today's real-time data from the weekly view API
-      this.disciplineService.getCurrentWeek()
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (weekData: WeekData) => {
-            // Find today's data in the week response
-            const todayData = weekData.days.find(day => 
-              new Date(day.date).toDateString() === today.toDateString()
-            );
-
-            // Generate the calendar grid with today's real data
-            this.generateCalendarWithTodayData(todayData || null);
-            this.calculateProjectedRewards();
-            this.loading = false;
-          },
-          error: (error) => {
-            console.error('Error loading today data:', error);
-            // Fallback to generating calendar without real-time data
-            this.generateCalendarWithTodayData(null);
-            this.loading = false;
-          }
-        });
-    } else {
-      // For past/future months, generate calendar without real-time data
-      this.generateCalendarWithTodayData(null);
-      this.loading = false;
-    }
-
-    // Load monthly stats
-    this.loadMonthlyStats();
+  if (isCurrentMonth) {
+    // Get the entire current week's real data (includes today and recent past days)
+    this.disciplineService.getCurrentWeek()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (weekData: WeekData) => {
+          // Generate calendar with real week data
+          this.generateCalendarWithRealData(weekData);
+          this.calculateProjectedRewards();
+          this.loading = false;
+        },
+        error: (error) => {
+          console.error('Error loading week data:', error);
+          this.generateCalendarWithTodayData(null);
+          this.loading = false;
+        }
+      });
+  } else {
+    // For other months, generate calendar without real-time data
+    this.generateCalendarWithTodayData(null);
+    this.loading = false;
   }
+
+  
+
+  this.loadMonthlyStats();
+}
+
+// Update the generateCalendarWithRealData method:
+
+private generateCalendarWithRealData(weekData: WeekData): void {
+  // First generate the calendar structure
+  this.generateCalendarWithTodayData(null);
+  
+  // Then update with real data from the week API
+  weekData.days.forEach(weekDay => {
+    const matchingDay = this.calendarDays.find(calDay => 
+      calDay.dateString === weekDay.date
+    );
+    
+    if (matchingDay && matchingDay.isCurrentMonth && !matchingDay.isFuture) {
+      // Update with real completion data
+      matchingDay.isCompleted = weekDay.isCompleted || false;
+      matchingDay.isPartiallyCompleted = weekDay.isPartiallyCompleted || false;
+      matchingDay.completedHabits = weekDay.completedHabits || 0;
+      matchingDay.totalHabits = weekDay.totalHabits || 0;
+      matchingDay.completionPercentage = matchingDay.totalHabits > 0 ? 
+        Math.round((matchingDay.completedHabits / matchingDay.totalHabits) * 100) : 0;
+      
+      // 🔥 KEY FIX: Ensure proper completion status logic
+      if (matchingDay.totalHabits > 0) {
+        if (matchingDay.completedHabits === matchingDay.totalHabits) {
+          matchingDay.isCompleted = true;
+          matchingDay.isPartiallyCompleted = false;
+        } else if (matchingDay.completedHabits === 0) {
+          matchingDay.isCompleted = false;
+          matchingDay.isPartiallyCompleted = false; // Failed = no completion
+        } else {
+          matchingDay.isCompleted = false;
+          matchingDay.isPartiallyCompleted = true; // Partial = some but not all
+        }
+      }
+    }
+  });
+}
 
   private generateCalendarWithTodayData(todayData: DayData | null): void {
     const calendar: MonthlyDayData[] = [];
