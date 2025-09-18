@@ -212,7 +212,7 @@
           </button>
 
           <!-- Move task button for regular habits that allow deferrals -->
-          <button *ngIf="!habit.isAdHoc && !habit.isCompleted && (habit.maxDeferrals || 0 )> 0" 
+          <button *ngIf="!habit.isAdHoc && !habit.isCompleted && (habit.maxDeferrals || 0) > 0" 
                   class="action-btn move-btn" 
                   (click)="moveTaskToTomorrow(habit)"
                   title="Move this task to tomorrow">
