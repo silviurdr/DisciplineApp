@@ -74,7 +74,9 @@
 
           <!-- ✅ UPDATED: Use helper methods for accurate counters (required tasks only) -->
           <div class="progress-indicator" *ngIf="getRequiredTasksCount(day) > 0">
-            <div class="progress-bar">
+            <div class="progress-bar" [class.progress-completed]="day.isCompleted"
+                 [class.progress-incomplete]="!day.isCompleted && !isToday(day.date)"
+                 [class.progress-today]="isToday(day.date)">
               <div class="progress-fill" 
                    [style.width.%]="getRequiredTasksCount(day) > 0 ? (getCompletedRequiredTasksCount(day) / getRequiredTasksCount(day)) * 100 : 100">
               </div>

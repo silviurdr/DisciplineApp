@@ -51,7 +51,7 @@ interface FlexibilityDayInfo {
 }
 
 interface RewardTier {
-  tier: 1 | 2 | 3 | 4;
+  tier: 1 | 2 | 3 | 4 | 5 | 6;
   icon: string;
   name: string;
   color: string;
@@ -82,19 +82,30 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
     1: { tier: 1, icon: '☕', name: 'Coffee Reward', color: '#8D6E63' },
     2: { tier: 2, icon: '📚', name: 'Book Reward', color: '#5C6BC0' },
     3: { tier: 3, icon: '👕', name: 'Clothing Reward', color: '#66BB6A' },
-    4: { tier: 4, icon: '🎾', name: 'Tennis Reward', color: '#FFA726' }
+    4: { tier: 4, icon: '🎧', name: 'Head Phones', color: '#FFA726' },
+    5: { tier: 5, icon: '🎾', name: 'Tennis Reward', color: '#FFA726' },
+    6: { tier: 6, icon: '🎫', name: 'Concert Ticket', color: '#FFA726' }
   };
 
   // Define reward schedule with flexibility for 90+ days
+
+
   private rewardSchedule = [
-    { day: 7, tier: 1 },    // Coffee
-    { day: 14, tier: 2 },   // Book  
-    { day: 30, tier: 3 },   // Clothing
-    { day: 60, tier: 4 },   // Extended milestone
-    { day: 90, tier: 4 },   // Tennis racket/Headphones (3 months)
-    { day: 120, tier: 4 },  // Additional milestone
-    { day: 180, tier: 4 },  // Music festival (6 months)
-    { day: 365, tier: 4 }   // Trip (1 year)
+    { day: 7, tier: 1 },   // Coffee
+    { day: 14, tier: 2 },  // Book
+    { day: 21, tier: 1 },  // New: Tier 1 prize
+    { day: 30, tier: 3 },  // Clothing
+    { day: 37, tier: 1 },  // New: Tier 1 prize
+    { day: 44, tier: 2 },  // New: Tier 2 prize
+    { day: 51, tier: 1 },  // New: Tier 1 prize
+    { day: 60, tier: 4 },  // Headphones (2 months)
+    { day: 67, tier: 1 },  // New: Tier 1 prize
+    { day: 74, tier: 2 },  // New: Tier 2 prize
+    { day: 81, tier: 1 },  // New: Tier 1 prize
+    { day: 90, tier: 5 },   // Tennis racket/Headphones (3 months)
+    { day: 120, tier: 6 },  // Additional milestone
+    { day: 180, tier: 5 },  // Music festival (6 months)
+    { day: 365, tier: 6 }   // Trip (1 year)
   ];
 
   constructor(private disciplineService: DisciplineService) {

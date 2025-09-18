@@ -1256,6 +1256,10 @@ button:focus-visible {
   background: #8b8fa3;
 }
 
+.progress-completed {
+  background: #69C28A; /* Green for completed progress */
+}
+
 .task-row.optional-task {
   opacity: 0.75; /* Slightly more transparent */
   background: rgba(255, 255, 255, 0.01); /* Very subtle lighter background */
