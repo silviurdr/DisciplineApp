@@ -72,20 +72,23 @@
             </span>
           </div>
 
-          <!-- ✅ UPDATED: Use helper methods for accurate counters -->
-          <div class="progress-indicator" *ngIf="getTotalTasksCount(day) > 0">
+          <!-- ✅ UPDATED: Use helper methods for accurate counters (required tasks only) -->
+          <div class="progress-indicator" *ngIf="getRequiredTasksCount(day) > 0">
             <div class="progress-bar">
               <div class="progress-fill" 
                    [style.width.%]="getRequiredTasksCount(day) > 0 ? (getCompletedRequiredTasksCount(day) / getRequiredTasksCount(day)) * 100 : 100">
               </div>
             </div>
-            <!-- ✅ Show both required and total counts -->
+            <!-- ✅ Show required task progress only -->
             <div class="progress-text">
-              {{ getCompletedRequiredTasksCount(day) }}/{{ getRequiredTasksCount(day) }} required
-              <span class="total-count" *ngIf="getTotalTasksCount(day) > getRequiredTasksCount(day)">
-                ({{ getCompletedTotalTasksCount(day) }}/{{ getTotalTasksCount(day) }} total)
-              </span>
+              {{ getCompletedRequiredTasksCount(day) }}/{{ getRequiredTasksCount(day) }}
             </div>
+          </div>
+          
+          <!-- ✅ OPTIONAL: Show when day has no required tasks but has optional tasks -->
+          <div class="optional-only-indicator" 
+               *ngIf="getRequiredTasksCount(day) === 0 && getTotalTasksCount(day) > 0">
+            <div class="optional-text">Optional only</div>
           </div>
         </div>
       </div>
@@ -209,7 +212,7 @@
           </button>
 
           <!-- Move task button for regular habits that allow deferrals -->
-          <button *ngIf="!habit.isAdHoc && !habit.isCompleted && (habit.maxDeferrals || 0 ) > 0" 
+          <button *ngIf="!habit.isAdHoc && !habit.isCompleted && (habit.maxDeferrals || 0 )> 0" 
                   class="action-btn move-btn" 
                   (click)="moveTaskToTomorrow(habit)"
                   title="Move this task to tomorrow">
