@@ -215,24 +215,30 @@ private generateCalendarWithRealData(weekData: WeekData): void {
     if (matchingDay && matchingDay.isCurrentMonth) {
       console.log(`Updating day ${matchingDay.dayNumber} with real data: ${weekDay.completedHabits}/${weekDay.totalHabits}`);
       
-      // Update with real completion data
+      // ✅ UPDATED: Set both total and required task data
       matchingDay.completedHabits = weekDay.completedHabits || 0;
       matchingDay.totalHabits = weekDay.totalHabits || 0;
-      matchingDay.completionPercentage = matchingDay.totalHabits > 0 ? 
-        Math.round((matchingDay.completedHabits / matchingDay.totalHabits) * 100) : 0;
+      matchingDay.requiredHabitsCount = weekDay.requiredHabitsCount || 0;
+      matchingDay.completedRequiredCount = weekDay.completedRequiredCount || 0;
       
-      // 🔥 CRITICAL: TODAY is always IN-PROGRESS, past days are binary complete/fail
+      // ✅ UPDATED: Calculate completion percentage based on REQUIRED tasks only
+      matchingDay.completionPercentage = this.getRequiredTaskCompletionPercentage(matchingDay);
+      
+      // ✅ UPDATED: Day completion status based on REQUIRED tasks only
       if (matchingDay.isToday) {
         // Today: Show progress (partial diamond) regardless of completion
         matchingDay.isCompleted = false;
-        matchingDay.isPartiallyCompleted = matchingDay.totalHabits > 0;
+        matchingDay.isPartiallyCompleted = this.getRequiredTasksCount(matchingDay) > 0;
       } else if (!matchingDay.isFuture) {
-        // Past days: Binary complete/fail logic
-        if (matchingDay.totalHabits > 0) {
-          matchingDay.isCompleted = (matchingDay.completedHabits === matchingDay.totalHabits);
+        // ✅ UPDATED: Past days completion based on REQUIRED tasks only
+        const requiredCount = this.getRequiredTasksCount(matchingDay);
+        const completedRequired = this.getCompletedRequiredTasksCount(matchingDay);
+        
+        if (requiredCount > 0) {
+          matchingDay.isCompleted = (completedRequired === requiredCount);
           matchingDay.isPartiallyCompleted = false;
         } else {
-          matchingDay.isCompleted = true; // Free days are complete
+          matchingDay.isCompleted = true; // No required tasks = completed day
           matchingDay.isPartiallyCompleted = false;
         }
       }
@@ -240,6 +246,32 @@ private generateCalendarWithRealData(weekData: WeekData): void {
     }
   });
 }
+
+getRequiredTasksCount(day: MonthlyDayData): number {
+  return day.requiredHabitsCount || 0;
+}
+
+getCompletedRequiredTasksCount(day: MonthlyDayData): number {
+  return day.completedRequiredCount || 0;
+}
+
+getTotalTasksCount(day: MonthlyDayData): number {
+  return day.totalHabits || 0;
+}
+
+getCompletedTotalTasksCount(day: MonthlyDayData): number {
+  return day.completedHabits || 0;
+}
+
+// Calculate required task completion percentage
+getRequiredTaskCompletionPercentage(day: MonthlyDayData): number {
+  const requiredCount = this.getRequiredTasksCount(day);
+  const completedRequired = this.getCompletedRequiredTasksCount(day);
+  
+  if (requiredCount === 0) return 100; // No required tasks = 100% complete
+  return Math.round((completedRequired / requiredCount) * 100);
+}
+
 
   private generateCalendarWithTodayData(todayData: DayData | null): void {
     const calendar: MonthlyDayData[] = [];
