@@ -793,10 +793,21 @@ private isHabitOverdue(habit: any): boolean {
   }
 
   const now = new Date();
+  
+  // For adhoc tasks with future deadline dates
+  if (habit.deadlineDate) {
+    const deadlineDate = new Date(habit.deadlineDate);
+    const [hours, minutes] = habit.deadlineTime.split(':').map(Number);
+    deadlineDate.setHours(hours, minutes, 0, 0);
+    
+    return now > deadlineDate;
+  }
+  
+  // For regular habits with same-day deadlines
   const [hours, minutes] = habit.deadlineTime.split(':').map(Number);
-  const deadline = habit.deadlineDate ? new Date(habit.deadlineDate) : new Date();
+  const deadline = new Date();
   deadline.setHours(hours, minutes, 0, 0);
-  if(deadline > now) return false
+  
   return now > deadline;
 }
 
@@ -915,9 +926,38 @@ private calculateTimeRemaining(habit: any): string | null {
   }
 
   const now = new Date();
-  const today = now.toISOString().split('T')[0];
   
-  // Parse the deadline time (assuming it comes as "HH:mm" format)
+  // For adhoc tasks with future deadline dates
+  if (habit.deadlineDate) {
+    const deadlineDate = new Date(habit.deadlineDate);
+    const [hours, minutes] = habit.deadlineTime.split(':').map(Number);
+    deadlineDate.setHours(hours, minutes, 0, 0);
+    
+    const timeDiff = deadlineDate.getTime() - now.getTime();
+    const hoursUntilDeadline = timeDiff / (1000 * 60 * 60);
+    
+    // If more than 24 hours until deadline, task should be optional (no time display)
+    if (hoursUntilDeadline > 24) {
+      return null;
+    }
+    
+    // If deadline has passed, it's overdue
+    if (timeDiff <= 0) {
+      return null; // Will show as overdue
+    }
+    
+    // Within 24 hours of deadline, show countdown
+    const hoursLeft = Math.floor(timeDiff / (1000 * 60 * 60));
+    const minutesLeft = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hoursLeft > 0) {
+      return `${hoursLeft}h ${minutesLeft}m`;
+    } else {
+      return `${minutesLeft}m`;
+    }
+  }
+  
+  // For regular habits with same-day deadlines (existing logic)
   const [hours, minutes] = habit.deadlineTime.split(':').map(Number);
   const deadline = new Date();
   deadline.setHours(hours, minutes, 0, 0);
@@ -927,7 +967,7 @@ private calculateTimeRemaining(habit: any): string | null {
     return null; // Will show as overdue
   }
   
-  // Calculate time remaining
+  // Calculate time remaining for same-day deadline
   const timeDiff = deadline.getTime() - now.getTime();
   const hoursLeft = Math.floor(timeDiff / (1000 * 60 * 60));
   const minutesLeft = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));

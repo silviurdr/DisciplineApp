@@ -149,6 +149,7 @@ public class DisciplineController : ControllerBase
                 deadlineTime = "23:59",
                 priority = "Required",
                 reason = "Ad-hoc task",
+                deadlineDate = adHocTask.DeadlineDate?.ToString("yyyy-MM-dd"), // ADD THIS LINE!
 
                 // Deferral info (not applicable for ad-hoc)
                 frequency = "AdHoc",
