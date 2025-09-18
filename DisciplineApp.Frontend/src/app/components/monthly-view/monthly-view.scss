@@ -1,18 +1,21 @@
-/* PRESERVE ALL YOUR EXISTING STYLES AND ADD THESE NEW WEEKLY-STYLE ELEMENTS */
-
 /* ===================================
-   EXISTING MONTHLY VIEW STYLES (KEEP ALL)
+   MONTHLY VIEW - COMPLETE SCSS FILE
+   Consistent Gray-Black Theme
    =================================== */
 
 .monthly-view {
   padding: 20px;
   max-width: 1400px;
   margin: 0 auto;
-  background: #2a2b3d;
+  background: #1a1b23;
   min-height: 100vh;
   color: #e3f2fd;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
+
+/* ===================================
+   MONTH HEADER SECTION
+   =================================== */
 
 .month-header {
   display: flex;
@@ -79,6 +82,10 @@
   }
 }
 
+/* ===================================
+   LOADING & ERROR STATES
+   =================================== */
+
 .loading-state {
   text-align: center;
   padding: 60px 20px;
@@ -121,6 +128,10 @@
   }
 }
 
+/* ===================================
+   STATS OVERVIEW SECTION
+   =================================== */
+
 .stats-overview {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -128,7 +139,7 @@
   margin-bottom: 30px;
 
   .stat-card {
-    background: #2a2b3d;;
+    background: #2a2b3d;
     border: 1px solid rgba(100, 181, 246, 0.2);
     border-radius: 12px;
     padding: 20px;
@@ -139,6 +150,7 @@
       border-color: rgba(100, 181, 246, 0.4);
       transform: translateY(-2px);
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      background: #2f3041;
     }
 
     .stat-value {
@@ -172,6 +184,10 @@
   }
 }
 
+/* ===================================
+   CALENDAR CONTAINER
+   =================================== */
+
 .calendar-container {
   background: #2a2b3d;
   border-radius: 16px;
@@ -194,11 +210,13 @@
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    background: rgba(100, 181, 246, 0.05);
+    border-radius: 6px;
   }
 }
 
 /* ===================================
-   UPDATED CALENDAR DAY STYLING WITH WEEKLY ELEMENTS
+   MAIN CALENDAR GRID
    =================================== */
 
 .calendar-grid {
@@ -207,8 +225,9 @@
   gap: 8px;
 
   .calendar-day {
-    background: #2a2b3d;  /* Match weekly view background */
-    border: 1px solid #35364a;  /* Match weekly view border */
+    /* Base styling - consistent dark theme */
+    background: #2a2b3d;
+    border: 1px solid #35364a;
     border-radius: 8px;
     padding: 12px 8px;
     min-height: 90px;
@@ -220,18 +239,13 @@
     align-items: center;
     justify-content: space-between;
 
-    &:hover:not(.other-month):not(.future) {
-      background: #343547;
-      border-color: #4a4d66;
-    }
-
     /* ===================================
-       WEEKLY-STYLE DAY STATES
+       DAY STATES - CONSISTENT THEME
        =================================== */
 
     &.today {
-      border: 2px solid #64b5f6;
-      background: rgba(100, 181, 246, 0.08);
+      background: #4a3728;
+      border-color: rgba(255, 152, 0, 0.3);
     }
 
     &.completed {
@@ -255,16 +269,20 @@
     }
 
     &.future {
-      background: #1f2028;
-      border-color: #2a2b3d;
-      opacity: 0.6;
+      background: #1a1b23;
+      border-color: #2d2e3a;
+      opacity: 0.75;
       cursor: default;
+      
+      .day-number {
+        color: #6b6f80;
+      }
     }
 
     &.other-month {
-      background: transparent;
-      border-color: transparent;
-      opacity: 0.3;
+      background: #1f2028;
+      border-color: #2a2b3d;
+      opacity: 0.4;
       cursor: default;
       
       .day-number {
@@ -273,13 +291,22 @@
     }
 
     &.ignored-day {
-      background: #2d3748;
-      color: #718096;
+      background: #252638;
+      border-color: #35364a;
       cursor: not-allowed;
+      opacity: 0.6;
       
       .day-number {
-        opacity: 0.5;
+        color: #7a7d8f;
       }
+    }
+
+    /* Hover effects - only for interactive days */
+    &:hover:not(.other-month):not(.future):not(.ignored-day) {
+      background: #343547;
+      border-color: #4a4d66;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
 
     /* ===================================
@@ -295,12 +322,21 @@
     }
 
     &.today .day-number {
-      color: #64b5f6;
+      color: #ff9800;
       font-weight: 700;
     }
 
+    &.completed .day-number,
+    &.free-day .day-number {
+      color: #4caf50;
+    }
+
+    &.incomplete .day-number {
+      color: #f44336;
+    }
+
     /* ===================================
-       🔥 NEW: WEEKLY-STYLE STATUS ICONS
+       STATUS ICONS - WEEKLY STYLE
        =================================== */
 
     .status-icon-weekly {
@@ -330,13 +366,13 @@
       }
 
       .ignored-dash {
-        color: #718096;
+        color: #7a7d8f;
         font-size: 1.2rem;
       }
     }
 
     /* ===================================
-       🔥 NEW: WEEKLY-STYLE TASK COUNT
+       TASK COUNT - WEEKLY STYLE
        =================================== */
 
     .task-count-weekly {
@@ -359,6 +395,12 @@
       border-color: rgba(76, 175, 80, 0.3);
     }
 
+    &.today .task-count-weekly .count-text {
+      background: rgba(255, 152, 0, 0.2);
+      color: #ff9800;
+      border-color: rgba(255, 152, 0, 0.3);
+    }
+
     &.partial .task-count-weekly .count-text {
       background: rgba(255, 152, 0, 0.2);
       color: #ff9800;
@@ -378,7 +420,7 @@
     }
 
     /* ===================================
-       PRESERVE ALL EXISTING ELEMENTS
+       PROJECTED REWARD STYLING
        =================================== */
 
     .projected-reward {
@@ -389,12 +431,16 @@
       .reward-icon {
         font-size: 1.2rem;
         padding: 4px 6px;
-        background: #2a2b3d;;
+        background: #2a2b3d;
         border: 2px solid #ffd700;
         border-radius: 50%;
         animation: rewardPulse 2s infinite;
       }
     }
+
+    /* ===================================
+       TASK SUMMARY STYLING
+       =================================== */
 
     .task-summary {
       text-align: center;
@@ -421,6 +467,10 @@
             background: #4caf50;
           }
 
+          &.today-fill {
+            background: #ff9800;
+          }
+
           &.partial-fill {
             background: #ff9800;
           }
@@ -431,6 +481,10 @@
         }
       }
     }
+
+    /* ===================================
+       DAY STATUS ICONS
+       =================================== */
 
     .day-status {
       .status-icon {
@@ -450,8 +504,12 @@
       }
     }
 
+    /* ===================================
+       SPECIAL DAY INDICATORS
+       =================================== */
+
     .future-indicator {
-      color: #6b6f80;
+      color: #5a5e70;
       font-size: 0.7rem;
       font-weight: 500;
       text-transform: uppercase;
@@ -469,7 +527,7 @@
     }
 
     .before-streak {
-      color: #718096;
+      color: #7a7d8f;
       font-size: 1.2rem;
       font-weight: 500;
     }
@@ -477,7 +535,7 @@
 }
 
 /* ===================================
-   PRESERVE ALL EXISTING REWARD SECTIONS
+   PROJECTED REWARDS SECTION (ORIGINAL STYLING PRESERVED)
    =================================== */
 
 .projected-rewards {
@@ -611,12 +669,12 @@
 }
 
 /* ===================================
-   PRESERVE ALL EXISTING ANIMATIONS AND RESPONSIVE
+   ANIMATIONS
    =================================== */
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 @keyframes rewardPulse {
@@ -629,6 +687,10 @@
     box-shadow: 0 0 0 8px rgba(255, 215, 0, 0);
   }
 }
+
+/* ===================================
+   RESPONSIVE DESIGN
+   =================================== */
 
 @media (max-width: 768px) {
   .monthly-view {
@@ -722,151 +784,5 @@
   .calendar-header .day-header {
     padding: 8px 4px;
     font-size: 0.8rem;
-  }
-}
-
-/* Update the task-count-weekly styling in your monthly-view.component.scss */
-
-.calendar-day {
-  // ... existing styles
-
-  .task-count-weekly {
-    margin-top: auto;
-    
-    .count-text {
-      background: #35364a;
-      color: #d1d3db;
-      font-size: 0.75rem;
-      font-weight: 500;
-      padding: 2px 6px;
-      border-radius: 4px;
-      border: 1px solid #4a4d66;
-    }
-  }
-
-  &.completed .task-count-weekly .count-text {
-    background: rgba(76, 175, 80, 0.2);
-    color: #4caf50;
-    border-color: rgba(76, 175, 80, 0.3);
-  }
-
-  // 🔥 ADD THIS: Orange styling for today (in-progress)
-  &.today .task-count-weekly .count-text {
-    background: rgba(255, 152, 0, 0.2);
-    color: #ff9800;
-    border-color: rgba(255, 152, 0, 0.3);
-  }
-
-  &.incomplete .task-count-weekly .count-text {
-    background: rgba(244, 67, 54, 0.2);
-    color: #f44336;
-    border-color: rgba(244, 67, 54, 0.3);
-  }
-
-  // Update the progress bar styling too
-  .task-summary {
-    .completion-bar {
-      .completion-fill {
-        &.completed-fill {
-          background: #4caf50;
-        }
-
-        // 🔥 ADD THIS: Orange progress bar for today
-        &.today-fill {
-          background: #ff9800;
-        }
-
-        &.incomplete-fill {
-          background: #f44336;
-        }
-      }
-    }
-  }
-}
-
-
-.calendar-grid {
-  .calendar-day {
-    border-radius: 8px;
-    padding: 12px 8px;
-    min-height: 90px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-
-    /* Default styling */
-    background: #2a2b3d;
-    border: 1px solid #35364a;
-
-    /* Today - Orange background for in-progress */
-    &.today {
-      background: #4a3728;  /* Dark orange background */
-      border-color: rgba(255, 152, 0, 0.3);
-    }
-
-    /* Completed - Green background */
-    &.completed {
-      background: #2d4a2b;  /* Dark green background */
-      border-color: rgba(76, 175, 80, 0.3);
-    }
-
-    /* Failed/incomplete - Red background (already working) */
-    &.incomplete {
-      background: #4a2828;  /* Dark red background */
-      border-color: rgba(244, 67, 54, 0.3);
-    }
-
-    /* Keep day number color consistent */
-    .day-number {
-      color: #d1d3db;  /* Same color for all days */
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 4px;
-      flex-shrink: 0;
-    }
-
-    /* Other existing styles... */
-    &.future {
-      background: #1f2028;
-      border-color: #2a2b3d;
-      opacity: 0.6;
-      cursor: default;
-    }
-
-    &.other-month {
-      background: transparent;
-      border-color: transparent;
-      opacity: 0.3;
-      cursor: default;
-      
-      .day-number {
-        color: #4a4d66;
-      }
-    }
-  }
-}
-
-
-.calendar-grid .calendar-day {
-  background: #2a2b3d;
-  border: 1px solid #35364a;
-
-  &.today {
-    background: #4a3728 !important;  /* Force orange background */
-    border-color: rgba(255, 152, 0, 0.3) !important;
-  }
-
-  &.completed:not(.today) {
-    background: #2d4a2b;
-    border-color: rgba(76, 175, 80, 0.3);
-  }
-
-  &.incomplete:not(.today) {
-    background: #4a2828;
-    border-color: rgba(244, 67, 54, 0.3);
   }
 }
