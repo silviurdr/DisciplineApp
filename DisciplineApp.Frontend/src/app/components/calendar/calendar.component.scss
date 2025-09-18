@@ -1183,3 +1183,75 @@ button:focus-visible {
   transform: translateY(-1px);
   transition: all 0.2s ease;
 }
+
+/* Add to calendar.component.scss - Optional chip styling */
+
+.task-content .task-priority.optional {
+  background: rgba(34, 197, 94, 0.15); /* Soft green background */
+  color: #4ade80; /* Light green text */
+  border: 1px solid rgba(34, 197, 94, 0.3); /* Green border */
+  font-weight: 500;
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 12px; /* Pill-like shape */
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.task-content .task-priority.optional:hover {
+  background: rgba(34, 197, 94, 0.25);
+  border-color: rgba(34, 197, 94, 0.5);
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+/* Optional: Styling for dual progress displays */
+.task-progress-detailed {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.875rem;
+}
+
+.required-progress {
+  font-weight: 600;
+  color: #d1d3db;
+}
+
+.total-progress {
+  font-size: 0.75rem;
+  color: #8b8fa3;
+  font-style: italic;
+}
+
+.progress-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.progress-bar.primary {
+  height: 8px;
+  background: #35364a;
+  border-radius: 4px;
+}
+
+.progress-bar.secondary {
+  height: 4px;
+  background: #2a2b3d;
+  border-radius: 2px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #5865f2;
+  border-radius: inherit;
+  transition: width 0.3s ease;
+}
+
+.progress-bar.secondary .progress-fill {
+  background: #8b8fa3;
+}

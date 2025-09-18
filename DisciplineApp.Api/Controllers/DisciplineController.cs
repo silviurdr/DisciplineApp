@@ -574,67 +574,51 @@ public class DisciplineController : ControllerBase
     private async Task<object> BuildCurrentDayResponse(DateTime date, WeekSchedule weekSchedule, List<HabitCompletion> completions, List<AdHocTask> adHocTasks)
     {
         var daySchedule = weekSchedule.DailySchedules.FirstOrDefault(d => d.Date.Date == date.Date);
-        if (daySchedule == null)
-        {
-            return new
-            {
-                date = date.ToString("yyyy-MM-dd"),
-                allHabits = new List<object>(),
-                warnings = new List<string>(),
-                recommendations = new List<string>()
-            };
-        }
+        if (daySchedule == null) return new { allHabits = new List<object>() };
 
         var allHabits = new List<object>();
 
-        // Add regular scheduled habits
+        // Add scheduled habits
         foreach (var scheduledHabit in daySchedule.ScheduledHabits)
         {
             var completion = completions.FirstOrDefault(c => c.HabitId == scheduledHabit.HabitId && c.Date.Date == date.Date);
-
-            // Determine if the habit is locked based on the deadline
-            var isLocked = false;
-            if (scheduledHabit.HasDeadline && date.Date == DateTime.Today)
-            {
-                var currentTime = TimeOnly.FromDateTime(DateTime.Now);
-                var deadlineTime = scheduledHabit?.DeadlineTime ?? TimeOnly.MaxValue;
-                isLocked = currentTime > deadlineTime;
-            }
+            var isCompleted = completion?.IsCompleted ?? false;
 
             allHabits.Add(new
             {
                 habitId = scheduledHabit.HabitId,
                 name = scheduledHabit.HabitName,
                 description = scheduledHabit.Description,
-                isCompleted = completion?.IsCompleted ?? false,
+                isCompleted = isCompleted,
                 isRequired = scheduledHabit.Priority == SchedulePriority.Required,
-                isLocked = isLocked,
-                reason = scheduledHabit.Reason,
-                priority = scheduledHabit.Priority.ToString(),
-                completedAt = completion?.CompletedAt?.ToString("yyyy-MM-dd HH:mm:ss"),
+                isLocked = scheduledHabit.IsLocked,
                 hasDeadline = scheduledHabit.HasDeadline,
                 deadlineTime = scheduledHabit.DeadlineTime.ToString("HH:mm"),
-                //here is the logic for overdue and problem with time zone differences
-                isOverdue = scheduledHabit.HasDeadline && date.Date == DateTime.Today &&
-                           TimeOnly.FromDateTime(DateTime.Now) > (scheduledHabit?.DeadlineTime ?? TimeOnly.MaxValue) &&
-                           !(completion?.IsCompleted ?? false),
-                isAdHoc = false, // Regular habits are not ad-hoc
-                deadlineDate = DateTime.Now
+                priority = scheduledHabit.Priority.ToString(),
+                reason = scheduledHabit.Reason,
+                deadlineDate = (string?)null,
+                frequency = scheduledHabit.Frequency,
+                deferralsUsed = scheduledHabit.DeferralsUsed,
+                maxDeferrals = scheduledHabit.MaxDeferrals,
+                canStillBeDeferred = scheduledHabit.CanStillBeDeferred,
+                originalScheduledDate = scheduledHabit.OriginalScheduledDate?.ToString("yyyy-MM-dd"),
+                isAdHoc = false,
+                adHocId = (int?)null,
+                isOverdue = false,
+                timeRemaining = (string?)null
             });
         }
 
-        // Add ad-hoc tasks
+        // Add ad-hoc tasks with priority logic
         foreach (var adHocTask in adHocTasks)
         {
-            // Determine priority based on deadline
-            string priority = "Required"; // Default priority
-
+            // ✅ Apply the same priority logic here
+            string priority = "Required";
             if (adHocTask.DeadlineDate != null)
             {
                 var deadlineDate = adHocTask.DeadlineDate.Value.Date;
-                var currentDate = DateTime.Today;
+                var currentDate = date.Date;
 
-                // If deadline is later than current day, make it optional
                 if (deadlineDate > currentDate)
                 {
                     priority = "Optional";
@@ -643,50 +627,30 @@ public class DisciplineController : ControllerBase
 
             allHabits.Add(new
             {
-                habitId = 0, // Ad-hoc tasks don't have habit IDs
+                habitId = 0,
                 name = adHocTask.Name,
                 description = adHocTask.Description,
                 isCompleted = adHocTask.IsCompleted,
-                isRequired = priority == "Required", // Update this based on calculated priority
+                isRequired = priority == "Required",
                 isLocked = false,
                 hasDeadline = adHocTask.DeadlineDate != null,
                 deadlineTime = "23:59",
-                priority = priority, // Use calculated priority instead of hardcoded "Required"
+                priority = priority,
                 reason = "Ad-hoc task",
                 deadlineDate = adHocTask.DeadlineDate?.ToString("yyyy-MM-dd"),
-
-                // Deferral info (not applicable for ad-hoc)
                 frequency = "AdHoc",
                 deferralsUsed = 0,
                 maxDeferrals = 0,
                 canStillBeDeferred = false,
                 originalScheduledDate = (string?)null,
-
-                // Identification
                 isAdHoc = true,
                 adHocId = adHocTask.Id,
-
-                // Timing and urgency
-                isOverdue = false, // You can implement overdue logic later if needed
+                isOverdue = false,
                 timeRemaining = (string?)null
             });
         }
 
-        // Generate warnings and recommendations
-        var warnings = GenerateWarnings(allHabits);
-        var recommendations = GenerateRecommendations(allHabits);
-
-        return new
-        {
-            date = date.ToString("yyyy-MM-dd"),
-            allHabits = allHabits,
-            warnings = warnings,
-            recommendations = recommendations,
-            canUseGrace = await CanUseGraceDay(date),
-            isCompleted = allHabits.Where(h => (bool)h.GetType().GetProperty("isRequired").GetValue(h))
-                                   .All(h => (bool)h.GetType().GetProperty("isCompleted").GetValue(h)),
-            isPartiallyCompleted = allHabits.Any(h => (bool)h.GetType().GetProperty("isCompleted").GetValue(h))
-        };
+        return new { allHabits = allHabits };
     }
 
     private async Task<List<object>> BuildWeeklyProgress(WeekSchedule weekSchedule, List<HabitCompletion> completions)
@@ -722,24 +686,52 @@ public class DisciplineController : ControllerBase
             var requiredHabits = daySchedule.ScheduledHabits.Where(h => h.Priority == SchedulePriority.Required).ToList();
             var completedRequired = requiredHabits.Count(h => dayCompletions.Any(c => c.HabitId == h.HabitId && c.IsCompleted));
 
-            // ✅ ADD: Get ad-hoc tasks for this day
+            // Get ad-hoc tasks for this day
             var adHocTasksForDay = await _context.AdHocTasks
                 .Where(t => t.Date.Date == daySchedule.Date.Date)
                 .ToListAsync();
-            var completedAdHocTasks = adHocTasksForDay.Count(t => t.IsCompleted);
 
-            // ✅ UPDATE: Calculate total tasks including ad-hoc
-            var totalRequiredTasks = requiredHabits.Count + adHocTasksForDay.Count; // Include ad-hoc in total
-            var totalCompletedTasks = completedRequired + completedAdHocTasks;
+            // ✅ NEW LOGIC: Only count REQUIRED ad-hoc tasks (ignore optional ones)
+            var requiredAdHocTasks = adHocTasksForDay.Where(task =>
+            {
+                // Determine if this ad-hoc task is required or optional
+                if (task.DeadlineDate != null)
+                {
+                    var deadlineDate = task.DeadlineDate.Value.Date;
+                    var currentDate = daySchedule.Date.Date; // Use the day we're calculating for
+
+                    // If deadline is later than the day we're calculating, it's optional
+                    return deadlineDate <= currentDate;
+                }
+
+                // If no deadline date, it's required by default
+                return true;
+            }).ToList();
+
+            var completedRequiredAdHocTasks = requiredAdHocTasks.Count(t => t.IsCompleted);
+
+            // ✅ UPDATED: Only count required tasks in completion calculation
+            var totalRequiredTasks = requiredHabits.Count + requiredAdHocTasks.Count;
+            var totalCompletedTasks = completedRequired + completedRequiredAdHocTasks;
+
+            // ✅ FOR DISPLAY: Count ALL tasks (required + optional) for UI counters
+            var allAdHocTasks = adHocTasksForDay.Count;
+            var allCompletedAdHocTasks = adHocTasksForDay.Count(t => t.IsCompleted);
+            var allTasks = daySchedule.ScheduledHabits.Count + allAdHocTasks;
+            var allCompletedTasks = daySchedule.ScheduledHabits.Count(h => dayCompletions.Any(c => c.HabitId == h.HabitId && c.IsCompleted)) + allCompletedAdHocTasks;
 
             dayStatuses.Add(new
             {
                 date = daySchedule.Date.ToString("yyyy-MM-dd"),
-                isCompleted = totalRequiredTasks > 0 && totalCompletedTasks == totalRequiredTasks,
+                isCompleted = totalRequiredTasks > 0 && totalCompletedTasks == totalRequiredTasks, // ✅ Based only on required tasks
                 isPartiallyCompleted = totalCompletedTasks > 0 && totalCompletedTasks < totalRequiredTasks,
-                canUseGrace = false, // Implement grace logic
-                requiredHabitsCount = totalRequiredTasks, // ✅ Now includes ad-hoc tasks
-                completedRequiredCount = totalCompletedTasks // ✅ Now includes ad-hoc tasks
+                canUseGrace = false,
+                requiredHabitsCount = totalRequiredTasks, // ✅ Only required tasks
+                completedRequiredCount = totalCompletedTasks, // ✅ Only required completed tasks
+
+                // ✅ ADD: Separate counters for display purposes (includes optional tasks)
+                totalHabits = allTasks, // For UI display - shows all tasks
+                completedHabits = allCompletedTasks // For UI display - shows all completed tasks
             });
         }
         return dayStatuses;

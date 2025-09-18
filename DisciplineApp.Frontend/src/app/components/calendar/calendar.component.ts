@@ -859,21 +859,28 @@ getCompletionIcon(day: DayData): string {
 calculateWeekProgress(): number {
   if (!this.currentWeekDays) return 0;
   
-  let totalTasksCompleted = 0;
-  let totalTasksForEntireWeek = 0;
+  let totalRequiredTasksCompleted = 0;
+  let totalRequiredTasksForEntireWeek = 0;
   
   this.currentWeekDays.forEach(day => {
-    // Count ALL tasks from ALL days (past, present, and future)
-    totalTasksForEntireWeek += day.totalHabits || 0;
-    
-    // Only count completed tasks from past and current days
-    if (!day.isFuture) {
-      totalTasksCompleted += day.completedHabits || 0;
+    if (day.allHabits) {
+      // ✅ Only count REQUIRED tasks for progress calculation
+      const requiredTasks = day.allHabits.filter(habit => 
+        habit.priority === 'Required' || habit.isRequired === true
+      );
+      
+      totalRequiredTasksForEntireWeek += requiredTasks.length;
+      
+      // Only count completed tasks from past and current days
+      if (!day.isFuture) {
+        const completedRequiredTasks = requiredTasks.filter(habit => habit.isCompleted);
+        totalRequiredTasksCompleted += completedRequiredTasks.length;
+      }
     }
   });
   
-  return totalTasksForEntireWeek > 0 
-    ? Math.round((totalTasksCompleted / totalTasksForEntireWeek) * 100)
+  return totalRequiredTasksForEntireWeek > 0 
+    ? Math.round((totalRequiredTasksCompleted / totalRequiredTasksForEntireWeek) * 100)
     : 0;
 }
 
@@ -885,23 +892,23 @@ calculateWeeklyHabitProgress(): {habitName: string, completed: number, total: nu
   this.currentWeekDays.forEach(day => {
     if (day.allHabits) {
       day.allHabits.forEach(habit => {
-        if (habit.isAdHoc) {
+        // ✅ Skip ad-hoc tasks AND optional tasks
+        if (habit.isAdHoc || habit.priority === 'Optional') {
           return; 
         }
+        
         const habitName = habit.name;
         if (!habitStats.has(habitName)) {
           habitStats.set(habitName, {completed: 0, total: 0});
         }
         const stats = habitStats.get(habitName)!;
         stats.total += 1;
-        if (habit.isCompleted) { // We count all completions regardless of day for accuracy
+        if (habit.isCompleted) {
           stats.completed += 1;
         }
       });
     }
   });
-
-  
 
   // Calculate days remaining in the week (today + future days)
   const daysRemaining = this.currentWeekDays.filter(d => this.isToday(d.date) || this.isFuture(d.date)).length;
@@ -920,6 +927,55 @@ calculateWeeklyHabitProgress(): {habitName: string, completed: number, total: nu
     };
   });
 }
+
+
+private getDayCompletionStatus(day: DayData): {isCompleted: boolean, isPartiallyCompleted: boolean} {
+  if (!day.allHabits || day.allHabits.length === 0) {
+    return { isCompleted: true, isPartiallyCompleted: false }; // No tasks = completed
+  }
+  
+  // ✅ Only consider required tasks for day completion
+  const requiredTasks = day.allHabits.filter(habit => 
+    habit.priority === 'Required' || habit.isRequired === true
+  );
+  
+  if (requiredTasks.length === 0) {
+    return { isCompleted: true, isPartiallyCompleted: false }; // No required tasks = completed
+  }
+  
+  const completedRequiredTasks = requiredTasks.filter(habit => habit.isCompleted);
+  const isCompleted = completedRequiredTasks.length === requiredTasks.length;
+  const isPartiallyCompleted = completedRequiredTasks.length > 0 && !isCompleted;
+  
+  return { isCompleted, isPartiallyCompleted };
+}
+
+// ✅ Add helper methods for task counts (for display purposes)
+getRequiredTasksCount(day: DayData): number {
+  if (!day.allHabits) return 0;
+  return day.allHabits.filter(habit => 
+    habit.priority === 'Required' || habit.isRequired === true
+  ).length;
+}
+
+
+getCompletedRequiredTasksCount(day: DayData): number {
+  if (!day.allHabits) return 0;
+  return day.allHabits.filter(habit => 
+    (habit.priority === 'Required' || habit.isRequired === true) && habit.isCompleted
+  ).length;
+}
+
+getTotalTasksCount(day: DayData): number {
+  if (!day.allHabits) return 0;
+  return day.allHabits.length;
+}
+
+getCompletedTotalTasksCount(day: DayData): number {
+  if (!day.allHabits) return 0;
+  return day.allHabits.filter(habit => habit.isCompleted).length;
+}
+
 private calculateTimeRemaining(habit: any): string | null {
   if (!habit.hasDeadline || !habit.deadlineTime || habit.isCompleted) {
     return null;
