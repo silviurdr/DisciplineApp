@@ -18,6 +18,7 @@ interface Habit {
   hasDeadline: boolean;
   deadlineTime?: string;
   createdAt: string;
+  isOptional?: boolean;
 }
 
 interface CreateHabitRequest {
@@ -132,7 +133,8 @@ export class HabitManagementComponent implements OnInit {
       monthlyTarget: habit.monthlyTarget || 1,
       seasonalTarget: habit.seasonalTarget || 1,
       hasDeadline: habit.hasDeadline,
-      deadlineTime: habit.deadlineTime || ''
+      deadlineTime: habit.deadlineTime || '',
+      isOptional: habit.isOptional || false
     });
   }
 
