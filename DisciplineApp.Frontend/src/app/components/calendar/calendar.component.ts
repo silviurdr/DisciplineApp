@@ -822,21 +822,45 @@ private isHabitOverdue(habit: any): boolean {
     return dateObj.getDate();
   }
 
-  isToday(date: Date | string): boolean {
-    const today = new Date();
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    
-    return today.getFullYear() === dateObj.getFullYear() &&
-           today.getMonth() === dateObj.getMonth() &&
-           today.getDate() === dateObj.getDate();
-  }
+// In calendar.component.ts - Fix the date comparison methods to match Romania timezone:
 
-  isFuture(date: Date | string): boolean {
-    const today = new Date();
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return dateObj > today;
-  }
+isToday(date: Date | string): boolean {
+  const today = new Date();
+  
+  // ✅ FIX: Handle date string parsing consistently 
+  const dateObj = typeof date === 'string' ? new Date(date + 'T00:00:00') : date;
+  
+  // ✅ FIX: Use date-only comparison (ignore time)
+  const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const dateObjDateOnly = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+  
+  return todayDateOnly.getTime() === dateObjDateOnly.getTime();
+}
 
+isFuture(date: Date | string): boolean {
+  const today = new Date();
+  
+  // ✅ FIX: Handle date string parsing consistently
+  const dateObj = typeof date === 'string' ? new Date(date + 'T00:00:00') : date;
+  
+  // ✅ FIX: Use date-only comparison (ignore time)
+  const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const dateObjDateOnly = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+  
+  return dateObjDateOnly.getTime() > todayDateOnly.getTime();
+}
+
+// ✅ ADD: Helper method for past days if needed
+isPast(date: Date | string): boolean {
+  const today = new Date();
+  
+  const dateObj = typeof date === 'string' ? new Date(date + 'T00:00:00') : date;
+  
+  const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const dateObjDateOnly = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+  
+  return dateObjDateOnly.getTime() < todayDateOnly.getTime();
+}
   isAnyToday(): boolean {
     if (!this.currentWeekDays) return false;
     return this.currentWeekDays.some(day => this.isToday(day.date));
@@ -846,11 +870,17 @@ getCompletionIcon(day: DayData): string {
   if (day.isCompleted) return '✅'; // Always show check for completed days
 
   if (this.isFuture(day.date)) {
-    return '⚫'; // CHANGED: Solid dark circle for "not yet started"
+    return '⚫'; // Solid dark circle for "not yet started"
   }
 
   if (this.isToday(day.date)) {
-    return day.isPartiallyCompleted ? '◆' : '⚫'; // CHANGED: Solid diamond for in-progress
+    // ✅ FIX: For today, always show diamond if there are tasks
+    const totalTasks = this.getTotalTasksCount(day);
+    if (totalTasks > 0) {
+      return '◆'; // Orange diamond for today with tasks
+    } else {
+      return '○'; // Circle for today with no tasks
+    }
   }
   
   // If none of the above, it's a past day that wasn't completed
@@ -1086,3 +1116,4 @@ editAdHocTask(habit: ScheduledHabit): void {
   this.showEditTaskDialog = true;
 }
 }
+
