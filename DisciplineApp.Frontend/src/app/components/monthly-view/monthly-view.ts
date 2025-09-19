@@ -218,15 +218,13 @@ private generateCalendarWithRealData(weekData: WeekData): void {
     const matchingDay = this.calendarDays.find(calDay => {
       const calendarDateStr = calDay.dateString;
       const weekDayDateStr = weekDay.date;
-      
-      console.log(`Comparing: Calendar[${calendarDateStr}] vs Week[${weekDayDateStr}]`);
       return calendarDateStr === weekDayDateStr;
     });
     
     if (matchingDay && matchingDay.isCurrentMonth) {
       console.log(`Updating day ${matchingDay.dayNumber} with real data: ${weekDay.completedHabits}/${weekDay.totalHabits}`);
       
-      // ✅ UPDATED: Set both total and required task data
+      // ✅ UPDATED: Set real data from backend
       matchingDay.completedHabits = weekDay.completedHabits || 0;
       matchingDay.totalHabits = weekDay.totalHabits || 0;
       matchingDay.requiredHabitsCount = weekDay.requiredHabitsCount || 0;
@@ -237,13 +235,13 @@ private generateCalendarWithRealData(weekData: WeekData): void {
       
       // ✅ UPDATED: Day completion status based on REQUIRED tasks only
       if (matchingDay.isToday) {
-        // Today: Show progress (partial diamond) regardless of completion
+        // Today: Show as in progress if there are tasks
         matchingDay.isCompleted = false;
-        matchingDay.isPartiallyCompleted = this.getRequiredTasksCount(matchingDay) > 0;
+        matchingDay.isPartiallyCompleted = weekDay.totalHabits > 0;
       } else if (!matchingDay.isFuture) {
         // ✅ UPDATED: Past days completion based on REQUIRED tasks only
-        const requiredCount = this.getRequiredTasksCount(matchingDay);
-        const completedRequired = this.getCompletedRequiredTasksCount(matchingDay);
+        const requiredCount = weekDay.requiredHabitsCount || 0;
+        const completedRequired = weekDay.completedRequiredCount || 0;
         
         if (requiredCount > 0) {
           matchingDay.isCompleted = (completedRequired === requiredCount);
@@ -253,9 +251,11 @@ private generateCalendarWithRealData(weekData: WeekData): void {
           matchingDay.isPartiallyCompleted = false;
         }
       }
-      // Future days keep their default false values
     }
   });
+  
+  // ✅ IMPORTANT: Recalculate stats after updating with real data
+  this.loadMonthlyStats();
 }
 
 getRequiredTasksCount(day: MonthlyDayData): number {
@@ -371,26 +371,72 @@ getRequiredTaskCompletionPercentage(day: MonthlyDayData): number {
     this.calendarDays = calendar;
   }
 
-  private loadMonthlyStats(): void {
-    // Calculate monthly stats based on actual calendar data
-    const currentMonthDays = this.calendarDays.filter(day => 
-      day.isCurrentMonth && !day.isFuture && !day.isBeforeStreakStart
-    );
-    
-    const completedDays = currentMonthDays.filter(day => day.isCompleted).length;
-    const totalDays = currentMonthDays.length;
-    const totalHabits = currentMonthDays.reduce((sum, day) => sum + day.totalHabits, 0);
-    const completedHabits = currentMonthDays.reduce((sum, day) => sum + day.completedHabits, 0);
+private loadMonthlyStats(): void {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Reset time for accurate comparison
+  
+  // ✅ FIX: Only calculate stats from PAST days (exclude current day and future days)
+  const pastDaysOnly = this.calendarDays.filter(day => 
+    day.isCurrentMonth && 
+    !day.isBeforeStreakStart && 
+    day.date < today // ✅ Exclude current day - only count completed past days
+  );
+  
+  console.log(`Calculating stats from ${pastDaysOnly.length} past days (excluding today)`);
+  
+  // ✅ Calculate completion stats only from past days
+  const completedDays = pastDaysOnly.filter(day => day.isCompleted).length;
+  const totalPastDays = pastDaysOnly.length;
+  
+  // ✅ Calculate total tasks from past days that have real task data
+  const daysWithRealData = pastDaysOnly.filter(day => day.totalHabits > 0);
+  const totalHabits = daysWithRealData.reduce((sum, day) => sum + day.totalHabits, 0);
+  const completedHabits = daysWithRealData.reduce((sum, day) => sum + day.completedHabits, 0);
 
-    this.monthlyStats = {
-      completionRate: totalDays > 0 ? (completedDays / totalDays) * 100 : 0,
-      completedDays,
-      totalDays,
-      currentStreak: this.calculateCurrentStreak(),
-      totalHabits,
-      averageCompletionRate: totalHabits > 0 ? (completedHabits / totalHabits) * 100 : 0
-    };
+  this.monthlyStats = {
+    completionRate: totalPastDays > 0 ? Math.round((completedDays / totalPastDays) * 100) : 0,
+    completedDays,
+    totalDays: totalPastDays, // Only past days count
+    currentStreak: this.calculateCurrentStreakFixed(), // Use fixed calculation
+    totalHabits: totalHabits,
+    averageCompletionRate: totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0
+  };
+  
+  console.log('Monthly stats (excluding today):', this.monthlyStats);
+  console.log(`Completed days: ${completedDays}/${totalPastDays} past days`);
+}
+
+private calculateCurrentStreakFixed(): number {
+  let streak = 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  // Get only past days (excluding today), sorted by date (newest first)
+  const pastDays = this.calendarDays
+    .filter(day => 
+      day.isCurrentMonth && 
+      !day.isBeforeStreakStart && 
+      day.date < today // ✅ Exclude current day
+    )
+    .sort((a, b) => b.date.getTime() - a.date.getTime());
+  
+  console.log(`Calculating streak from ${pastDays.length} past days (excluding today)`);
+  
+  // Start from most recent past day and work backwards
+  for (const day of pastDays) {
+    console.log(`Day ${day.dayNumber}: completed=${day.isCompleted}`);
+    
+    if (day.isCompleted) {
+      streak++;
+    } else {
+      // First incomplete day breaks the streak
+      break;
+    }
   }
+  
+  console.log('Current streak calculated:', streak);
+  return streak;
+}
 
   private calculateCurrentStreak(): number {
     let streak = 0;
