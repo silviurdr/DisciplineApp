@@ -818,3 +818,33 @@
     border-radius: 4px;
   }
 }
+
+/* Add this to your monthly-view.scss to make the orange diamond bigger in monthly view */
+
+.calendar-day.today .status-icon-weekly .partial-diamond {
+  font-size: 1.15rem !important; /* Match the weekly view size */
+  font-weight: bold !important;
+  opacity: 1 !important;
+  color: #ff9800 !important;
+  text-shadow: 0 0 4px rgba(255, 152, 0, 0.5); /* Optional glow effect */
+}
+
+/* Alternative: If you want it even bigger in monthly view */
+/*
+.calendar-day.today .status-icon-weekly .partial-diamond {
+  font-size: 1.25rem !important;
+  font-weight: bold !important;
+  opacity: 1 !important;
+  color: #ff9800 !important;
+  text-shadow: 0 0 6px rgba(255, 152, 0, 0.6);
+}
+*/
+
+/* Ensure other monthly icons stay at their current subtle size */
+.calendar-day:not(.today) .status-icon-weekly .completion-check,
+.calendar-day:not(.today) .status-icon-weekly .failure-x,
+.calendar-day:not(.today) .status-icon-weekly .free-circle {
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  opacity: 0.85 !important;
+}
