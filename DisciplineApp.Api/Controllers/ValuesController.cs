@@ -66,6 +66,7 @@ public class HabitsController : ControllerBase
                 ? TimeOnly.Parse(request.DeadlineTime)
                 : default,
             CreatedAt = DateTime.UtcNow,
+            IsOptional = request.IsOptional
         };
 
         _context.Habits.Add(habit);
@@ -223,6 +224,7 @@ public class CreateHabitRequest
     public int? SeasonalTarget { get; set; }
     public bool? HasDeadline { get; set; }
     public string? DeadlineTime { get; set; }
+    public bool IsOptional { get; set; } = false;
 }
 
 public class UpdateHabitRequest
@@ -236,4 +238,5 @@ public class UpdateHabitRequest
     public bool IsActive { get; set; } = true;
     public bool? HasDeadline { get; set; }
     public string? DeadlineTime { get; set; }
+    public bool IsOptional { get; set; } = false;
 }

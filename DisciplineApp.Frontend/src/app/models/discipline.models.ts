@@ -307,6 +307,7 @@ export interface Habit {
   seasonalTarget: number;
   deadlineTime: string;
   hasDeadline: boolean;
+  isOptional: boolean;
   isLocked: boolean;
   isActive: boolean;
   maxDeferrals: number;

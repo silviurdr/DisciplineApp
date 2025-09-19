@@ -14,6 +14,7 @@ namespace DisciplineApp.Api.Models
         public int SeasonalTarget { get; set; } = 1;
         public TimeOnly DeadlineTime { get; set; }
         public bool HasDeadline { get; set; } = false;
+        public bool IsOptional { get; set; } = false; 
         public bool IsLocked { get; set; } = false;
         public bool IsActive { get; set; } = true;
         public int MaxDeferrals { get; set; } = 0; // 🔥 ENSURE THIS FIELD EXISTS

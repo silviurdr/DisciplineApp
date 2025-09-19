@@ -359,6 +359,13 @@
           </div>
         </div>
 
+        <div class="form-group">
+  <mat-checkbox [(ngModel)]="editForm.isOptional" name="isOptional">
+    Mark as Optional Task
+  </mat-checkbox>
+  <div class="field-hint">Optional tasks don't affect day completion status</div>
+</div>
+
         <!-- Form Actions -->
         <div class="form-actions">
           <button type="button" class="cancel-btn" (click)="cancelForm()">

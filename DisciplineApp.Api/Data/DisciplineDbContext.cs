@@ -76,6 +76,10 @@ public class DisciplineDbContext : DbContext
                   .HasForeignKey(d => d.HabitId)
                   .OnDelete(DeleteBehavior.Cascade)
                   .HasConstraintName("FK_TaskDeferrals_Habits");
+
+                entity.Property(h => h.IsOptional)
+                  .IsRequired()
+                  .HasDefaultValue(false);
         });
 
         // HabitCompletion configuration

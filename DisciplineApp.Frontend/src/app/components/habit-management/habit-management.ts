@@ -29,6 +29,7 @@ interface CreateHabitRequest {
   seasonalTarget?: number;
   hasDeadline?: boolean;
   deadlineTime?: string;
+  isOptional?: boolean;
 }
 
 interface UpdateHabitRequest {
@@ -41,6 +42,7 @@ interface UpdateHabitRequest {
   isActive: boolean;
   hasDeadline?: boolean;
   deadlineTime?: string;
+  isOptional?: boolean;
 }
 
 enum HabitFrequency {
@@ -95,7 +97,8 @@ export class HabitManagementComponent implements OnInit {
       monthlyTarget: [1],
       seasonalTarget: [1],
       hasDeadline: [false],
-      deadlineTime: ['']
+      deadlineTime: [''],
+      isOptional: [false]
     });
   }
 
@@ -110,7 +113,8 @@ export class HabitManagementComponent implements OnInit {
       monthlyTarget: 1,
       seasonalTarget: 1,
       hasDeadline: false,
-      deadlineTime: ''
+      deadlineTime: '',
+      isOptional: this.habitForm.get('isOptional')?.value || false
     });
   }
 
@@ -190,7 +194,8 @@ export class HabitManagementComponent implements OnInit {
         seasonalTarget: formValue.seasonalTarget,
         isActive: this.editingHabit.isActive,
         hasDeadline: formValue.hasDeadline,
-        deadlineTime: formValue.hasDeadline ? formValue.deadlineTime : undefined
+        deadlineTime: formValue.hasDeadline ? formValue.deadlineTime : undefined,
+        isOptional: formValue.isOptional || false
       };
 
       this.http.put(`${this.apiUrl}/habits/${this.editingHabit.id}`, updateRequest).subscribe({
@@ -214,7 +219,8 @@ export class HabitManagementComponent implements OnInit {
         monthlyTarget: formValue.monthlyTarget,
         seasonalTarget: formValue.seasonalTarget,
         hasDeadline: formValue.hasDeadline,
-        deadlineTime: formValue.hasDeadline ? formValue.deadlineTime : undefined
+        deadlineTime: formValue.hasDeadline ? formValue.deadlineTime : undefined,
+        isOptional: formValue.isOptional || false
       };
 
       this.http.post(`${this.apiUrl}/habits`, createRequest).subscribe({
