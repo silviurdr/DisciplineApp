@@ -106,17 +106,22 @@ public class DisciplineController : ControllerBase
             var completion = completions.FirstOrDefault(c => c.HabitId == scheduledHabit.HabitId);
             var isCompleted = completion?.IsCompleted ?? false;
 
+            // ✅ FIX: Get habit from database to check IsOptional (same logic as BuildCurrentDayResponse)
+            var habit = await _context.Habits.FindAsync(scheduledHabit.HabitId);
+            var isRequired = habit?.IsOptional != true; // If IsOptional is true, then NOT required
+            var priority = habit?.IsOptional == true ? "Optional" : "Required";
+
             allHabits.Add(new
             {
                 habitId = scheduledHabit.HabitId,
                 name = scheduledHabit.HabitName,
                 description = scheduledHabit.Description,
                 isCompleted = isCompleted,
-                isRequired = scheduledHabit.IsRequired,
+                isRequired = isRequired, // ✅ NOW USING DATABASE VALUE
                 isLocked = scheduledHabit.IsLocked,
                 hasDeadline = scheduledHabit.HasDeadline,
                 deadlineTime = scheduledHabit.HasDeadline ? scheduledHabit.DeadlineTime.ToString("HH:mm") : null,
-                priority = scheduledHabit.Priority.ToString(),
+                priority = priority, // ✅ NOW USING DATABASE VALUE
                 reason = scheduledHabit.Reason,
 
                 // Deferral info
@@ -129,55 +134,40 @@ public class DisciplineController : ControllerBase
 
                 // Status fields
                 isAdHoc = false,
-                adHocId = (int?)null
+                adHocId = (int?)null,
+                isOverdue = false,
+                timeRemaining = (string?)null
             });
         }
 
         // Add ad-hoc tasks
         foreach (var adHocTask in adHocTasks)
         {
-            // Determine priority based on deadline
-            string priority = "Required"; // Default priority
-
-            if (adHocTask.DeadlineDate != null)
-            {
-                var deadlineDate = adHocTask.DeadlineDate.Value.Date;
-                var currentDate = DateTime.Today;
-
-                // If deadline is later than current day, make it optional
-                if (deadlineDate > currentDate)
-                {
-                    priority = "Optional";
-                }
-            }
-
             allHabits.Add(new
             {
-                habitId = 0, // Ad-hoc tasks don't have habit IDs
+                habitId = (int?)null,
                 name = adHocTask.Name,
                 description = adHocTask.Description,
                 isCompleted = adHocTask.IsCompleted,
-                isRequired = priority == "Required", // Update this based on calculated priority
+                isRequired = false, // Ad-hoc tasks are never required for day completion
                 isLocked = false,
-                hasDeadline = adHocTask.DeadlineDate != null,
-                deadlineTime = "23:59",
-                priority = priority, // Use calculated priority instead of hardcoded "Required"
+                hasDeadline = false,
+                deadlineTime = (string?)null,
+                priority = "Optional",
                 reason = "Ad-hoc task",
-                deadlineDate = adHocTask.DeadlineDate?.ToString("yyyy-MM-dd"),
-
-                // Deferral info (not applicable for ad-hoc)
-                frequency = "AdHoc",
+                frequency = "Daily",
                 deferralsUsed = 0,
                 maxDeferrals = 0,
                 canStillBeDeferred = false,
                 originalScheduledDate = (string?)null,
+                currentDueDate = (string?)null,
 
                 // Identification
                 isAdHoc = true,
                 adHocId = adHocTask.Id,
 
                 // Timing and urgency
-                isOverdue = false, // You can implement overdue logic later if needed
+                isOverdue = false,
                 timeRemaining = (string?)null
             });
         }
@@ -198,8 +188,8 @@ public class DisciplineController : ControllerBase
             requiredHabitsCount = requiredHabits.Count,
             completedRequiredCount = completedRequired,
             allHabits = allHabits,
-            warnings = new List<string>(), // You can add warning logic here
-            recommendations = new List<string>() // You can add recommendation logic here
+            warnings = new List<string>(),
+            recommendations = new List<string>()
         };
     }
 
