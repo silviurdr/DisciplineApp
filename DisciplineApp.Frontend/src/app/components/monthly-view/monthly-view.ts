@@ -404,7 +404,7 @@ getRequiredTaskCompletionPercentage(day: MonthlyDayData): number {
       if (day.date > today || !day.isCurrentMonth || day.isBeforeStreakStart) continue;
       
       // If day is not completed, break the streak
-      if (!day.isCompleted) break;
+      if (!day.isCompleted && streak > 0) break;
       
       streak++;
     }
