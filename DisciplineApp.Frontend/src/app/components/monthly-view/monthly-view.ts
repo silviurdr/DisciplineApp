@@ -373,22 +373,20 @@ getRequiredTaskCompletionPercentage(day: MonthlyDayData): number {
 
 private loadMonthlyStats(): void {
   const today = new Date();
-  today.setHours(0, 0, 0, 0); // Reset time for accurate comparison
+  today.setHours(0, 0, 0, 0);
   
-  // ✅ FIX: Only calculate stats from PAST days (exclude current day and future days)
+  // Only calculate stats from PAST days (exclude current day and future days)
   const pastDaysOnly = this.calendarDays.filter(day => 
     day.isCurrentMonth && 
     !day.isBeforeStreakStart && 
-    day.date < today // ✅ Exclude current day - only count completed past days
+    day.date < today
   );
   
   console.log(`Calculating stats from ${pastDaysOnly.length} past days (excluding today)`);
   
-  // ✅ Calculate completion stats only from past days
   const completedDays = pastDaysOnly.filter(day => day.isCompleted).length;
   const totalPastDays = pastDaysOnly.length;
   
-  // ✅ Calculate total tasks from past days that have real task data
   const daysWithRealData = pastDaysOnly.filter(day => day.totalHabits > 0);
   const totalHabits = daysWithRealData.reduce((sum, day) => sum + day.totalHabits, 0);
   const completedHabits = daysWithRealData.reduce((sum, day) => sum + day.completedHabits, 0);
@@ -396,15 +394,21 @@ private loadMonthlyStats(): void {
   this.monthlyStats = {
     completionRate: totalPastDays > 0 ? Math.round((completedDays / totalPastDays) * 100) : 0,
     completedDays,
-    totalDays: totalPastDays, // Only past days count
+    totalDays: totalPastDays,
     currentStreak: this.calculateCurrentStreakFixed(), // Use fixed calculation
     totalHabits: totalHabits,
     averageCompletionRate: totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0
   };
   
   console.log('Monthly stats (excluding today):', this.monthlyStats);
-  console.log(`Completed days: ${completedDays}/${totalPastDays} past days`);
+  console.log(`Current streak: ${this.monthlyStats.currentStreak}`);
+  
+  // ✅ IMPORTANT: Recalculate rewards after updating stats
+  this.calculateProjectedRewards();
+  this.updateCalendarWithRewards();
 }
+
+
 
 private calculateCurrentStreakFixed(): number {
   let streak = 0;
@@ -462,61 +466,84 @@ private calculateCurrentStreakFixed(): number {
   // REWARD CALCULATION METHODS
   // ===================================
 
-  private calculateProjectedRewards(): void {
-    this.projectedRewards = [];
-    const currentStreak = this.calculateCurrentStreak();
-    
-    for (const reward of this.rewardSchedule) {
-      if (currentStreak < reward.day) {
-        const daysUntilReward = reward.day - currentStreak;
-        const rewardTier = this.rewardTiers[reward.tier];
-        
-        this.projectedRewards.push({
-          day: reward.day,
-          daysUntil: daysUntilReward,
-          tier: reward.tier,
-          icon: rewardTier.icon,
-          name: rewardTier.name,
-          color: rewardTier.color,
-          isAchievable: daysUntilReward <= 31, // Within current month
-          description: this.getRewardDescription(reward.day, rewardTier.name)
-        });
-      }
+private calculateProjectedRewards(): void {
+  this.projectedRewards = [];
+  
+  // ✅ Use the current streak from monthlyStats (which uses the fixed calculation)
+  const currentStreak = this.monthlyStats?.currentStreak || 0;
+  console.log(`Calculating rewards from current streak: ${currentStreak}`);
+  
+  for (const reward of this.rewardSchedule) {
+    if (currentStreak < reward.day) {
+      const daysUntilReward = reward.day - currentStreak;
+      const rewardTier = this.rewardTiers[reward.tier];
+      
+      this.projectedRewards.push({
+        day: reward.day,
+        daysUntil: daysUntilReward,
+        tier: reward.tier,
+        icon: rewardTier.icon,
+        name: rewardTier.name,
+        color: rewardTier.color,
+        isAchievable: daysUntilReward <= 31, // Within current month
+        description: this.getRewardDescription(reward.day, rewardTier.name)
+      });
     }
-    
-    // Sort by days until reward
-    this.projectedRewards.sort((a, b) => a.daysUntil - b.daysUntil);
-    
-    // Take only the next 3 rewards
-    this.projectedRewards = this.projectedRewards.slice(0, 3);
   }
+  
+  // Sort by days until reward
+  this.projectedRewards.sort((a, b) => a.daysUntil - b.daysUntil);
+  
+  // Take only the next 3 rewards
+  this.projectedRewards = this.projectedRewards.slice(0, 3);
+  
+  console.log('Projected rewards calculated:', this.projectedRewards);
+}
 
-  private calculateProjectedRewardForDay(date: Date): ProjectedReward | undefined {
-    const currentStreak = this.monthlyStats?.currentStreak || 0;
-    const today = new Date();
-    const daysFromToday = Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    const projectedStreak = currentStreak + daysFromToday;
-    
-    // Check if this projected streak hits any reward milestones
-    const rewardMilestone = this.rewardSchedule.find(r => r.day === projectedStreak);
-    if (rewardMilestone) {
-      const rewardType = this.rewardTiers[rewardMilestone.tier];
-      if (rewardType) {
-        return {
-          day: projectedStreak,
-          daysUntil: daysFromToday,
-          tier: rewardMilestone.tier,
-          icon: rewardType.icon,
-          name: rewardType.name,
-          color: rewardType.color,
-          isAchievable: true,
-          description: `${rewardType.name} in ${daysFromToday} days`
-        };
-      }
+private calculateProjectedRewardForDay(date: Date): ProjectedReward | undefined {
+  const currentStreak = this.monthlyStats?.currentStreak || 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const daysFromToday = Math.ceil((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  const projectedStreak = currentStreak + daysFromToday;
+  
+  console.log(`Day ${date.getDate()}: currentStreak=${currentStreak}, daysFromToday=${daysFromToday}, projectedStreak=${projectedStreak}`);
+  
+  // Check if this projected streak hits any reward milestones
+  const rewardMilestone = this.rewardSchedule.find(r => r.day === projectedStreak);
+  if (rewardMilestone) {
+    const rewardType = this.rewardTiers[rewardMilestone.tier];
+    if (rewardType) {
+      console.log(`Found reward for day ${date.getDate()}: ${rewardType.name} at streak ${projectedStreak}`);
+      return {
+        day: projectedStreak,
+        daysUntil: daysFromToday,
+        tier: rewardMilestone.tier,
+        icon: rewardType.icon,
+        name: rewardType.name,
+        color: rewardType.color,
+        isAchievable: true,
+        description: `${rewardType.name} in ${daysFromToday} days`
+      };
     }
-    
-    return undefined;
   }
+  
+  return undefined;
+}
+
+// ✅ ADD: New method to update calendar with reward icons after stats calculation
+private updateCalendarWithRewards(): void {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  // Update future days with projected rewards
+  this.calendarDays.forEach(day => {
+    if (day.isCurrentMonth && day.isFuture) {
+      day.projectedReward = this.calculateProjectedRewardForDay(day.date);
+    }
+  });
+}
 
   private getRewardDescription(day: number, rewardName: string): string {
     const descriptions: Record<number, string> = {
