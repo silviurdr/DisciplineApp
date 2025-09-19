@@ -153,7 +153,7 @@
             type="checkbox" 
             [id]="'task-' + (habit.habitId || habit.adHocId)"
             [checked]="habit.isCompleted" 
-            [disabled]="habit.isLocked || habit.isCompleted"
+            [disabled]="habit.isLocked || habit.isCompleted || habit.isOverdue"
             (change)="toggleTask(habit)">
           <label [for]="'task-' + (habit.habitId || habit.adHocId)" class="checkbox-label">
             <svg class="checkmark-svg" viewBox="0 0 12 10">

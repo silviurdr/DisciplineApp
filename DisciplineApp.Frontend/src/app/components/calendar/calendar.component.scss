@@ -1283,3 +1283,88 @@ button:focus-visible {
 .task-row.optional-task .checkbox-label:hover {
   border-color: #4a4d66; /* Maintain hover effect but more subtle */
 }
+
+.weekly-calendar .calendar-week .calendar-day.completed .progress-bar .progress-fill {
+  background: #4caf50; /* Green for completed days */
+}
+
+.weekly-calendar .calendar-week .calendar-day.completed {
+  /* Remove the existing orange gradient and use same as other past days */
+  background: #2a2b3d;  /* Same as base calendar day */
+  border: 1px solid #35364a; /* Same as base calendar day */
+  box-shadow: none; /* Remove special box shadow */
+}
+
+.weekly-calendar .calendar-week .calendar-day.completed .day-content .progress-indicator .progress-bar .progress-fill {
+  background: #4caf50 !important; /* Green for completed days - !important to override default orange */
+}
+
+
+/* ===================================
+   OVERDUE/LOCKED TASK STYLING
+   =================================== */
+
+/* Overdue tasks get a subtle red/blocked background */
+.task-row.overdue {
+  background: rgba(239, 68, 68, 0.08); /* Very subtle red background */
+  border-left: 3px solid #ef4444; /* Red left border */
+  opacity: 0.7; /* Slightly faded */
+}
+
+.task-row.overdue:hover {
+  background: rgba(239, 68, 68, 0.12); /* Slightly more visible on hover */
+  cursor: not-allowed; /* Show blocked cursor */
+}
+
+/* Overdue task names should look grayed out */
+.task-row.overdue .task-name {
+  color: #8b8fa3; /* Grayed out text */
+  text-decoration: line-through; /* Strike through for "failed" effect */
+}
+
+/* Disable checkbox for overdue tasks */
+.task-row.overdue .task-checkbox input[type="checkbox"] {
+  cursor: not-allowed;
+  pointer-events: none; /* Completely disable interaction */
+}
+
+.task-row.overdue .checkbox-label {
+  cursor: not-allowed;
+  opacity: 0.4; /* Make checkbox appear disabled */
+  border-color: #6b6f80; /* Darker border for disabled look */
+}
+
+.task-row.overdue .checkbox-label:hover {
+  border-color: #6b6f80; /* Don't change on hover */
+  background: transparent; /* No hover background */
+}
+
+/* Also apply same styling to locked tasks */
+.task-row.locked {
+  background: rgba(139, 143, 163, 0.08);
+  opacity: 0.6;
+}
+
+.task-row.locked:hover {
+  cursor: not-allowed;
+}
+
+.task-row.locked .task-name {
+  color: #6b6f80;
+}
+
+.task-row.locked .task-checkbox input[type="checkbox"] {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.task-row.locked .checkbox-label {
+  cursor: not-allowed;
+  opacity: 0.4;
+  border-color: #6b6f80;
+}
+
+.task-row.locked .checkbox-label:hover {
+  border-color: #6b6f80;
+  background: transparent;
+}
