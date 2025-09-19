@@ -1488,3 +1488,172 @@ button:focus-visible {
 .task-row.completed .checkbox-label:hover {
   border-color: #45a049 !important; /* Override default blue hover */
 }
+
+/* Add this to your monthly-view.scss file to ensure the orange diamond appears correctly */
+
+
+/* Replace the problematic CSS rule in your calendar.component.scss */
+
+/* REMOVE OR COMMENT OUT this rule that's causing the issue: */
+/*
+.weekly-calendar .calendar-week .calendar-day.future .status-icon,
+.weekly-calendar .calendar-week .calendar-day:not(.completed):not(.partial) .status-icon {
+  color: #6b6f80;
+}
+*/
+
+/* REPLACE with this more specific rule: */
+.weekly-calendar .calendar-week .calendar-day.future .status-icon {
+  color: #6b6f80; /* Only apply gray to future days */
+}
+
+.weekly-calendar .calendar-week .calendar-day:not(.completed):not(.partial):not(.today) .status-icon {
+  color: #6b6f80; /* Apply gray to incomplete past days, but NOT today */
+}
+
+/* Add specific rule for today's diamond to ensure it's orange */
+.weekly-calendar .calendar-week .calendar-day.today .status-icon {
+  color: #ff9800 !important; /* Force orange for today */
+}
+
+/* Additional fix for monthly view if needed */
+.monthly-view .calendar-day.today .status-icon-weekly .partial-diamond {
+  color: #ff9800 !important;
+  text-shadow: 0 0 4px rgba(255, 152, 0, 0.5);
+}
+
+/* Add this to your monthly-view.scss to make the completion checkmark more subtle */
+
+.calendar-day .status-icon-weekly .completion-check {
+  color: #4caf50;
+  font-size: 1rem !important; /* Smaller than current 1.2rem */
+  font-weight: 500 !important; /* Less bold than current bold */
+  opacity: 0.8; /* Slightly transparent for subtlety */
+}
+
+/* Optional: Even more subtle version - uncomment if you want it even lighter */
+/*
+.calendar-day .status-icon-weekly .completion-check {
+  color: #6fbf73; // Lighter green
+  font-size: 0.9rem !important; // Even smaller
+  font-weight: 400 !important; // Normal weight
+  opacity: 0.7; // More transparent
+}
+*/
+
+/* Keep other icons at their current styling for contrast */
+.calendar-day .status-icon-weekly .failure-x {
+  color: #f44336;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.calendar-day .status-icon-weekly .partial-diamond {
+  color: #ff9800 !important;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.calendar-day .status-icon-weekly .free-circle {
+  color: #4caf50;
+  font-size: 1.1rem;
+}
+
+/* Add this to your calendar.component.scss to override the bold checkmark */
+
+/* Make the completion checkmark more subtle */
+.weekly-calendar .calendar-week .calendar-day.completed .status-icon {
+  font-size: 1rem !important; /* Smaller than 1.25rem */
+  font-weight: 500 !important; /* Less bold */
+  opacity: 0.85 !important; /* Slightly transparent */
+}
+
+/* Alternative: Even more subtle - uncomment if you want it lighter */
+/*
+.weekly-calendar .calendar-week .calendar-day.completed .status-icon {
+  font-size: 0.9rem !important;
+  font-weight: 400 !important;
+  opacity: 0.7 !important;
+  color: #6fbf73 !important; // Lighter green
+}
+*/
+
+/* Keep the existing base styling but allow overrides for completed days */
+.weekly-calendar .calendar-week .calendar-day .day-content .completion-status .status-icon {
+  font-size: 1.25rem; /* Base size */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  line-height: 1;
+}
+
+
+/* Add this to your calendar.component.scss to make all status icons consistent in size */
+
+/* Make all status icons consistent with the subtle checkmark */
+.weekly-calendar .calendar-week .calendar-day .status-icon {
+  font-size: 1rem !important; /* Consistent size for all icons */
+  font-weight: 500 !important; /* Consistent weight */
+  opacity: 0.85 !important; /* Consistent transparency */
+}
+
+/* Specific adjustments for different states */
+.weekly-calendar .calendar-week .calendar-day.completed .status-icon {
+  color: #4caf50; /* Green checkmark */
+}
+
+.weekly-calendar .calendar-week .calendar-day.today .status-icon {
+  color: #ff9800 !important; /* Orange diamond */
+  font-weight: bold !important; /* Keep today bold for emphasis */
+  opacity: 1 !important; /* Keep today fully opaque */
+}
+
+.weekly-calendar .calendar-week .calendar-day.future .status-icon {
+  color: #6b6f80; /* Gray for future */
+}
+
+/* For failed/incomplete days (X symbol) */
+.weekly-calendar .calendar-week .calendar-day:not(.completed):not(.partial):not(.today):not(.future) .status-icon {
+  color: #f44336; /* Red X */
+}
+
+/* Alternative: If you want to target specific selectors from monthly view */
+.calendar-day .status-icon-weekly .failure-x {
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  opacity: 0.85 !important;
+  color: #f44336;
+}
+
+.calendar-day .status-icon-weekly .free-circle {
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  opacity: 0.85 !important;
+  color: #6b6f80; /* Gray for future days */
+}
+
+
+
+.weekly-calendar .calendar-week .calendar-day.today .status-icon {
+  font-size: 1.25rem !important; // Even bigger
+  font-weight: bold !important;
+  opacity: 1 !important;
+  color: #ff9800 !important;
+}
+
+/* Ensure all other icons stay at the subtle size */
+.weekly-calendar .calendar-week .calendar-day:not(.today) .status-icon {
+  font-size: 1rem !important; /* Keep others smaller */
+  font-weight: 500 !important;
+  opacity: 0.85 !important;
+}
+
+/* If using monthly view classes, also target this */
+.calendar-day.today .status-icon-weekly .partial-diamond {
+  font-size: 1.15rem !important;
+  font-weight: bold !important;
+  opacity: 1 !important;
+  color: #ff9800 !important;
+}
