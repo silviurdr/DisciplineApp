@@ -20,10 +20,18 @@ public class HabitsController : ControllerBase
 
     // GET: api/habits
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Habit>>> GetHabits()
+    public async Task<ActionResult<IEnumerable<object>>> GetHabits()
     {
         return await _context.Habits
             .OrderBy(h => h.Name)
+            .Select(h => new {
+                h.Id,
+                h.Name,
+                h.Description,
+                h.Frequency,
+                h.IsActive,
+                h.IsOptional // ✅ ENSURE THIS IS INCLUDED
+            })
             .ToListAsync();
     }
 
