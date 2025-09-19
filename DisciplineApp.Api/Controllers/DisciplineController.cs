@@ -143,17 +143,32 @@ public class DisciplineController : ControllerBase
         // Add ad-hoc tasks
         foreach (var adHocTask in adHocTasks)
         {
+
+            string priority = "Required"; // Default priority
+
+            if (adHocTask.DeadlineDate != null)
+            {
+                var deadlineDate = adHocTask.DeadlineDate.Value.Date;
+                var currentDate = DateTime.Today;
+
+                // If deadline is later than current day, make it optional
+                if (deadlineDate > currentDate)
+                {
+                    priority = "Optional";
+                }
+            }
+
             allHabits.Add(new
             {
                 habitId = (int?)null,
                 name = adHocTask.Name,
                 description = adHocTask.Description,
                 isCompleted = adHocTask.IsCompleted,
-                isRequired = false, // Ad-hoc tasks are never required for day completion
+                isRequired = priority == "Required",  // Ad-hoc tasks are never required for day completion
                 isLocked = false,
-                hasDeadline = false,
-                deadlineTime = (string?)null,
-                priority = "Optional",
+                hasDeadline = adHocTask.DeadlineDate != null,
+                deadlineTime = "23:59",
+                priority = priority, // Use calculated priority instead of hardcoded "Required"
                 reason = "Ad-hoc task",
                 frequency = "Daily",
                 deferralsUsed = 0,
