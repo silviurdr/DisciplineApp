@@ -385,15 +385,21 @@ getMoveButtonTooltip(habit: ScheduledHabit): string {
   if (!flexInfo) return 'This task cannot be moved';
   
   if (flexInfo.remainingDeferrals === 0) {
-    return 'No more deferrals available - must complete today';
+    return '⚠️ No deferrals remaining - must complete today';
   }
+  
+  // Enhanced tooltip with prominent deferral count
+  const deferralsText = flexInfo.remainingDeferrals === 1 
+    ? '1 deferral remaining' 
+    : `${flexInfo.remainingDeferrals} deferrals remaining`;
   
   if (habit.frequency?.toLowerCase().includes('weekly')) {
-    return `Move to next available day this week (${flexInfo.remainingDeferrals} moves left)`;
+    return `📅 Move to next available day this week\n💫 ${deferralsText}`;
   }
   
-  return `Move to next available date (${flexInfo.remainingDeferrals} moves left)`;
+  return `📅 Move to next available date\n💫 ${deferralsText}`;
 }
+
 
   getTodayDateString(): string {
     return new Date().toISOString().split('T')[0];
@@ -1115,5 +1121,32 @@ editAdHocTask(habit: ScheduledHabit): void {
   this.editTaskDescription = habit.description;
   this.showEditTaskDialog = true;
 }
+
+// Alternative version with more detailed information
+getMoveButtonTooltipDetailed(habit: ScheduledHabit): string {
+  if (this.isDailyHabit(habit)) {
+    return '🚫 Daily habits cannot be moved - required every day';
+  }
+
+  const flexInfo = this.getFlexibilityInfo(habit);
+  if (!flexInfo) return '❌ This task cannot be moved';
+  
+  if (flexInfo.remainingDeferrals === 0) {
+    return '⚠️ No deferrals remaining - must complete today\n🔒 Task is locked to this date';
+  }
+  
+  // Show both used and remaining
+  const usedDeferrals = flexInfo.maxDeferrals - flexInfo.remainingDeferrals;
+  const statusText = flexInfo.remainingDeferrals === 1 
+    ? `Last deferral available (${usedDeferrals}/${flexInfo.maxDeferrals} used)` 
+    : `${flexInfo.remainingDeferrals}/${flexInfo.maxDeferrals} deferrals remaining`;
+  
+  if (habit.frequency?.toLowerCase().includes('weekly')) {
+    return `📅 Move to next available day this week\n💫 ${statusText}`;
+  }
+  
+  return `📅 Move to next available date\n💫 ${statusText}`;
 }
+}
+
 
