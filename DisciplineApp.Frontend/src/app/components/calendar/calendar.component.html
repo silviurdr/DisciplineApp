@@ -170,35 +170,40 @@
           
           <!-- Task Meta Info -->
           <div class="task-meta">
-            <!-- Show "Must Do" for critical tasks -->
-            <span *ngIf="habit.isMustDo && !habit.isCompleted" class="task-must-do">
-              100 %
-            </span>
+          <!-- Show "Must Do" for critical tasks -->
+          <span *ngIf="habit.isMustDo && !habit.isCompleted" class="task-must-do">
+            100 %
+          </span>
 
-            <!-- Show "Deferred" status -->
-            <span *ngIf="habit.deferralsUsed && habit.deferralsUsed > 0" class="task-must-do">
-              Deferred
-            </span>
+          <!-- Show "Deferred" status -->
+          <span *ngIf="habit.deferralsUsed && habit.deferralsUsed > 0" class="task-must-do">
+            Deferred
+          </span>
 
-            <!-- ✅ UPDATED: Show OPTIONAL priority with specific styling -->
-            <span *ngIf="habit.priority && habit.priority === 'Optional'" 
-                  class="task-priority optional">
-              Optional
-            </span>
+          <!-- ✅ FIXED: Show OVERDUE chip for overdue tasks -->
+          <span *ngIf="habit.isOverdue && !habit.isCompleted" 
+                class="task-overdue">
+            OVERDUE
+          </span>
 
-            <!-- Show frequency chip -->
-            <span *ngIf="habit.frequency" class="task-frequency">
-              {{ habit.frequency }}
-            </span>
+          <!-- Show OPTIONAL priority with specific styling -->
+          <span *ngIf="habit.priority && habit.priority === 'Optional'" 
+                class="task-priority optional">
+            Optional
+          </span>
 
-            <!-- Show deadline time for habits with deadlines -->
-            <span *ngIf="habit.hasDeadline && habit.timeRemaining && !habit.isCompleted" 
-                  class="task-time" 
-                  [class.time-critical]="getUrgencyLevel(habit.timeRemaining) === 'critical'"
-                  [class.time-urgent]="getUrgencyLevel(habit.timeRemaining) === 'urgent'">
-              {{ habit.timeRemaining }}
-            </span>
-          </div>
+          <!-- Show frequency chip -->
+          <span *ngIf="habit.frequency" 
+                class="task-frequency">
+            {{ habit.frequency }}
+          </span>
+
+          <!-- ✅ FIXED: Show deadline countdown (for tasks with time remaining) -->
+          <span *ngIf="habit.timeRemaining && !habit.isCompleted && !habit.isOverdue" 
+                class="task-deadline"
+                [class.critical]="getUrgencyLevel(habit.timeRemaining) === 'critical'">
+            {{ habit.timeRemaining }}
+          </span>
         </div>
 
         <!-- Task Actions -->

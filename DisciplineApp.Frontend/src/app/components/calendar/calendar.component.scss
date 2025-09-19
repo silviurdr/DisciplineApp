@@ -1368,3 +1368,123 @@ button:focus-visible {
   border-color: #6b6f80;
   background: transparent;
 }
+
+// Add this CSS to calendar.component.scss for the overdue chip:
+
+/* ===================================
+   OVERDUE CHIP STYLING
+   =================================== */
+
+.task-overdue {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef5350;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  font-weight: 600;
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  animation: pulse-red 2s infinite; /* Subtle pulsing animation to draw attention */
+}
+
+.task-overdue:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.6);
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+/* Subtle pulsing animation for overdue items */
+@keyframes pulse-red {
+  0%, 100% { 
+    opacity: 1; 
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% { 
+    opacity: 0.8;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+  }
+}
+
+// Add this CSS to calendar.component.scss for completed task styling:
+
+/* ===================================
+   COMPLETED TASK SUBTLE STYLING
+   =================================== */
+
+/* Completed tasks get a subtle green tint and different opacity */
+.task-row.completed {
+  background: rgba(76, 175, 80, 0.05); /* Very subtle green background */
+  border-left: 2px solid rgba(76, 175, 80, 0.3); /* Subtle green left border */
+  opacity: 0.75; /* Slightly faded to show it's done */
+}
+
+.task-row.completed:hover {
+  background: rgba(76, 175, 80, 0.08); /* Slightly more visible on hover */
+  opacity: 0.85; /* Less faded on hover for interaction */
+}
+
+/* Completed task names get strike-through and muted color */
+.task-row.completed .task-name {
+  text-decoration: line-through;
+  color: #8b8fa3; /* Muted text color */
+  font-weight: 400; /* Reduce font weight slightly */
+}
+
+/* Completed task checkbox gets green background (already handled by existing CSS) */
+.task-row.completed .checkbox-label {
+  background: #4caf50;
+  border-color: #4caf50;
+}
+
+/* Add a subtle "DONE" chip for completed tasks */
+.task-row.completed .task-meta::after {
+  content: "DONE";
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  font-weight: 500;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+}
+
+// Add/Update this CSS in calendar.component.scss for completed checkbox styling:
+
+/* ===================================
+   COMPLETED CHECKBOX GREEN STYLING
+   =================================== */
+
+/* Completed task checkbox gets green styling */
+.task-row.completed .task-checkbox input[type="checkbox"]:checked + .checkbox-label {
+  background: #4caf50; /* Green background */
+  border-color: #4caf50; /* Green border */
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2); /* Subtle green glow */
+}
+
+/* Make the checkmark more visible on green background */
+.task-row.completed .checkbox-label .checkmark-svg {
+  stroke: white; /* White checkmark */
+  stroke-width: 2.5; /* Slightly thicker for better visibility */
+}
+
+/* Hover effect for completed checkbox */
+.task-row.completed .checkbox-label:hover {
+  background: #45a049; /* Slightly darker green on hover */
+  border-color: #45a049;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3); /* Stronger glow on hover */
+}
+
+/* Remove the default blue hover state for completed tasks */
+.task-row.completed .checkbox-label:hover {
+  border-color: #45a049 !important; /* Override default blue hover */
+}
