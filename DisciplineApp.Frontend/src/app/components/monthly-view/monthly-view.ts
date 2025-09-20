@@ -125,11 +125,15 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
   }
-
-  private async initializeMonthlyView(): Promise<void> {
+// Replace your existing initializeMonthlyView method with this:
+private async initializeMonthlyView(): Promise<void> {
   try {
     await this.loadMonthDataAsPromise();
+  } catch (error) {
+    console.error('Error loading monthly view:', error);
+    this.error = 'Failed to load monthly data. Please try again.';
   } finally {
+    // CRITICAL FIX: Always hide loading regardless of success/failure
     setTimeout(() => this.loadingService.hide(), 200);
   }
 }
