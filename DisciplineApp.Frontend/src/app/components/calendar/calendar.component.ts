@@ -956,34 +956,53 @@ addAdHocTask(): void {
     next: (response) => {
       console.log('Ad-hoc task added successfully:', response);
       
-      // CRITICAL FIX: Add to BOTH arrays since they need to stay in sync
-      if (response) {
-        const newTask = {
-          ...response.task,
-          isAdHoc: true,
-          isCompleted: false,
+      // FIXED: Use the real task returned by the API (with real database ID)
+      if (response && response.task) {
+        const newTask: HabitWithSubHabits = {
+          // Use the REAL IDs from the database
+          habitId: 0, // Keep as 0 for ad-hoc tasks
+          adHocId: response.task.id, // ✅ Use the REAL database ID
+          
+          // Task details from API response
+          name: response.task.name,
+          description: response.task.description,
+          isCompleted: response.task.isCompleted,
+          isRequired: false,
           isLocked: false,
+          hasDeadline: this.hasDeadline,
+          deadlineTime: this.hasDeadline ? "23:59" : undefined,
+          isOverdue: false,
+          urgencyLevel: 'Normal',
+          priority: 'Required',
+          
+          // Ad-hoc specific properties
+          isAdHoc: true,
+          
+          // Sub-habits properties (all false/empty for ad-hoc tasks)
           hasSubHabits: false,
           subHabits: [],
           totalSubHabitsCount: 0,
           completedSubHabitsCount: 0,
           allSubHabitsCompleted: false,
           isExpanded: false,
-          isRequired: false,
-          priority: 'Required',
-          name: this.newTaskName,
+          
+          // Optional deadline properties
+          deadlineDate: this.hasDeadline ? this.deadlineDate : undefined
         };
         
-        // Add to BOTH arrays that are used for display
+        // Add to BOTH arrays to keep them in sync
         if (this.todayData && this.todayData.allHabits) {
-          this.todayData.allHabits = [...this.todayData.allHabits, newTask];
+          this.todayData.allHabits = [...this.todayData.allHabits, newTask as ScheduledHabit];
         }
         
-        // MOST IMPORTANT: Add to the array that's actually displayed
+        // Add to habitsWithSubHabits (this is the main display array)
         this.habitsWithSubHabits = [...this.habitsWithSubHabits, newTask];
         
+        // Update task counts manually
         this.updateTaskCounts();
-        console.log('✅ New ad-hoc task added to BOTH arrays');
+        
+        console.log('✅ Successfully added ad-hoc task with REAL database ID');
+        console.log('📊 Real adHocId from database:', response.task.id);
         console.log('📊 habitsWithSubHabits count:', this.habitsWithSubHabits.length);
       }
       

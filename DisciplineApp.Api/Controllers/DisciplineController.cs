@@ -412,6 +412,7 @@ public class DisciplineController : ControllerBase
             return BadRequest(new { error = ex.Message });
         }
     }
+    // UPDATE your AddAdHocTask method in DisciplineController.cs to return the created task:
 
     [HttpPost("add-adhoc-task")]
     public async Task<IActionResult> AddAdHocTask([FromBody] AddAdHocTaskRequest request)
@@ -423,20 +424,30 @@ public class DisciplineController : ControllerBase
                 Name = request.Name,
                 Description = request.Description,
                 Date = request.Date == default(DateTime) ? DateTime.Today : request.Date,
-                DeadlineDate = request.DeadlineDate, // NEW
+                DeadlineDate = request.DeadlineDate,
                 CreatedAt = DateTime.UtcNow,
                 Notes = "Test"
             };
 
             _context.AdHocTasks.Add(task);
-            // Replace this line in AddAdHocTask method:
-            // Date = request.Date ?? DateTime.Today,
-
-            // With this fix:
-            
             await _context.SaveChangesAsync();
 
-            // Return updated day status including the new ad-hoc task
+            // CRITICAL: Return the created task with its real database ID
+            var createdTaskResponse = new
+            {
+                id = task.Id,           // This is the real database ID we need!
+                adHocId = task.Id,      // Use the same ID for adHocId
+                habitId = (int?)null,   // Ad-hoc tasks don't have habitId
+                name = task.Name,
+                description = task.Description,
+                date = task.Date.ToString("yyyy-MM-dd"),
+                isCompleted = task.IsCompleted,
+                isAdHoc = true,
+                deadlineDate = task.DeadlineDate?.ToString("yyyy-MM-dd"),
+                createdAt = task.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            };
+
+            // Also return updated day status including the new ad-hoc task
             var weekStart = GetWeekStart(request.Date);
             var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
             var completions = await _context.HabitCompletions
@@ -447,7 +458,14 @@ public class DisciplineController : ControllerBase
                 .ToListAsync();
 
             var dayResponse = await BuildCurrentDayResponse(request.Date, weekSchedule, completions, adHocTasks);
-            return Ok(dayResponse);
+
+            // Return both the created task AND the updated day data
+            return Ok(new
+            {
+                task = createdTaskResponse,  // NEW: The created task with real ID
+                dayData = dayResponse,       // The updated day data
+                message = "Ad-hoc task created successfully"
+            });
         }
         catch (Exception ex)
         {
