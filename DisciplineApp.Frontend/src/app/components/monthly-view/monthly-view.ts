@@ -116,10 +116,11 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
     
   }
 
-  ngOnInit(): void {
-     this.loadingService.show();
+ngOnInit(): void {
+  // Show loading immediately when component initializes
+  this.loadingService.show();
   this.initializeMonthlyView();
-  }
+}
 
   ngOnDestroy(): void {
     this.destroy$.next();
@@ -133,8 +134,8 @@ private async initializeMonthlyView(): Promise<void> {
     console.error('Error loading monthly view:', error);
     this.error = 'Failed to load monthly data. Please try again.';
   } finally {
-    // CRITICAL FIX: Always hide loading regardless of success/failure
-    setTimeout(() => this.loadingService.hide(), 200);
+    // CRITICAL: Always hide loading after data loading completes
+    this.loadingService.hide();
   }
 }
 private loadMonthDataAsPromise(): Promise<void> {
@@ -205,9 +206,8 @@ private loadMonthlyStatsAsPromise(): Promise<void> {
   // ===================================
 
 loadMonthData(): void {
-  this.loadMonthDataAsPromise().catch(error => {
-    console.error('Error in loadMonthData:', error);
-  });
+  this.loadingService.show();
+  this.initializeMonthlyView();
 }
 
 private generateProjectedTasksForFutureDays(): void {
@@ -621,30 +621,36 @@ private updateCalendarWithRewards(): void {
   // ===================================
 
 nextMonth(): void {
-  this.loadingService.show();
+  if (this.loading) return; // Prevent multiple clicks
+  
   this.currentMonth++;
   if (this.currentMonth > 11) {
     this.currentMonth = 0;
     this.currentYear++;
   }
+  // Don't call loadingService.show() here - initializeMonthlyView will handle it
   this.initializeMonthlyView();
 }
 
 previousMonth(): void {
-  this.loadingService.show();
+  if (this.loading) return; // Prevent multiple clicks
+  
   this.currentMonth--;
   if (this.currentMonth < 0) {
     this.currentMonth = 11;
     this.currentYear--;
   }
+  // Don't call loadingService.show() here - initializeMonthlyView will handle it
   this.initializeMonthlyView();
 }
 
 goToToday(): void {
-  this.loadingService.show();
+  if (this.loading) return; // Prevent multiple clicks
+  
   const today = new Date();
   this.currentMonth = today.getMonth();
   this.currentYear = today.getFullYear();
+  // Don't call loadingService.show() here - initializeMonthlyView will handle it
   this.initializeMonthlyView();
 }
 

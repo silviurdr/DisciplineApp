@@ -1,5 +1,4 @@
-// Update your existing app.component.ts
-
+// Fixed app.component.ts - Replace your existing file
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, RouterOutlet, Router, NavigationEnd } from '@angular/router';
@@ -24,21 +23,21 @@ import { filter } from 'rxjs/operators';
                routerLinkActive="active" 
                [routerLinkActiveOptions]="{exact: true}"
                class="nav-link"
-               (click)="navigateWithLoading('/')">
+               (click)="navigateToRoute('/')">
               <span class="tab-icon">⌂</span>
               <span class="tab-text">Weekly</span>
             </a>
             <a routerLink="/monthly" 
                routerLinkActive="active"
                class="nav-link"
-               (click)="navigateWithLoading('/monthly')">
+               (click)="navigateToRoute('/monthly')">
               <span class="tab-icon">☷</span>
               <span class="tab-text">Monthly</span>
             </a>
             <a routerLink="/habits" 
                routerLinkActive="active"
                class="nav-link"
-               (click)="navigateWithLoading('/habits')">
+               (click)="navigateToRoute('/habits')">
               <span class="tab-icon">◯</span>
               <span class="tab-text">Habits</span>
             </a>
@@ -71,22 +70,22 @@ export class AppComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    // Show loading on route changes
+    // Listen for navigation end to hide loading
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe(() => {
-      // Brief delay to ensure smooth transition
-      setTimeout(() => this.loadingService.hide(), 300);
+      // Hide app-level loading when navigation completes
+      // Let individual components manage their own loading
+      setTimeout(() => {
+        this.loadingService.hide();
+      }, 100);
     });
   }
 
-  navigateWithLoading(route: string) {
-    this.loadingService.show();
-    // Small delay for visual feedback
-    setTimeout(() => {
-      this.router.navigate([route]);
-    }, 100);
+  // FIXED: Simplified navigation without conflicting loading states
+  navigateToRoute(route: string) {
+    // Don't show loading here - let the components handle it
+    // This prevents the loading conflict
+    this.router.navigate([route]);
   }
 }
-
-// Add these styles to your existing app.component.scss:
