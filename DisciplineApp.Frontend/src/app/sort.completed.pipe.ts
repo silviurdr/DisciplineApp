@@ -1,19 +1,26 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({
-  name: 'sortCompleted'
+  name: 'sortCompleted',
+  pure: false  // Make it impure to detect array changes
 })
 export class SortCompletedPipe implements PipeTransform {
   transform(habits: any[] | null | undefined): any[] {
-    if (!habits) {
+    if (!habits || habits.length === 0) {
       return [];
     }
 
-    // Create a copy to avoid mutating the original array
+    // CRITICAL: Always return a new array reference
     return [...habits].sort((a, b) => {
-      // The sort() function treats booleans as numbers (false=0, true=1).
-      // This automatically places false (0) before true (1).
-      return a.isCompleted - b.isCompleted;
+      // Sort by completion status first (incomplete tasks first)
+      if (a.isCompleted !== b.isCompleted) {
+        return a.isCompleted ? 1 : -1; // Incomplete first
+      }
+      // Then sort by required status (required tasks first)
+      if (a.isRequired !== b.isRequired) {
+        return a.isRequired ? -1 : 1; // Required first
+      }
+      return 0;
     });
   }
 }

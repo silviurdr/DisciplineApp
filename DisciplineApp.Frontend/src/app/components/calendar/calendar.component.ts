@@ -65,12 +65,12 @@ export enum StreakColor {
 // 2. COMPONENT TYPESCRIPT - calendar.component.ts
 // ===================================
 
-import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DisciplineService } from '../../services/discipline.services';
 import { SoundService } from '../../services/sound.service';
 import { LoadingService } from '../../services/loading.service';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { 
   WeekData, 
   DayData, 
@@ -144,7 +144,8 @@ export class CalendarComponent implements OnInit {
     private disciplineService: DisciplineService,
     private soundService: SoundService,
     private loadingService: LoadingService,
-    private subHabitsService: SubHabitsService
+    private subHabitsService: SubHabitsService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -944,7 +945,7 @@ addAdHocTask(): void {
   }
 
   const today = new Date().toISOString().split('T')[0];
-  
+
   this.disciplineService.addAdHocTask({
     name: this.newTaskName.trim(),
     description: this.newTaskDescription.trim(),
@@ -955,8 +956,8 @@ addAdHocTask(): void {
     next: (response) => {
       console.log('Ad-hoc task added successfully:', response);
       
-      // OPTIMISTIC UPDATE: Add the new task to UI immediately
-      if (this.todayData && this.todayData.allHabits && response.task) {
+      // CRITICAL FIX: Add to BOTH arrays since they need to stay in sync
+      if (response) {
         const newTask = {
           ...response.task,
           isAdHoc: true,
@@ -967,17 +968,24 @@ addAdHocTask(): void {
           totalSubHabitsCount: 0,
           completedSubHabitsCount: 0,
           allSubHabitsCompleted: false,
-          isExpanded: false
+          isExpanded: false,
+          isRequired: false,
+          priority: 'Required',
+          name: this.newTaskName,
         };
         
-                if (this.todayData && this.todayData.allHabits) {
-          this.todayData.allHabits.push(newTask);
-          this.updateTaskCounts(); // Update counters immediately
-          console.log('✅ New ad-hoc task added to UI optimistically');
+        // Add to BOTH arrays that are used for display
+        if (this.todayData && this.todayData.allHabits) {
+          this.todayData.allHabits = [...this.todayData.allHabits, newTask];
         }
-        // Add to the habits array
+        
+        // MOST IMPORTANT: Add to the array that's actually displayed
+        this.habitsWithSubHabits = [...this.habitsWithSubHabits, newTask];
+        
+        this.updateTaskCounts();
+        console.log('✅ New ad-hoc task added to BOTH arrays');
+        console.log('📊 habitsWithSubHabits count:', this.habitsWithSubHabits.length);
       }
-      
       
       // Close modal and reset form
       this.showAddTaskDialog = false;
@@ -986,8 +994,6 @@ addAdHocTask(): void {
       this.errorMessage = '';
       this.hasDeadline = false;
       this.deadlineDate = '';
-      
-      // NO RELOAD - UI already updated optimistically
     },
     error: (error) => {
       console.error('Error adding ad-hoc task:', error);
