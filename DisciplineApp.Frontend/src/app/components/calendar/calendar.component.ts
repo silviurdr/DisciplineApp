@@ -70,6 +70,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DisciplineService } from '../../services/discipline.services';
 import { SoundService } from '../../services/sound.service';
+import { LoadingService } from '../../services/loading.service';
 import { 
   WeekData, 
   DayData, 
@@ -130,17 +131,35 @@ export class CalendarComponent implements OnInit {
 
   constructor(
     private disciplineService: DisciplineService,
-    private soundService: SoundService
+    private soundService: SoundService,
+    private loadingService: LoadingService
   ) {}
 
   ngOnInit(): void {
+    this.loadingService.show();
     this.loadCurrentWeekData();
     this.loadFlexibleTasks();
+    this.initializeComponent();
   }
 
   // ===================================
   // DATA LOADING METHODS
   // ===================================
+
+
+ private async initializeComponent(): Promise<void> {
+    try {
+      // Load data in parallel for faster loading
+      await Promise.all([
+        this.loadCurrentWeekData(),
+        this.loadFlexibleTasks(),
+        this.loadTodayTasks()
+      ]);
+    } finally {
+      // Ensure loading is hidden even if there's an error
+      setTimeout(() => this.loadingService.hide(), 200);
+    }
+  }
 
 loadCurrentWeekData(): void {
   this.loading = true;
