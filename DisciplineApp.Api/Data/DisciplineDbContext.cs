@@ -16,7 +16,8 @@ public class DisciplineDbContext : DbContext
     public DbSet<Reward> Rewards { get; set; }
     public DbSet<TaskDeferral> TaskDeferrals { get; set; }
     public DbSet<AdHocTask> AdHocTasks { get; set; }
-
+    public DbSet<SubHabit> SubHabits { get; set; }
+    public DbSet<SubHabitCompletion> SubHabitCompletions { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // DisciplineEntry configuration
@@ -80,6 +81,11 @@ public class DisciplineDbContext : DbContext
                 entity.Property(h => h.IsOptional)
                   .IsRequired()
                   .HasDefaultValue(false);
+            entity.HasMany(h => h.SubHabits)
+                  .WithOne(sh => sh.ParentHabit)
+                  .HasForeignKey(sh => sh.ParentHabitId)
+                  .OnDelete(DeleteBehavior.Cascade)
+                  .HasConstraintName("FK_SubHabits_Habits");
         });
 
         // HabitCompletion configuration
@@ -103,6 +109,8 @@ public class DisciplineDbContext : DbContext
                   .HasDatabaseName("IX_HabitCompletions_HabitId_Date");
         });
 
+
+
         modelBuilder.Entity<AdHocTask>(entity =>
             {
                 entity.HasKey(t => t.Id);
@@ -113,6 +121,66 @@ public class DisciplineDbContext : DbContext
                 entity.Property(t => t.CompletedAt).HasColumnType("datetime2");
             });
 
+        modelBuilder.Entity<SubHabit>(entity =>
+        {
+            entity.HasKey(sh => sh.Id);
+            entity.Property(sh => sh.Name)
+                  .IsRequired()
+                  .HasMaxLength(200)
+                  .IsUnicode(false);
+            entity.Property(sh => sh.Description)
+                  .HasMaxLength(1000)
+                  .IsUnicode(true);
+            entity.Property(sh => sh.OrderIndex)
+                  .IsRequired()
+                  .HasDefaultValue(0);
+            entity.Property(sh => sh.IsActive)
+                  .IsRequired()
+                  .HasDefaultValue(true);
+            entity.Property(sh => sh.CreatedAt)
+                  .IsRequired()
+                  .HasColumnType("datetime2")
+                  .HasDefaultValueSql("GETUTCDATE()");
+
+            // Foreign key relationship
+            entity.HasOne(sh => sh.ParentHabit)
+                  .WithMany(h => h.SubHabits)
+                  .HasForeignKey(sh => sh.ParentHabitId)
+                  .OnDelete(DeleteBehavior.Cascade)
+                  .HasConstraintName("FK_SubHabits_Habits");
+
+            // Index for performance
+            entity.HasIndex(sh => new { sh.ParentHabitId, sh.OrderIndex })
+                  .HasDatabaseName("IX_SubHabits_ParentHabit_Order");
+        });
+
+        // NEW: SubHabitCompletion configuration
+        modelBuilder.Entity<SubHabitCompletion>(entity =>
+        {
+            entity.HasKey(shc => shc.Id);
+            entity.Property(shc => shc.Date)
+                  .IsRequired()
+                  .HasColumnType("date");
+            entity.Property(shc => shc.IsCompleted)
+                  .IsRequired();
+            entity.Property(shc => shc.Notes)
+                  .HasMaxLength(1000)
+                  .IsUnicode(true);
+            entity.Property(shc => shc.CompletedAt)
+                  .HasColumnType("datetime2");
+
+            // Foreign key relationship
+            entity.HasOne(shc => shc.SubHabit)
+                  .WithMany(sh => sh.Completions)
+                  .HasForeignKey(shc => shc.SubHabitId)
+                  .OnDelete(DeleteBehavior.Cascade)
+                  .HasConstraintName("FK_SubHabitCompletions_SubHabits");
+
+            // Unique constraint - one completion per sub-habit per day
+            entity.HasIndex(shc => new { shc.SubHabitId, shc.Date })
+                  .IsUnique()
+                  .HasDatabaseName("IX_SubHabitCompletions_SubHabit_Date");
+        });
 
         // GraceUsage configuration
         modelBuilder.Entity<GraceUsage>(entity =>

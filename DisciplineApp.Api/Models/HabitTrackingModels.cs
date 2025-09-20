@@ -23,6 +23,7 @@ namespace DisciplineApp.Api.Models
         // Navigation properties
         public virtual ICollection<HabitCompletion> Completions { get; set; } = new List<HabitCompletion>();
         public virtual ICollection<TaskDeferral> Deferrals { get; set; } = new List<TaskDeferral>();
+        public virtual ICollection<SubHabit> SubHabits { get; set; } = new List<SubHabit>();
     }
 
 
@@ -38,6 +39,34 @@ namespace DisciplineApp.Api.Models
 
         // Navigation properties
         public virtual Habit Habit { get; set; } = null!;
+    }
+    public class SubHabit
+    {
+        public int Id { get; set; }
+        public int ParentHabitId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int OrderIndex { get; set; } = 0; // For displaying in correct order
+        public bool IsActive { get; set; } = true;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation properties
+        public virtual Habit ParentHabit { get; set; } = null!;
+        public virtual ICollection<SubHabitCompletion> Completions { get; set; } = new List<SubHabitCompletion>();
+    }
+
+    // NEW: Sub-Habit Completion Model
+    public class SubHabitCompletion
+    {
+        public int Id { get; set; }
+        public int SubHabitId { get; set; }
+        public DateTime Date { get; set; }
+        public bool IsCompleted { get; set; }
+        public DateTime? CompletedAt { get; set; }
+        public string Notes { get; set; } = string.Empty;
+
+        // Navigation properties
+        public virtual SubHabit SubHabit { get; set; } = null!;
     }
 
     // Grace period usage tracking
