@@ -201,6 +201,27 @@ private async initializeComponent(): Promise<void> {
               }
             });
           }
+                    console.log('🔍 DEBUG: Raw todayData from API:', this.todayData);
+          console.log('🔍 DEBUG: todayData.allHabits length:', this.todayData?.allHabits?.length);
+          console.log('🔍 DEBUG: todayData.allHabits array:', this.todayData?.allHabits);
+
+          // Check for duplicates by name
+          if (this.todayData?.allHabits) {
+            const habitNames = this.todayData.allHabits.map(h => h.name);
+            const uniqueNames = [...new Set(habitNames)];
+            
+            console.log('🔍 DEBUG: Habit names:', habitNames);
+            console.log('🔍 DEBUG: Unique names:', uniqueNames);
+            console.log('🔍 DEBUG: Has duplicates?', habitNames.length !== uniqueNames.length);
+            
+            if (habitNames.length !== uniqueNames.length) {
+              console.error('❌ FOUND DUPLICATES IN API RESPONSE!');
+              
+              // Find which names are duplicated
+              const duplicates = habitNames.filter((name, index) => habitNames.indexOf(name) !== index);
+              console.error('❌ Duplicate habit names:', duplicates);
+            }
+          }
 
           // Calculate "MUST DO" status (your existing logic)
           if (this.todayData && this.todayData.allHabits) {
@@ -250,48 +271,68 @@ private async initializeComponent(): Promise<void> {
       });
     });
   }
+// CORRECT FIX: Replace your loadSubHabitsForHabits method with this version
+
 private async loadSubHabitsForHabits(habits: any[]): Promise<void> {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  const today = new Date().toISOString().split('T')[0];
+  
+  console.log('🔧 Enriching', habits.length, 'habits with sub-habits data');
+  
+  // FIXED: Enrich each habit IN PLACE instead of creating new array
+  for (let i = 0; i < habits.length; i++) {
+    const habit = habits[i];
     
-    this.habitsWithSubHabits = await Promise.all(
-      habits.map(async (habit) => {
-        const habitWithSubHabits: HabitWithSubHabits = {
-          ...habit,
-          subHabits: [],
-          hasSubHabits: false,
-          allSubHabitsCompleted: false,
-          completedSubHabitsCount: 0,
-          totalSubHabitsCount: 0,
-          isExpanded: false
-        };
-
-        try {
-          // Only load sub-habits for non-ad-hoc tasks
-          if (!habit.isAdHoc && habit.habitId) {
-            const response = await this.subHabitsService.getSubHabitsWithCompletions(habit.habitId, today).toPromise();
-            
-            if (response && response.subHabits && response.subHabits.length > 0) {
-              habitWithSubHabits.subHabits = response.subHabits;
-              habitWithSubHabits.hasSubHabits = true;
-              habitWithSubHabits.totalSubHabitsCount = response.subHabits.length;
-              habitWithSubHabits.completedSubHabitsCount = response.subHabits.filter(sh => sh.isCompleted).length;
-              habitWithSubHabits.allSubHabitsCompleted = habitWithSubHabits.completedSubHabitsCount === habitWithSubHabits.totalSubHabitsCount;
-            }
-          }
-        } catch (error) {
-          console.error(`Error loading sub-habits for habit ${habit.habitId}:`, error);
+    try {
+      // Only load sub-habits for non-ad-hoc tasks
+      if (!habit.isAdHoc && habit.habitId) {
+        const response = await this.subHabitsService.getSubHabitsWithCompletions(habit.habitId, today).toPromise();
+        
+        if (response && response.subHabits && response.subHabits.length > 0) {
+          // FIXED: Add sub-habit properties directly to the existing habit object
+          habit.subHabits = response.subHabits;
+          habit.hasSubHabits = true;
+          habit.totalSubHabitsCount = response.subHabits.length;
+          habit.completedSubHabitsCount = response.subHabits.filter(sh => sh.isCompleted).length;
+          habit.allSubHabitsCompleted = habit.completedSubHabitsCount === habit.totalSubHabitsCount;
+          habit.isExpanded = false;
+        } else {
+          // Set default values for habits without sub-habits
+          habit.subHabits = [];
+          habit.hasSubHabits = false;
+          habit.totalSubHabitsCount = 0;
+          habit.completedSubHabitsCount = 0;
+          habit.allSubHabitsCompleted = false;
+          habit.isExpanded = false;
         }
-
-        return habitWithSubHabits;
-      })
-    );
-
-    // Update todayData.allHabits with the enriched habits
-    if (this.todayData) {
-      this.todayData.allHabits = this.habitsWithSubHabits;
+      } else {
+        // Set default values for ad-hoc tasks
+        habit.subHabits = [];
+        habit.hasSubHabits = false;
+        habit.totalSubHabitsCount = 0;
+        habit.completedSubHabitsCount = 0;
+        habit.allSubHabitsCompleted = false;
+        habit.isExpanded = false;
+      }
+    } catch (error) {
+      console.error(`Error loading sub-habits for habit ${habit.habitId}:`, error);
+      // Set default values on error
+      habit.subHabits = [];
+      habit.hasSubHabits = false;
+      habit.totalSubHabitsCount = 0;
+      habit.completedSubHabitsCount = 0;
+      habit.allSubHabitsCompleted = false;
+      habit.isExpanded = false;
     }
   }
 
+  // FIXED: Update habitsWithSubHabits to reference the same enriched habits
+  this.habitsWithSubHabits = habits;
+  
+  console.log('✅ Habits enriched successfully. Total count:', habits.length);
+  console.log('✅ Habits with sub-habits:', habits.filter(h => h.hasSubHabits).length);
+  
+  // No need to modify todayData.allHabits since we enriched the original array in place
+}
 toggleHabitExpansion(habitId: number): void {
     if (this.expandedHabits.has(habitId)) {
       this.expandedHabits.delete(habitId);
