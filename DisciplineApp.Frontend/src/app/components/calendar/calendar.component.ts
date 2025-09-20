@@ -137,8 +137,6 @@ export class CalendarComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadingService.show();
-    this.loadCurrentWeekData();
-    this.loadFlexibleTasks();
     this.initializeComponent();
   }
 
@@ -147,99 +145,119 @@ export class CalendarComponent implements OnInit {
   // ===================================
 
 
- private async initializeComponent(): Promise<void> {
-    try {
-      // Load data in parallel for faster loading
-      await Promise.all([
-        this.loadCurrentWeekData(),
-        this.loadFlexibleTasks(),
-        this.loadTodayTasks()
-      ]);
-    } finally {
-      // Ensure loading is hidden even if there's an error
-      setTimeout(() => this.loadingService.hide(), 200);
-    }
+private async initializeComponent(): Promise<void> {
+  try {
+    // Convert your existing methods to promises and run in parallel
+    await Promise.all([
+      this.loadCurrentWeekDataAsPromise(),
+      this.loadFlexibleTasksAsPromise()
+    ]);
+  } finally {
+    // Hide loading after everything is loaded
+    setTimeout(() => this.loadingService.hide(), 200);
   }
+}
 
-loadCurrentWeekData(): void {
-  this.loading = true;
-  this.error = null;
+private loadCurrentWeekDataAsPromise(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    this.loading = true;
+    this.error = null;
 
-  console.log('🔍 Loading current week data...');
+    console.log('🔍 Loading current week data...');
 
-  this.disciplineService.getCurrentWeek().subscribe({
-    next: (weekData) => {
-      console.log('✅ Week data received:', weekData);
-      
-      this.weekData = weekData;
-      this.currentWeekDays = weekData.days;
-      
-      // Find today's data
-      const today = new Date();
-      this.todayData = weekData.days.find(day => 
-        new Date(day.date).toDateString() === today.toDateString()
-      ) || null;
+    this.disciplineService.getCurrentWeek().subscribe({
+      next: (weekData) => {
+        console.log('✅ Week data received:', weekData);
+        
+        this.weekData = weekData;
+        this.currentWeekDays = weekData.days;
+        
+        // Find today's data
+        const today = new Date();
+        this.todayData = weekData.days.find(day => 
+          new Date(day.date).toDateString() === today.toDateString()
+        ) || null;
 
-      if (this.todayData && this.todayData.allHabits) {
-  this.todayData.allHabits.forEach(habit => {
-    if (habit.hasDeadline) {
-      habit.timeRemaining = this.calculateTimeRemaining(habit) || undefined;
-      habit.isOverdue = this.isHabitOverdue(habit);
-    }
+        if (this.todayData && this.todayData.allHabits) {
+          this.todayData.allHabits.forEach(habit => {
+            if (habit.hasDeadline) {
+              habit.timeRemaining = this.calculateTimeRemaining(habit) || undefined;
+              habit.isOverdue = this.isHabitOverdue(habit);
+            }
+          });
+        }
+
+        // Calculate "MUST DO" status (your existing logic)
+        if (this.todayData && this.todayData.allHabits) {
+          const habitStats = new Map<string, {completed: number, total: number}>();
+          this.currentWeekDays.forEach(day => {
+            day.allHabits?.forEach(habit => {
+              if (habit.isAdHoc) return;
+              const stats = habitStats.get(habit.name) || {completed: 0, total: 0};
+              stats.total += 1;
+              if (habit.isCompleted) stats.completed += 1;
+              habitStats.set(habit.name, stats);
+            });
+          });
+
+          const daysRemaining = this.currentWeekDays.filter(d => this.isToday(d.date) || this.isFuture(d.date)).length;
+
+          this.todayData.allHabits.forEach(habit => {
+            const stats = habitStats.get(habit.name);
+            if (stats) {
+              const remainingTasks = stats.total - stats.completed;
+              habit.isMustDo = (remainingTasks === daysRemaining && remainingTasks > 0);
+            }
+          });
+        }
+
+        console.log('📅 Today\'s data (with MUST DO):', this.todayData);
+        this.loading = false;
+        resolve();
+      },
+      error: (error) => {
+        console.error('❌ Error loading week data:', error);
+        this.error = 'Failed to load calendar data';
+        this.loading = false;
+        reject(error);
+      }
+    });
+
+    // Load weekly progress in parallel
+    this.disciplineService.getWeeklyProgress().subscribe({
+      next: (progress) => {
+        console.log('📈 Weekly progress loaded:', progress);
+        this.weeklyProgress = progress;
+      },
+      error: (error) => {
+        console.error('❌ Error loading weekly progress:', error);
+      }
+    });
   });
 }
 
-      // ==========================================================
-      // ✨ LOGIC TO CALCULATE "MUST DO" STATUS
-      // ==========================================================
-      if (this.todayData && this.todayData.allHabits) {
-        // 1. Calculate weekly progress stats for all habits
-        const habitStats = new Map<string, {completed: number, total: number}>();
-        this.currentWeekDays.forEach(day => {
-          day.allHabits?.forEach(habit => {
-            if (habit.isAdHoc) return;
-            const stats = habitStats.get(habit.name) || {completed: 0, total: 0};
-            stats.total += 1;
-            if (habit.isCompleted) stats.completed += 1;
-            habitStats.set(habit.name, stats);
-          });
-        });
-
-        // 2. Calculate days remaining in the week
-        const daysRemaining = this.currentWeekDays.filter(d => this.isToday(d.date) || this.isFuture(d.date)).length;
-
-        // 3. Loop through TODAY's tasks and set the isMustDo flag
-        this.todayData.allHabits.forEach(habit => {
-          const stats = habitStats.get(habit.name);
-          if (stats) {
-            const remainingTasks = stats.total - stats.completed;
-            // A task is a "MUST" if remaining tasks equal remaining days, and there's still work to do
-            habit.isMustDo = (remainingTasks === daysRemaining && remainingTasks > 0);
-          }
-        });
+private loadFlexibleTasksAsPromise(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    this.disciplineService.getFlexibleTasksForDay(today).subscribe({
+      next: (tasks: HabitWithFlexibility[]) => {
+        this.flexibleTasks = tasks;
+        console.log('Flexible tasks loaded:', tasks);
+        resolve();
+      },
+      error: (error) => {
+        console.error('Error loading flexible tasks:', error);
+        this.errorMessage = 'Failed to load tasks. Please refresh the page.';
+        reject(error);
       }
-      // ==========================================================
-      
-      console.log('📅 Today\'s data (with MUST DO):', this.todayData);
-
-      this.loading = false;
-    },
-    error: (error) => {
-      console.error('❌ Error loading week data:', error);
-      this.error = 'Failed to load calendar data';
-      this.loading = false;
-    }
+    });
   });
+}
 
-  // Load weekly progress
-  this.disciplineService.getWeeklyProgress().subscribe({
-    next: (progress) => {
-      console.log('📈 Weekly progress loaded:', progress);
-      this.weeklyProgress = progress;
-    },
-    error: (error) => {
-      console.error('❌ Error loading weekly progress:', error);
-    }
+loadCurrentWeekData(): void {
+  this.loadCurrentWeekDataAsPromise().catch(error => {
+    console.error('Error in loadCurrentWeekData:', error);
   });
 }
 

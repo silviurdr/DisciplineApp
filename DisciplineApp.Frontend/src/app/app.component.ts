@@ -1,3 +1,5 @@
+// Update your existing app.component.ts
+
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, RouterOutlet, Router, NavigationEnd } from '@angular/router';
@@ -86,3 +88,5 @@ export class AppComponent implements OnInit {
     }, 100);
   }
 }
+
+// Add these styles to your existing app.component.scss:
