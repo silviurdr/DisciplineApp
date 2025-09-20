@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { DisciplineService } from '../../services/discipline.services';
+import { LoadingService } from '../../services/loading.service';
 import { 
   MonthlyStats,  
   StreakInfo,
@@ -108,14 +109,16 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
     { day: 365, tier: 6 }   // Trip (1 year)
   ];
 
-  constructor(private disciplineService: DisciplineService) {
+  constructor(private disciplineService: DisciplineService,   private loadingService: LoadingService) {
     const today = new Date();
     this.currentMonth = today.getMonth();
     this.currentYear = today.getFullYear();
+    
   }
 
   ngOnInit(): void {
-    this.loadMonthData();
+     this.loadingService.show();
+  this.initializeMonthlyView();
   }
 
   ngOnDestroy(): void {
@@ -123,42 +126,84 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  private async initializeMonthlyView(): Promise<void> {
+  try {
+    await this.loadMonthDataAsPromise();
+  } finally {
+    setTimeout(() => this.loadingService.hide(), 200);
+  }
+}
+private loadMonthDataAsPromise(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    this.loading = true;
+    this.error = null;
+
+    const today = new Date();
+    const isCurrentMonth = today.getMonth() === this.currentMonth && today.getFullYear() === this.currentYear;
+
+    if (isCurrentMonth) {
+      // For current month, get real data for current week and generate projected data for future days
+      this.disciplineService.getCurrentWeek()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (weekData: WeekData) => {
+            this.generateCalendarWithRealData(weekData);
+            this.generateProjectedTasksForFutureDays();
+            this.calculateProjectedRewards();
+            this.loading = false;
+            resolve();
+          },
+          error: (error) => {
+            console.error('Error loading week data:', error);
+            this.generateCalendarWithTodayData(null);
+            this.generateProjectedTasksForFutureDays();
+            this.loading = false;
+            reject(error);
+          }
+        });
+    } else {
+      this.generateCalendarWithTodayData(null);
+      this.generateProjectedTasksForFutureDays();
+      this.loading = false;
+      resolve();
+    }
+
+    this.loadMonthlyStatsAsPromise().then(() => {
+      // Monthly stats loaded
+    }).catch(error => {
+      console.error('Error loading monthly stats:', error);
+    });
+  });
+}
+
+private loadMonthlyStatsAsPromise(): Promise<void> {
+  return new Promise((resolve) => {
+    // Calculate stats from calendar days
+    const totalDays = this.calendarDays.filter(d => d.isCurrentMonth && !d.isFuture).length;
+    const completedDays = this.calendarDays.filter(d => d.isCurrentMonth && d.isCompleted).length;
+    const currentStreak = this.calculateCurrentStreak();
+    const totalHabits = this.calendarDays.reduce((sum, d) => sum + (d.totalHabits || 0), 0);
+
+    this.monthlyStats = {
+      totalDays,
+      completedDays,
+      completionRate: totalDays > 0 ? (completedDays / totalDays) * 100 : 0,
+      currentStreak,
+      totalHabits
+    };
+    resolve();
+  });
+}
+
+
   // ===================================
   // DATA LOADING METHODS
   // ===================================
 
 loadMonthData(): void {
-  this.loading = true;
-  this.error = null;
-
-  const today = new Date();
-  const isCurrentMonth = today.getMonth() === this.currentMonth && today.getFullYear() === this.currentYear;
-
-  if (isCurrentMonth) {
-    // For current month, get real data for current week and generate projected data for future days
-    this.disciplineService.getCurrentWeek()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (weekData: WeekData) => {
-          this.generateCalendarWithRealData(weekData);
-          this.generateProjectedTasksForFutureDays(); // New method
-          this.calculateProjectedRewards();
-          this.loading = false;
-        },
-        error: (error) => {
-          console.error('Error loading week data:', error);
-          this.generateCalendarWithTodayData(null);
-          this.generateProjectedTasksForFutureDays();
-          this.loading = false;
-        }
-      });
-  } else {
-    this.generateCalendarWithTodayData(null);
-    this.generateProjectedTasksForFutureDays();
-    this.loading = false;
-  }
-
-  this.loadMonthlyStats();
+  this.loadMonthDataAsPromise().catch(error => {
+    console.error('Error in loadMonthData:', error);
+  });
 }
 
 private generateProjectedTasksForFutureDays(): void {
@@ -564,32 +609,33 @@ private updateCalendarWithRewards(): void {
   // NAVIGATION METHODS
   // ===================================
 
-  previousMonth(): void {
-    if (this.currentMonth === 0) {
-      this.currentMonth = 11;
-      this.currentYear--;
-    } else {
-      this.currentMonth--;
-    }
-    this.loadMonthData();
+nextMonth(): void {
+  this.loadingService.show();
+  this.currentMonth++;
+  if (this.currentMonth > 11) {
+    this.currentMonth = 0;
+    this.currentYear++;
   }
+  this.initializeMonthlyView();
+}
 
-  nextMonth(): void {
-    if (this.currentMonth === 11) {
-      this.currentMonth = 0;
-      this.currentYear++;
-    } else {
-      this.currentMonth++;
-    }
-    this.loadMonthData();
+previousMonth(): void {
+  this.loadingService.show();
+  this.currentMonth--;
+  if (this.currentMonth < 0) {
+    this.currentMonth = 11;
+    this.currentYear--;
   }
+  this.initializeMonthlyView();
+}
 
-  goToToday(): void {
-    const today = new Date();
-    this.currentMonth = today.getMonth();
-    this.currentYear = today.getFullYear();
-    this.loadMonthData();
-  }
+goToToday(): void {
+  this.loadingService.show();
+  const today = new Date();
+  this.currentMonth = today.getMonth();
+  this.currentYear = today.getFullYear();
+  this.initializeMonthlyView();
+}
 
   // ===================================
   // UTILITY METHODS
@@ -615,17 +661,15 @@ private updateCalendarWithRewards(): void {
   }
 
   onDayClick(day: MonthlyDayData): void {
-    if (!day.isCurrentMonth || day.isFuture) {
-      return;
-    }
-    
+  if (day.isFuture || !day.isCurrentMonth) return;
+  
+  // Add subtle loading for day interactions
+  this.loadingService.show();
+  
+  // Simulate day detail loading
+  setTimeout(() => {
     console.log('Day clicked:', day);
-    // Handle day click - could open a modal, navigate to daily view, etc.
-  }
-
-  private getDayOfYear(date: Date): number {
-    const start = new Date(date.getFullYear(), 0, 0);
-    const diff = date.getTime() - start.getTime();
-    return Math.floor(diff / (1000 * 60 * 60 * 24));
-  }
+    // You can add day detail modal or navigation here
+    this.loadingService.hide();
+  }, 300);
 }
