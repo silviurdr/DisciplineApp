@@ -170,15 +170,16 @@ private async initializeComponent(): Promise<void> {
   }
 }
 
- private async loadCurrentWeekDataAsPromise(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      this.loading = true;
-      this.error = null;
+private async loadCurrentWeekDataAsPromise(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    this.loading = true; // Keep loading true throughout the entire process
+    this.error = null;
 
-      console.log('🔍 Loading current week data...');
+    console.log('🔍 Loading current week data...');
 
-      this.disciplineService.getCurrentWeek().subscribe({
-        next: async (weekData) => {
+    this.disciplineService.getCurrentWeek().subscribe({
+      next: async (weekData) => {
+        try {
           console.log('✅ Week data received:', weekData);
           
           this.weekData = weekData;
@@ -190,10 +191,14 @@ private async initializeComponent(): Promise<void> {
             new Date(day.date).toDateString() === today.toDateString()
           ) || null;
 
+          // CRITICAL: Wait for sub-habits to load BEFORE setting loading = false
           if (this.todayData && this.todayData.allHabits) {
-            // Load sub-habits for today's tasks
+            console.log('🔄 Loading sub-habits...');
+            // Wait for sub-habits to complete loading
             await this.loadSubHabitsForHabits(this.todayData.allHabits);
+            console.log('✅ Sub-habits loaded completely');
 
+            // Process deadline and overdue information
             this.todayData.allHabits.forEach(habit => {
               if (habit.hasDeadline) {
                 habit.timeRemaining = this.calculateTimeRemaining(habit) || undefined;
@@ -201,29 +206,8 @@ private async initializeComponent(): Promise<void> {
               }
             });
           }
-                    console.log('🔍 DEBUG: Raw todayData from API:', this.todayData);
-          console.log('🔍 DEBUG: todayData.allHabits length:', this.todayData?.allHabits?.length);
-          console.log('🔍 DEBUG: todayData.allHabits array:', this.todayData?.allHabits);
 
-          // Check for duplicates by name
-          if (this.todayData?.allHabits) {
-            const habitNames = this.todayData.allHabits.map(h => h.name);
-            const uniqueNames = [...new Set(habitNames)];
-            
-            console.log('🔍 DEBUG: Habit names:', habitNames);
-            console.log('🔍 DEBUG: Unique names:', uniqueNames);
-            console.log('🔍 DEBUG: Has duplicates?', habitNames.length !== uniqueNames.length);
-            
-            if (habitNames.length !== uniqueNames.length) {
-              console.error('❌ FOUND DUPLICATES IN API RESPONSE!');
-              
-              // Find which names are duplicated
-              const duplicates = habitNames.filter((name, index) => habitNames.indexOf(name) !== index);
-              console.error('❌ Duplicate habit names:', duplicates);
-            }
-          }
-
-          // Calculate "MUST DO" status (your existing logic)
+          // Calculate "MUST DO" status
           if (this.todayData && this.todayData.allHabits) {
             const habitStats = new Map<string, {completed: number, total: number}>();
             this.currentWeekDays.forEach(day => {
@@ -248,29 +232,26 @@ private async initializeComponent(): Promise<void> {
           }
 
           console.log('📅 Today\'s data (with sub-habits):', this.todayData);
+          
+          // ONLY set loading = false after EVERYTHING is ready
           this.loading = false;
           resolve();
-        },
-        error: (error) => {
-          console.error('❌ Error loading week data:', error);
-          this.error = 'Failed to load calendar data';
+        } catch (error) {
+          console.error('❌ Error in async processing:', error);
+          this.error = 'Failed to load task data';
           this.loading = false;
           reject(error);
         }
-      });
-
-      // Load weekly progress in parallel
-      this.disciplineService.getWeeklyProgress().subscribe({
-        next: (progress) => {
-          console.log('📈 Weekly progress loaded:', progress);
-          this.weeklyProgress = progress;
-        },
-        error: (error) => {
-          console.error('❌ Error loading weekly progress:', error);
-        }
-      });
+      },
+      error: (error) => {
+        console.error('❌ Error loading week data:', error);
+        this.error = 'Failed to load calendar data';
+        this.loading = false;
+        reject(error);
+      }
     });
-  }
+  });
+}
 // CORRECT FIX: Replace your loadSubHabitsForHabits method with this version
 
 private async loadSubHabitsForHabits(habits: any[]): Promise<void> {
