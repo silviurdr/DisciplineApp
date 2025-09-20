@@ -2220,3 +2220,166 @@ button:focus-visible {
     justify-content: center;
   }
 }
+
+// ADD this CSS to your calendar.component.scss
+
+/* ===================================
+   LOADING STATE STYLING
+   =================================== */
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 60px 20px;
+  text-align: center;
+  background: #2a2b3d;
+  border-radius: 16px;
+  border: 1px solid rgba(139, 143, 163, 0.2);
+}
+
+.loading-content {
+  max-width: 300px;
+}
+
+.loading-content h3 {
+  color: #d1d3db;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 24px 0 8px 0;
+}
+
+.loading-content p {
+  color: #8b8fa3;
+  font-size: 0.95rem;
+  margin: 0;
+  opacity: 0.8;
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid rgba(139, 143, 163, 0.2);
+  border-top: 4px solid #64b5f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% { 
+    transform: rotate(0deg); 
+  }
+  100% { 
+    transform: rotate(360deg); 
+  }
+}
+
+/* ===================================
+   ERROR STATE STYLING
+   =================================== */
+
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 60px 20px;
+  text-align: center;
+  background: #2a2b3d;
+  border-radius: 16px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.error-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.error-state h3 {
+  color: #ef4444;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.error-state p {
+  color: #8b8fa3;
+  font-size: 0.95rem;
+  margin: 0 0 24px 0;
+}
+
+.retry-btn {
+  background: #64b5f6;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.retry-btn:hover {
+  background: #5aa3f0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(100, 181, 246, 0.3);
+}
+
+.retry-btn:active {
+  transform: translateY(0);
+}
+
+/* ===================================
+   CONTENT FADE-IN ANIMATION
+   =================================== */
+
+.calendar-content {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===================================
+   RESPONSIVE LOADING STATES
+   =================================== */
+
+@media (max-width: 768px) {
+  .loading-state,
+  .error-state {
+    min-height: 300px;
+    padding: 40px 16px;
+  }
+  
+  .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border-width: 3px;
+  }
+  
+  .loading-content h3,
+  .error-state h3 {
+    font-size: 1.1rem;
+  }
+  
+  .loading-content p,
+  .error-state p {
+    font-size: 0.9rem;
+  }
+}

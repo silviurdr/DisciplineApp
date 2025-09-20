@@ -1,3 +1,11 @@
+
+  <div *ngIf="loading" class="loading-state">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <h3>Loading your discipline calendar...</h3>
+      <p>Preparing tasks and sub-habits</p>
+    </div>
+  </div>
 <div *ngIf="!loading" class="calendar-container">
   <!-- Header with Progress -->
   <div class="header" *ngIf="weekData">
