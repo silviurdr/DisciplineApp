@@ -416,6 +416,13 @@ getRequiredTaskCompletionPercentage(day: MonthlyDayData): number {
     this.calendarDays = calendar;
   }
 
+  private getDayOfYear(date: Date): number {
+  const start = new Date(date.getFullYear(), 0, 0);
+  const diff = date.getTime() - start.getTime();
+  const oneDay = 1000 * 60 * 60 * 24;
+  return Math.floor(diff / oneDay);
+}
+
 private loadMonthlyStats(): void {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -672,4 +679,5 @@ goToToday(): void {
     // You can add day detail modal or navigation here
     this.loadingService.hide();
   }, 300);
+}
 }
