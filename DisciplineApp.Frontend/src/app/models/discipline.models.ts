@@ -85,6 +85,14 @@ export interface ScheduledHabit {
   currentDueDate?: string;
   flexibilityStatus?: FlexibilityStatus;
   deadlineDate?: string;  // NEW
+
+    // NEW: Sub-habits properties
+  hasSubHabits?: boolean;
+  subHabits?: SubHabit[];
+  allSubHabitsCompleted?: boolean;
+  completedSubHabitsCount?: number;
+  totalSubHabitsCount?: number;
+  isExpanded?: boolean;
   
   // Ad-hoc task properties
   isAdHoc?: boolean;
@@ -347,6 +355,80 @@ export interface UpdateHabitRequest {
   isActive: boolean;
   isLocked: boolean;
   maxDeferrals?: number;
+}
+
+// ===================================
+// SUB-HABITS MODELS
+// ===================================
+
+export interface SubHabit {
+  id: number;
+  parentHabitId: number;
+  name: string;
+  description: string;
+  orderIndex: number;
+  isActive: boolean;
+  createdAt: string;
+  isCompleted?: boolean; // For daily view
+  completedAt?: string; // For daily view
+}
+
+export interface HabitWithSubHabits extends ScheduledHabit {
+  subHabits?: SubHabit[];
+  hasSubHabits?: boolean;
+  allSubHabitsCompleted?: boolean;
+  completedSubHabitsCount?: number;
+  totalSubHabitsCount?: number;
+  isExpanded?: boolean; // For UI state
+}
+
+// SUB-HABITS REQUEST/RESPONSE MODELS
+// ===================================
+
+export interface CreateSubHabitRequest {
+  parentHabitId: number;
+  name: string;
+  description?: string;
+}
+
+export interface UpdateSubHabitRequest {
+  name: string;
+  description?: string;
+  isActive: boolean;
+}
+
+export interface CompleteSubHabitRequest {
+  date: string; // YYYY-MM-DD
+  isCompleted: boolean;
+  notes?: string;
+}
+
+export interface CompleteAllSubHabitsRequest {
+  date: string; // YYYY-MM-DD
+}
+
+export interface SubHabitCompletionResponse {
+  subHabitId: number;
+  date: string;
+  isCompleted: boolean;
+  completedAt?: string;
+  parentHabitCompleted: boolean;
+  message: string;
+}
+
+export interface CompleteAllSubHabitsResponse {
+  habitId: number;
+  date: string;
+  completedSubHabits: number;
+  totalSubHabits: number;
+  parentHabitCompleted: boolean;
+  message: string;
+}
+
+export interface SubHabitsWithCompletionsResponse {
+  habitId: number;
+  date: string;
+  subHabits: SubHabit[];
 }
 
 // ===================================

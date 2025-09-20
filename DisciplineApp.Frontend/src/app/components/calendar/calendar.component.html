@@ -136,7 +136,7 @@
     </div>
 
     <!-- Compact Task List -->
-    <div class="task-list" *ngIf="todayData.allHabits && todayData.allHabits.length > 0">
+<div class="task-list" *ngIf="todayData.allHabits && todayData.allHabits.length > 0">
       <div 
         *ngFor="let habit of todayData.allHabits | sortCompleted" 
         class="task-row"
@@ -145,88 +145,159 @@
         [class.locked]="habit.isLocked"
         [class.ad-hoc]="habit.isAdHoc"
         [class.overdue]="habit.isOverdue"
-        [class.optional-task]="habit.priority === 'Optional'">
-        
-        <!-- Task Checkbox -->
-        <div class="task-checkbox">
-          <input 
-            type="checkbox" 
-            [id]="'task-' + (habit.habitId || habit.adHocId)"
-            [checked]="habit.isCompleted" 
-            [disabled]="habit.isLocked || habit.isCompleted || habit.isOverdue"
-            (change)="toggleTask(habit)">
-          <label [for]="'task-' + (habit.habitId || habit.adHocId)" class="checkbox-label">
-            <svg class="checkmark-svg" viewBox="0 0 12 10">
-              <polyline points="1.5 5.5 4.5 8.5 10.5 1.5"></polyline>
-            </svg>
-          </label>
+        [class.optional-task]="habit.priority === 'Optional'"
+        [class.has-sub-habits]="habit.hasSubHabits">
+
+        <!-- Main Habit Row -->
+        <div class="main-task-row">
+          <!-- Task Checkbox -->
+          <div class="task-checkbox">
+            <input 
+              type="checkbox" 
+              [id]="'task-' + (habit.habitId || habit.adHocId)"
+              [checked]="habit.isCompleted" 
+              [disabled]="habit.isLocked || habit.isCompleted || habit.isOverdue"
+              (change)="toggleTask(habit)">
+            <label [for]="'task-' + (habit.habitId || habit.adHocId)" class="checkbox-label">
+              <svg class="checkmark-svg" viewBox="0 0 12 10">
+                <polyline points="1.5 5.5 4.5 8.5 10.5 1.5"></polyline>
+              </svg>
+            </label>
+          </div>
+
+          <!-- Task Content -->
+          <div class="task-content">
+            <div class="task-header">
+              <div class="task-name-wrapper">
+                <span class="task-name" [class.completed-text]="habit.isCompleted">
+                  {{ habit.name }}
+                </span>
+                
+                <!-- Sub-habits indicator -->
+                <span *ngIf="habit.hasSubHabits" class="sub-habits-indicator">
+                  ({{ habit.completedSubHabitsCount }}/{{ habit.totalSubHabitsCount }})
+                </span>
+              </div>
+
+              <!-- Expand/Collapse Button -->
+              <button *ngIf="habit.hasSubHabits" 
+                      class="expand-btn"
+                      (click)="toggleHabitExpansion(habit.habitId)"
+                      [class.expanded]="isHabitExpanded(habit.habitId)"
+                      title="{{isHabitExpanded(habit.habitId) ? 'Collapse' : 'Expand'}} sub-habits">
+                <span class="expand-icon">{{ isHabitExpanded(habit.habitId) ? '▼' : '▶' }}</span>
+              </button>
+            </div>
+            
+            <!-- Task Meta Info -->
+            <div class="task-meta">
+              <!-- Show "Must Do" for critical tasks -->
+              <span *ngIf="habit.isMustDo && !habit.isCompleted" class="task-must-do">
+                MUST DO
+              </span>
+
+              <!-- Show "Deferred" status -->
+              <span *ngIf="habit.deferralsUsed && habit.deferralsUsed > 0" class="task-deferred">
+                Deferred
+              </span>
+
+              <!-- Show OVERDUE chip for overdue tasks -->
+              <span *ngIf="habit.isOverdue && !habit.isCompleted" 
+                    class="task-overdue">
+                OVERDUE
+              </span>
+
+              <!-- Show OPTIONAL priority with specific styling -->
+              <span *ngIf="habit.priority && habit.priority === 'Optional'" 
+                    class="task-priority optional">
+                Optional
+              </span>
+
+              <!-- Show frequency chip -->
+              <span *ngIf="habit.frequency" 
+                    class="task-frequency">
+                {{ habit.frequency }}
+              </span>
+
+              <!-- Show deadline countdown (for tasks with time remaining) -->
+              <span *ngIf="habit.timeRemaining && !habit.isCompleted && !habit.isOverdue" 
+                    class="task-deadline"
+                    [class.critical]="getUrgencyLevel(habit.timeRemaining) === 'critical'">
+                {{ habit.timeRemaining }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Task Actions -->
+          <div class="task-actions">
+            <!-- Quick Complete All Button (for habits with sub-habits) -->
+            <button *ngIf="habit.hasSubHabits && !habit.isCompleted" 
+                    class="action-btn quick-complete-btn" 
+                    (click)="quickCompleteAllSubHabits(habit.habitId)"
+                    title="Complete all sub-habits at once">
+              <span class="quick-complete-icon">✓</span>
+              <span class="quick-complete-text">Complete All</span>
+            </button>
+
+            <!-- Edit button for ad-hoc tasks -->
+            <button *ngIf="habit.isAdHoc" 
+                    class="action-btn edit-btn" 
+                    (click)="editAdHocTask(habit)"
+                    title="Edit this task">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+              </svg>
+            </button>
+
+            <!-- Move task button for regular habits that allow deferrals -->
+            <button *ngIf="!habit.isAdHoc && !habit.isCompleted && canActuallyMoveHabit(habit)" 
+                    class="action-btn move-btn" 
+                    (click)="moveTaskToTomorrow(habit)"
+                    [title]="getMoveButtonTooltip(habit)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
-        <!-- Task Content -->
-        <div class="task-content">
-          <span class="task-name" [class.completed-text]="habit.isCompleted">
-            {{ habit.name }}
-          </span>
+        <!-- Sub-Habits Section (Collapsible) -->
+        <div *ngIf="habit.hasSubHabits && isHabitExpanded(habit.habitId)" 
+             class="sub-habits-section">
           
-          <!-- Task Meta Info -->
-          <div class="task-meta">
-          <!-- Show "Must Do" for critical tasks -->
-          <span *ngIf="habit.isMustDo && !habit.isCompleted" class="task-must-do">
-            100 %
-          </span>
+          <div class="sub-habits-header">
+            <h4>Sub-Tasks</h4>
+            <span class="sub-habits-progress">
+              {{ habit.completedSubHabitsCount }}/{{ habit.totalSubHabitsCount }} completed
+            </span>
+          </div>
 
-          <!-- Show "Deferred" status -->
-          <span *ngIf="habit.deferralsUsed && habit.deferralsUsed > 0" class="task-must-do">
-            Deferred
-          </span>
+          <div class="sub-habits-list">
+            <div *ngFor="let subHabit of habit.subHabits" 
+                 class="sub-habit-item"
+                 [class.completed]="subHabit.isCompleted">
+              
+              <!-- Sub-habit Checkbox -->
+              <div class="sub-habit-checkbox">
+                <input type="checkbox" 
+                       [id]="'sub-habit-' + subHabit.id"
+                       [checked]="subHabit.isCompleted" 
+                       (change)="toggleSubHabitCompletion(subHabit.id, !subHabit.isCompleted)">
+                <label [for]="'sub-habit-' + subHabit.id" class="checkbox-label"></label>
+              </div>
 
-          <!-- ✅ FIXED: Show OVERDUE chip for overdue tasks -->
-          <span *ngIf="habit.isOverdue && !habit.isCompleted" 
-                class="task-overdue">
-            OVERDUE
-          </span>
-
-          <!-- Show OPTIONAL priority with specific styling -->
-          <span *ngIf="habit.priority && habit.priority === 'Optional'" 
-                class="task-priority optional">
-            Optional
-          </span>
-
-          <!-- Show frequency chip -->
-          <span *ngIf="habit.frequency" 
-                class="task-frequency">
-            {{ habit.frequency }}
-          </span>
-
-          <!-- ✅ FIXED: Show deadline countdown (for tasks with time remaining) -->
-          <span *ngIf="habit.timeRemaining && !habit.isCompleted && !habit.isOverdue" 
-                class="task-deadline"
-                [class.critical]="getUrgencyLevel(habit.timeRemaining) === 'critical'">
-            {{ habit.timeRemaining }}
-          </span>
-        </div>
-
-        <!-- Task Actions -->
-        <div class="task-actions">
-          <!-- Edit button for ad-hoc tasks -->
-          <button *ngIf="habit.isAdHoc" 
-                  class="action-btn edit-btn" 
-                  (click)="editAdHocTask(habit)"
-                  title="Edit this task">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-            </svg>
-          </button>
-
-          <!-- Move task button for regular habits that allow deferrals -->
-      <button *ngIf="!habit.isAdHoc && !habit.isCompleted && canActuallyMoveHabit(habit)" 
-              class="action-btn move-btn" 
-              (click)="moveTaskToTomorrow(habit)"
-              [title]="getMoveButtonTooltip(habit)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
-        </svg>
-      </button>
+              <!-- Sub-habit Content -->
+              <div class="sub-habit-content">
+                <div class="sub-habit-name">{{ subHabit.name }}</div>
+                <div *ngIf="subHabit.description" class="sub-habit-description">
+                  {{ subHabit.description }}
+                </div>
+                <div *ngIf="subHabit.isCompleted && subHabit.completedAt" class="sub-habit-completed-at">
+                  Completed at {{ subHabit.completedAt | date:'short' }}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -237,7 +308,6 @@
       <h3>No tasks scheduled</h3>
       <p>Enjoy your free time!</p>
     </div>
-  </div>
 
   <!-- Loading State -->
   <div class="loading-state" *ngIf="loading">

@@ -78,6 +78,15 @@ import {
   ScheduledHabit, 
   HabitWithFlexibility, 
 } from '../../models/discipline.models';
+
+import { SubHabitsService } from '../../services/sub-habits.service';
+import { 
+  HabitWithSubHabits, 
+  SubHabit, 
+  CompleteSubHabitRequest, 
+  CompleteAllSubHabitsRequest 
+} from '../../models/discipline.models';
+
 import { DaysLeftPipe } from '../../pipes/days-left-pipe';
 
 // Pipe for sorting habits
@@ -128,11 +137,14 @@ export class CalendarComponent implements OnInit {
   errorMessage = '';
   hasDeadline = false;
   deadlineDate = '';
+  habitsWithSubHabits: HabitWithSubHabits[] = [];
+  expandedHabits: Set<number> = new Set(); // Track which habits are expanded
 
   constructor(
     private disciplineService: DisciplineService,
     private soundService: SoundService,
-    private loadingService: LoadingService
+    private loadingService: LoadingService,
+    private subHabitsService: SubHabitsService
   ) {}
 
   ngOnInit(): void {
@@ -158,84 +170,241 @@ private async initializeComponent(): Promise<void> {
   }
 }
 
-private loadCurrentWeekDataAsPromise(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    this.loading = true;
-    this.error = null;
+ private async loadCurrentWeekDataAsPromise(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.loading = true;
+      this.error = null;
 
-    console.log('🔍 Loading current week data...');
+      console.log('🔍 Loading current week data...');
 
-    this.disciplineService.getCurrentWeek().subscribe({
-      next: (weekData) => {
-        console.log('✅ Week data received:', weekData);
-        
-        this.weekData = weekData;
-        this.currentWeekDays = weekData.days;
-        
-        // Find today's data
-        const today = new Date();
-        this.todayData = weekData.days.find(day => 
-          new Date(day.date).toDateString() === today.toDateString()
-        ) || null;
+      this.disciplineService.getCurrentWeek().subscribe({
+        next: async (weekData) => {
+          console.log('✅ Week data received:', weekData);
+          
+          this.weekData = weekData;
+          this.currentWeekDays = weekData.days;
+          
+          // Find today's data
+          const today = new Date();
+          this.todayData = weekData.days.find(day => 
+            new Date(day.date).toDateString() === today.toDateString()
+          ) || null;
 
-        if (this.todayData && this.todayData.allHabits) {
-          this.todayData.allHabits.forEach(habit => {
-            if (habit.hasDeadline) {
-              habit.timeRemaining = this.calculateTimeRemaining(habit) || undefined;
-              habit.isOverdue = this.isHabitOverdue(habit);
-            }
-          });
-        }
+          if (this.todayData && this.todayData.allHabits) {
+            // Load sub-habits for today's tasks
+            await this.loadSubHabitsForHabits(this.todayData.allHabits);
 
-        // Calculate "MUST DO" status (your existing logic)
-        if (this.todayData && this.todayData.allHabits) {
-          const habitStats = new Map<string, {completed: number, total: number}>();
-          this.currentWeekDays.forEach(day => {
-            day.allHabits?.forEach(habit => {
-              if (habit.isAdHoc) return;
-              const stats = habitStats.get(habit.name) || {completed: 0, total: 0};
-              stats.total += 1;
-              if (habit.isCompleted) stats.completed += 1;
-              habitStats.set(habit.name, stats);
+            this.todayData.allHabits.forEach(habit => {
+              if (habit.hasDeadline) {
+                habit.timeRemaining = this.calculateTimeRemaining(habit) || undefined;
+                habit.isOverdue = this.isHabitOverdue(habit);
+              }
             });
-          });
+          }
 
-          const daysRemaining = this.currentWeekDays.filter(d => this.isToday(d.date) || this.isFuture(d.date)).length;
+          // Calculate "MUST DO" status (your existing logic)
+          if (this.todayData && this.todayData.allHabits) {
+            const habitStats = new Map<string, {completed: number, total: number}>();
+            this.currentWeekDays.forEach(day => {
+              day.allHabits?.forEach(habit => {
+                if (habit.isAdHoc) return;
+                const stats = habitStats.get(habit.name) || {completed: 0, total: 0};
+                stats.total += 1;
+                if (habit.isCompleted) stats.completed += 1;
+                habitStats.set(habit.name, stats);
+              });
+            });
 
-          this.todayData.allHabits.forEach(habit => {
-            const stats = habitStats.get(habit.name);
-            if (stats) {
-              const remainingTasks = stats.total - stats.completed;
-              habit.isMustDo = (remainingTasks === daysRemaining && remainingTasks > 0);
+            const daysRemaining = this.currentWeekDays.filter(d => this.isToday(d.date) || this.isFuture(d.date)).length;
+
+            this.todayData.allHabits.forEach(habit => {
+              const stats = habitStats.get(habit.name);
+              if (stats) {
+                const remainingTasks = stats.total - stats.completed;
+                habit.isMustDo = (remainingTasks === daysRemaining && remainingTasks > 0);
+              }
+            });
+          }
+
+          console.log('📅 Today\'s data (with sub-habits):', this.todayData);
+          this.loading = false;
+          resolve();
+        },
+        error: (error) => {
+          console.error('❌ Error loading week data:', error);
+          this.error = 'Failed to load calendar data';
+          this.loading = false;
+          reject(error);
+        }
+      });
+
+      // Load weekly progress in parallel
+      this.disciplineService.getWeeklyProgress().subscribe({
+        next: (progress) => {
+          console.log('📈 Weekly progress loaded:', progress);
+          this.weeklyProgress = progress;
+        },
+        error: (error) => {
+          console.error('❌ Error loading weekly progress:', error);
+        }
+      });
+    });
+  }
+private async loadSubHabitsForHabits(habits: any[]): Promise<void> {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    
+    this.habitsWithSubHabits = await Promise.all(
+      habits.map(async (habit) => {
+        const habitWithSubHabits: HabitWithSubHabits = {
+          ...habit,
+          subHabits: [],
+          hasSubHabits: false,
+          allSubHabitsCompleted: false,
+          completedSubHabitsCount: 0,
+          totalSubHabitsCount: 0,
+          isExpanded: false
+        };
+
+        try {
+          // Only load sub-habits for non-ad-hoc tasks
+          if (!habit.isAdHoc && habit.habitId) {
+            const response = await this.subHabitsService.getSubHabitsWithCompletions(habit.habitId, today).toPromise();
+            
+            if (response && response.subHabits && response.subHabits.length > 0) {
+              habitWithSubHabits.subHabits = response.subHabits;
+              habitWithSubHabits.hasSubHabits = true;
+              habitWithSubHabits.totalSubHabitsCount = response.subHabits.length;
+              habitWithSubHabits.completedSubHabitsCount = response.subHabits.filter(sh => sh.isCompleted).length;
+              habitWithSubHabits.allSubHabitsCompleted = habitWithSubHabits.completedSubHabitsCount === habitWithSubHabits.totalSubHabitsCount;
             }
-          });
+          }
+        } catch (error) {
+          console.error(`Error loading sub-habits for habit ${habit.habitId}:`, error);
         }
 
-        console.log('📅 Today\'s data (with MUST DO):', this.todayData);
-        this.loading = false;
-        resolve();
-      },
-      error: (error) => {
-        console.error('❌ Error loading week data:', error);
-        this.error = 'Failed to load calendar data';
-        this.loading = false;
-        reject(error);
-      }
-    });
+        return habitWithSubHabits;
+      })
+    );
 
-    // Load weekly progress in parallel
-    this.disciplineService.getWeeklyProgress().subscribe({
-      next: (progress) => {
-        console.log('📈 Weekly progress loaded:', progress);
-        this.weeklyProgress = progress;
-      },
-      error: (error) => {
-        console.error('❌ Error loading weekly progress:', error);
-      }
-    });
-  });
-}
+    // Update todayData.allHabits with the enriched habits
+    if (this.todayData) {
+      this.todayData.allHabits = this.habitsWithSubHabits;
+    }
+  }
 
+toggleHabitExpansion(habitId: number): void {
+    if (this.expandedHabits.has(habitId)) {
+      this.expandedHabits.delete(habitId);
+    } else {
+      this.expandedHabits.add(habitId);
+    }
+
+    // Update the habit's expanded state
+    const habit = this.habitsWithSubHabits.find(h => h.habitId === habitId);
+    if (habit) {
+      habit.isExpanded = this.expandedHabits.has(habitId);
+    }
+  }
+
+
+  // NEW: Check if habit is expanded
+ isHabitExpanded(habitId: number): boolean {
+    return this.expandedHabits.has(habitId);
+  }
+
+ async toggleSubHabitCompletion(subHabitId: number, isCompleted: boolean): Promise<void> {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const request: CompleteSubHabitRequest = {
+      date: today,
+      isCompleted: isCompleted,
+      notes: ''
+    };
+
+    try {
+      const response = await this.subHabitsService.completeSubHabit(subHabitId, request).toPromise();
+      
+      if (response) {
+        // Update the sub-habit in the local state
+        const habit = this.habitsWithSubHabits.find(h => 
+          h.subHabits?.some(sh => sh.id === subHabitId)
+        );
+        
+        if (habit && habit.subHabits) {
+          const subHabit = habit.subHabits.find(sh => sh.id === subHabitId);
+          if (subHabit) {
+            subHabit.isCompleted = isCompleted;
+            subHabit.completedAt = response.completedAt;
+            
+            // Update completion counts
+            habit.completedSubHabitsCount = habit.subHabits.filter(sh => sh.isCompleted).length;
+            habit.allSubHabitsCompleted = habit.completedSubHabitsCount === habit.totalSubHabitsCount;
+            
+            // If parent habit was completed, update main habit status
+            if (response.parentHabitCompleted) {
+              habit.isCompleted = true;
+              await this.refreshWeekData(); // Refresh to get updated stats
+            }
+          }
+        }
+
+        // Play completion sound
+        if (isCompleted) {
+          this.soundService.playTaskCompleted();
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling sub-habit completion:', error);
+      // Could show error toast here
+    }
+  }
+
+async quickCompleteAllSubHabits(habitId: number): Promise<void> {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const request: CompleteAllSubHabitsRequest = {
+      date: today
+    };
+
+    try {
+      const response = await this.subHabitsService.completeAllSubHabits(habitId, request).toPromise();
+      
+      if (response) {
+        // Update all sub-habits for this habit
+        const habit = this.habitsWithSubHabits.find(h => h.habitId === habitId);
+        if (habit && habit.subHabits) {
+          habit.subHabits.forEach(subHabit => {
+            subHabit.isCompleted = true;
+            subHabit.completedAt = new Date().toISOString();
+          });
+          
+          // Update completion counts
+          habit.completedSubHabitsCount = habit.totalSubHabitsCount;
+          habit.allSubHabitsCompleted = true;
+          habit.isCompleted = true;
+          
+          // Refresh week data to get updated stats
+          await this.refreshWeekData();
+        }
+
+        // Play completion sound
+        this.soundService.playTaskCompleted();
+        
+        console.log(`All sub-habits completed for habit ${habitId}`);
+      }
+    } catch (error) {
+      console.error('Error quick-completing all sub-habits:', error);
+    }
+  }
+
+  private async refreshWeekData(): Promise<void> {
+    try {
+      await this.loadCurrentWeekDataAsPromise();
+    } catch (error) {
+      console.error('Error refreshing week data:', error);
+    }
+  }
+  
 private loadFlexibleTasksAsPromise(): Promise<void> {
   return new Promise((resolve, reject) => {
     const today = new Date().toISOString().split('T')[0];
@@ -603,26 +772,37 @@ getWeekProgressPercentage(): number {
   
   return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 }
-toggleTask(habit: ScheduledHabit): void {
-  // Prevent toggling locked tasks
-  if (habit.isLocked) {
-    console.log('Task is locked, cannot toggle');
-    return;
-  }
+toggleTask(habit: any): void {
+    // Prevent toggling locked tasks
+    if (habit.isLocked) {
+      console.log('Task is locked, cannot toggle');
+      return;
+    }
 
-  // For completed ad-hoc tasks, show a message instead of allowing toggle
-  if (habit.isAdHoc && habit.isCompleted) {
-    console.log('Completed ad-hoc tasks cannot be unchecked');
-    return;
-  }
+    // For completed ad-hoc tasks, show a message instead of allowing toggle
+    if (habit.isAdHoc && habit.isCompleted) {
+      console.log('Completed ad-hoc tasks cannot be unchecked');
+      return;
+    }
 
-  // Check if it's an ad-hoc task
-  if (habit.isAdHoc && habit.adHocId) {
-    this.toggleAdHocTask(habit);
-  } else {
-    this.toggleRegularHabit(habit);
+    // If habit has sub-habits and we're trying to complete it, check if all sub-habits are done
+    const habitWithSubHabits = this.habitsWithSubHabits.find(h => h.habitId === habit.habitId);
+    
+    if (habitWithSubHabits && habitWithSubHabits.hasSubHabits && !habit.isCompleted) {
+      if (!habitWithSubHabits.allSubHabitsCompleted) {
+        // Show warning that not all sub-habits are completed
+        alert('Please complete all sub-habits first, or use the "Complete All" button.');
+        return;
+      }
+    }
+
+    // Check if it's an ad-hoc task
+    if (habit.isAdHoc && habit.adHocId) {
+      this.toggleAdHocTask(habit);
+    } else {
+      this.toggleRegularHabit(habit);
+    }
   }
-}
 
   toggleAdHocTask(habit: ScheduledHabit): void {
   if (!habit.isAdHoc || !habit.adHocId) {

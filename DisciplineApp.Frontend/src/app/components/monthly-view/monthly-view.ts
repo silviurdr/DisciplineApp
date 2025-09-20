@@ -140,7 +140,6 @@ private async initializeMonthlyView(): Promise<void> {
 }
 private loadMonthDataAsPromise(): Promise<void> {
   return new Promise((resolve, reject) => {
-    this.loading = true;
     this.error = null;
 
     const today = new Date();
