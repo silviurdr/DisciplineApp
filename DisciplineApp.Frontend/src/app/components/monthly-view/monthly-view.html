@@ -1,7 +1,7 @@
-<!-- monthly-view.component.html -->
+<!-- Complete monthly-view.html file - FIXED with original styling only -->
 <div class="monthly-view">
-  <!-- Header -->
-  <div class="month-header">
+  <!-- Header - FIXED: Only show when not loading -->
+  <div class="month-header" *ngIf="!loading && !error">
     <button class="nav-btn" (click)="previousMonth()" [disabled]="loading">
       ‹
     </button>
@@ -23,12 +23,12 @@
   </div>
 
   <!-- Error State -->
-  <div *ngIf="error" class="error-state">
+  <div *ngIf="error && !loading" class="error-state">
     <p>{{ error }}</p>
     <button (click)="loadMonthData()" class="retry-btn">Retry</button>
   </div>
 
-  <!-- Stats Overview -->
+  <!-- Stats Overview - FIXED: Only show when data is loaded -->
   <div class="stats-overview" *ngIf="monthlyStats && !loading && !error">
     <div class="stat-card completion">
       <div class="stat-value">{{ monthlyStats.completionRate | number:'1.0-1' }}%</div>
@@ -49,8 +49,8 @@
     </div>
   </div>
 
-  <!-- Calendar -->
-  <div class="calendar-container" *ngIf="!loading && !error">
+  <!-- Calendar - FIXED: Only show when data is loaded -->
+  <div class="calendar-container" *ngIf="!loading && !error && calendarDays.length > 0">
     <!-- Day Headers -->
     <div class="calendar-header">
       <div *ngFor="let dayName of getWeekDays()" class="day-header">{{ dayName }}</div>
@@ -88,80 +88,60 @@
         </div>
 
         <!-- Projected Reward Icon (HIGHEST PRIORITY) -->
-        <div class="projected-reward" *ngIf="day.projectedReward">
-          <div class="reward-icon" [title]="day.projectedReward.description">
+        <div class="reward-icon-container" *ngIf="day.projectedReward && day.isCurrentMonth">
+          <div 
+            class="reward-icon"
+            [style.color]="day.projectedReward.color"
+            [title]="day.projectedReward.description">
             {{ day.projectedReward.icon }}
           </div>
-        </div>
-        
-        <!-- ✅ UPDATED: Future days - show required tasks only -->
-        <div class="task-count-weekly" 
-             *ngIf="day.isCurrentMonth && day.isFuture && getRequiredTasksCount(day) > 0 && !day.projectedReward">
-          <span class="count-text">0/{{ getRequiredTasksCount(day) }}</span>
+          <div class="reward-day-label">Day {{ day.projectedReward.day }}</div>
         </div>
 
-        <!-- ✅ UPDATED: Progress Display for Days with Tasks - based on required tasks only -->
-        <div class="task-summary" 
-             *ngIf="day.isCurrentMonth && !day.isFuture && getRequiredTasksCount(day) > 0 && !day.projectedReward && !day.isBeforeStreakStart">
-          <div class="task-count">
-            {{ getCompletedRequiredTasksCount(day) }}/{{ getRequiredTasksCount(day) }}
+        <!-- Habit Progress for Current Month Days (when not showing reward) -->
+        <div class="habit-progress" *ngIf="day.isCurrentMonth && !day.isFuture && !day.projectedReward && !day.isBeforeStreakStart && day.totalHabits > 0">
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="day.completionPercentage"></div>
           </div>
-          <div class="completion-bar">
-            <div class="completion-fill" 
-                 [style.width.%]="getRequiredTaskCompletionPercentage(day)"
-                 [class.completed-fill]="day.isCompleted && !day.isToday"
-                 [class.today-fill]="day.isToday"
-                 [class.incomplete-fill]="!day.isCompleted && !day.isToday">
-            </div>
-          </div>
+          <div class="habit-count">{{ day.completedHabits }}/{{ day.totalHabits }}</div>
         </div>
-        
-        <!-- ✅ UPDATED: Status Icon for backup display - using required task count -->
-        <div class="day-status" 
-             *ngIf="day.isCurrentMonth && !day.isFuture && !day.projectedReward && !day.isBeforeStreakStart && getRequiredTasksCount(day) === 0">
-          <span class="status-icon" [ngClass]="getDayCompletionClass(day)">
-            {{ getRequiredTasksCount(day) === 0 ? '○' : (day.isCompleted ? '✓' : '✕') }}
-          </span>
+
+        <!-- Flexibility Usage Badge (for days with deferrals) -->
+        <div class="flexibility-badge" *ngIf="day.flexibilityUsage && day.flexibilityUsage.totalDeferrals > 0">
+          <span class="flexibility-icon">⚡</span>
+          <span class="flexibility-count">{{ day.flexibilityUsage.totalDeferrals }}</span>
         </div>
-        
-        <!-- Future State Label -->
-        <div class="future-indicator" 
-             *ngIf="day.isFuture && day.isCurrentMonth && !day.projectedReward">
-          FUTURE
+
+        <!-- Future Days indicator -->
+        <div class="future-indicator" *ngIf="day.isFuture && day.isCurrentMonth">
+          <span class="future-text">—</span>
         </div>
-        
-        <!-- Free Day Label -->
-        <div class="free-day" 
-             *ngIf="day.totalHabits === 0 && !day.isFuture && day.isCurrentMonth && !day.projectedReward && !day.isBeforeStreakStart">
-          FREE
-        </div>
-        
-        <!-- Before Streak Start Indicator -->
-        <div class="before-streak" 
-             *ngIf="day.isBeforeStreakStart && day.isCurrentMonth">
-          -
+
+        <!-- Before Streak Start indicator -->
+        <div class="before-streak-indicator" *ngIf="day.isBeforeStreakStart && day.isCurrentMonth">
+          <span class="before-streak-text">⋯</span>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- PRESERVE EXISTING: Projected Rewards Section -->
+  <!-- ORIGINAL Projected Rewards Section - Using proper CSS classes -->
   <div class="projected-rewards" *ngIf="projectedRewards.length > 0 && !loading && !error">
-    <h4>🎯 Upcoming Rewards</h4>
+    <h4>Upcoming Rewards 🎯</h4>
     <div class="rewards-list">
       <div *ngFor="let reward of projectedRewards" class="reward-item">
-        <div class="reward-icon">{{ reward.icon }}</div>
+        <div class="reward-icon" [style.color]="reward.color">{{ reward.icon }}</div>
         <div class="reward-info">
           <div class="reward-name">{{ reward.name }}</div>
           <div class="reward-description">{{ reward.description }}</div>
-          <div class="reward-progress">{{ reward.daysUntil }} days to go</div>
+          <div class="reward-progress">{{ reward.daysUntil }} days until reward</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- PRESERVE EXISTING: Reward Legend -->
-  <div class="reward-legend" *ngIf="projectedRewards.length > 0">
+  <!-- ORIGINAL Reward Legend - All 6 tiers with proper days -->
+  <div class="reward-legend" *ngIf="!loading && !error">
     <h4>Reward Types</h4>
     <div class="legend-items">
       <div class="legend-item">
@@ -176,7 +156,7 @@
         <span class="legend-icon tier-3">👕</span>
         <span>Clothing Reward (30 days)</span>
       </div>
-            <div class="legend-item">
+      <div class="legend-item">
         <span class="legend-icon tier-4">🎧</span>
         <span>Head Phones (60 days)</span>
       </div>
@@ -184,8 +164,8 @@
         <span class="legend-icon tier-5">🎾</span>
         <span>Tennis Reward (90+ days)</span>
       </div>
-            <div class="legend-item">
-        <span class="legend-icon tier-5">🎫</span>
+      <div class="legend-item">
+        <span class="legend-icon tier-6">🎫</span>
         <span>Concert Ticket (180+ days)</span>
       </div>
     </div>
