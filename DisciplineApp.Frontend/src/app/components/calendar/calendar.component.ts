@@ -256,25 +256,18 @@ private loadFlexibleTasksAsPromise(): Promise<void> {
 }
 
 loadCurrentWeekData(): void {
+  // Just call the promise version
   this.loadCurrentWeekDataAsPromise().catch(error => {
     console.error('Error in loadCurrentWeekData:', error);
   });
 }
 
-  loadFlexibleTasks(): void {
-    const today = new Date().toISOString().split('T')[0];
-    
-    this.disciplineService.getFlexibleTasksForDay(today).subscribe({
-      next: (tasks: HabitWithFlexibility[]) => {
-        this.flexibleTasks = tasks;
-        console.log('Flexible tasks loaded:', tasks);
-      },
-      error: (error) => {
-        console.error('Error loading flexible tasks:', error);
-        this.errorMessage = 'Failed to load tasks. Please refresh the page.';
-      }
-    });
-  }
+loadFlexibleTasks(): void {
+  // Just call the promise version
+  this.loadFlexibleTasksAsPromise().catch(error => {
+    console.error('Error in loadFlexibleTasks:', error);
+  });
+}
 
   // ===================================
   // FLEXIBLE TASK METHODS
@@ -472,16 +465,14 @@ moveTaskToTomorrow(habit: ScheduledHabit): void {
   }
 
   // Show loading state
-  this.showDeferralMessage('Finding next available date...', 'info');
+this.showDeferralMessage('Finding next available date...', 'info');
 
-  // Use smart deferral
   const today = new Date().toISOString().split('T')[0];
   
   this.disciplineService.smartDeferTask(habit.habitId, today, 'Moved by user')
     .subscribe({
       next: (response) => {
         if (response.success) {
-          // Success message with details
           const newDate = new Date(response.newDueDate!).toLocaleDateString('en-US', {
             weekday: 'long',
             month: 'short',
@@ -491,10 +482,14 @@ moveTaskToTomorrow(habit: ScheduledHabit): void {
           const message = `✅ ${response.message}\nDeferrals used: ${response.deferralsUsed}/${response.deferralsUsed! + response.remainingDeferrals!}`;
           this.showDeferralMessage(message, 'success');
           
-          // Reload data to reflect changes
-          this.loadCurrentWeekData();
+          // FIX: Use promise methods instead of old method
+          Promise.all([
+            this.loadCurrentWeekDataAsPromise(),
+            this.loadFlexibleTasksAsPromise()
+          ]).catch(error => {
+            console.error('Error reloading data:', error);
+          });
         } else {
-          // Show specific error message from backend
           this.showDeferralMessage(response.message, 'warning');
         }
       },
@@ -541,41 +536,45 @@ private showDeferralMessage(message: string, type: 'success' | 'warning' | 'erro
 }
 
 
-  toggleRegularHabit(habit: ScheduledHabit): void {
-    if (habit.isLocked) {
-      console.log('Habit is locked, cannot toggle');
-      return;
-    }
-
-    const today = new Date().toISOString().split('T')[0];
-    
-    this.disciplineService.completeHabit({
-      habitId: habit.habitId,
-      date: today,
-      isCompleted: !habit.isCompleted,
-      adHocId: habit.adHocId
-    }).subscribe({
-      next: (response) => {
-        console.log('Habit completion toggled:', response);
-        
-        // Update local state
-        habit.isCompleted = !habit.isCompleted;
-        
-        // Play sound effect
-        if (habit.isCompleted) {
-          this.soundService.playTaskCompleted();
-        }
-        
-        // Reload data to refresh counters
-        this.loadCurrentWeekData();
-        this.loadFlexibleTasks();
-      },
-      error: (error) => {
-        console.error('Error toggling habit:', error);
-        alert('Failed to update habit. Please try again.');
-      }
-    });
+toggleRegularHabit(habit: ScheduledHabit): void {
+  if (habit.isLocked) {
+    console.log('Habit is locked, cannot toggle');
+    return;
   }
+
+  const today = new Date().toISOString().split('T')[0];
+  
+  this.disciplineService.completeHabit({
+    habitId: habit.habitId,
+    date: today,
+    isCompleted: !habit.isCompleted,
+    adHocId: habit.adHocId
+  }).subscribe({
+    next: (response) => {
+      console.log('Habit completion toggled:', response);
+      
+      // Update local state
+      habit.isCompleted = !habit.isCompleted;
+      
+      // Play sound effect
+      if (habit.isCompleted) {
+        this.soundService.playTaskCompleted();
+      }
+      
+      // FIX: Use promise methods instead of old methods
+      Promise.all([
+        this.loadCurrentWeekDataAsPromise(),
+        this.loadFlexibleTasksAsPromise()
+      ]).catch(error => {
+        console.error('Error reloading data:', error);
+      });
+    },
+    error: (error) => {
+      console.error('Error toggling habit:', error);
+      alert('Failed to update habit. Please try again.');
+    }
+  });
+}
 // Add these methods to your calendar.component.ts
 
 getCurrentWeekRange(): string {
@@ -639,16 +638,16 @@ toggleTask(habit: ScheduledHabit): void {
     next: (response) => {
       console.log('Ad-hoc task toggled successfully:', response);
       
-      // Update local state
       habit.isCompleted = !habit.isCompleted;
       
-      // Play sound effect
       if (habit.isCompleted) {
         this.soundService.playTaskCompleted();
       }
       
-      // Refresh all data to update counters and status
-      this.loadCurrentWeekData();
+      // FIX: Use promise method instead of old method
+      this.loadCurrentWeekDataAsPromise().catch(error => {
+        console.error('Error reloading data:', error);
+      });
     },
     error: (error) => {
       console.error('Error toggling ad-hoc task:', error);
@@ -754,8 +753,10 @@ addAdHocTask(): void {
       this.newTaskDescription = '';
       this.errorMessage = '';
       
-      // Refresh the data to show the new task
-      this.loadCurrentWeekData();
+      // FIX: Use promise method instead of old method
+      this.loadCurrentWeekDataAsPromise().catch(error => {
+        console.error('Error reloading data:', error);
+      });
     },
     error: (error) => {
       console.error('Error adding ad-hoc task:', error);
@@ -783,8 +784,10 @@ saveEditedTask(): void {
       this.editTaskDescription = '';
       this.errorMessage = '';
       
-      // Refresh the data to show the updated task
-      this.loadCurrentWeekData();
+      // FIX: Use promise method instead of old method
+      this.loadCurrentWeekDataAsPromise().catch(error => {
+        console.error('Error reloading data:', error);
+      });
     },
     error: (error) => {
       console.error('Error editing ad-hoc task:', error);
