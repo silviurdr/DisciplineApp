@@ -230,9 +230,13 @@
               <!-- Show deadline countdown (for tasks with time remaining) -->
               <span *ngIf="habit.timeRemaining && !habit.isCompleted && !habit.isOverdue" 
                     class="task-deadline"
-                    [class.critical]="getUrgencyLevel(habit.timeRemaining) === 'critical'">
+                    [class.critical]="getUrgencyLevel(habit.timeRemaining) === 'critical'"
+                    [class.urgent]="getUrgencyLevel(habit.timeRemaining) === 'urgent'"
+                    [class.moderate]="getUrgencyLevel(habit.timeRemaining) === 'moderate'"
+                    [class.normal]="getUrgencyLevel(habit.timeRemaining) === 'normal'">
                 {{ habit.timeRemaining }}
               </span>
+
             </div>
                       <div class="task-actions">
 

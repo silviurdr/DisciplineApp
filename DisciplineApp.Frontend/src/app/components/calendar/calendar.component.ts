@@ -1034,26 +1034,41 @@ saveEditedTask(): void {
     return;
   }
 
+  // Store the original values for rollback
+  const originalName = this.editingTask.name;
+  const originalDescription = this.editingTask.description;
+
+  // OPTIMISTIC UPDATE: Update the UI immediately
+  this.editingTask.name = this.editTaskName.trim();
+  this.editingTask.description = this.editTaskDescription.trim();
+
   this.disciplineService.editAdHocTask({
     adHocId: this.editingTask.adHocId!,
     name: this.editTaskName.trim(),
     description: this.editTaskDescription.trim()
   }).subscribe({
     next: (response) => {
-      console.log('Ad-hoc task edited successfully:', response);
+      console.log('✅ Ad-hoc task edited successfully:', response);
+      
+      // Close the dialog
       this.showEditTaskDialog = false;
       this.editingTask = null;
       this.editTaskName = '';
       this.editTaskDescription = '';
       this.errorMessage = '';
       
-      // FIX: Use promise method instead of old method
-      this.loadCurrentWeekDataAsPromise().catch(error => {
-        console.error('Error reloading data:', error);
-      });
+      // ✅ NO REFRESH! The UI is already updated optimistically
+      console.log('🚀 Task edited without page refresh');
     },
     error: (error) => {
-      console.error('Error editing ad-hoc task:', error);
+      console.error('❌ Error editing ad-hoc task:', error);
+      
+      // ROLLBACK: Revert the optimistic update on error
+      if (this.editingTask) {
+        this.editingTask.name = originalName;
+        this.editingTask.description = originalDescription;
+      }
+      
       this.errorMessage = 'Failed to update task. Please try again.';
     }
   });
@@ -1081,19 +1096,24 @@ cancelEditTask(): void {
     return false;
   }
 
- getUrgencyLevel(timeRemaining: string | null): string {
+getUrgencyLevel(timeRemaining: string | null): string {
   if (!timeRemaining) return 'normal';
   
-  // Extract minutes from timeRemaining string
-  const minutesMatch = timeRemaining.match(/(\d+)m/);
+  // Extract days, hours, and minutes from timeRemaining string
+  const daysMatch = timeRemaining.match(/(\d+)d/);
   const hoursMatch = timeRemaining.match(/(\d+)h/);
+  const minutesMatch = timeRemaining.match(/(\d+)m/);
   
-  const totalMinutes = (hoursMatch ? parseInt(hoursMatch[1]) * 60 : 0) + 
-                      (minutesMatch ? parseInt(minutesMatch[1]) : 0);
+  const totalMinutes = 
+    (daysMatch ? parseInt(daysMatch[1]) * 24 * 60 : 0) +
+    (hoursMatch ? parseInt(hoursMatch[1]) * 60 : 0) + 
+    (minutesMatch ? parseInt(minutesMatch[1]) : 0);
   
-  if (totalMinutes <= 30) return 'critical';
-  if (totalMinutes <= 120) return 'urgent'; // 2 hours
-  return 'normal';
+  // ✅ NEW: Updated thresholds for multi-day tasks
+  if (totalMinutes <= 30) return 'critical';          // Less than 30 minutes
+  if (totalMinutes <= 120) return 'urgent';           // Less than 2 hours
+  if (totalMinutes <= 1440) return 'moderate';        // Less than 1 day
+  return 'normal';                                     // More than 1 day
 }
 
 private isHabitOverdue(habit: any): boolean {
@@ -1329,25 +1349,41 @@ private calculateTimeRemaining(habit: any): string | null {
     deadlineDate.setHours(hours, minutes, 0, 0);
     
     const timeDiff = deadlineDate.getTime() - now.getTime();
-    const hoursUntilDeadline = timeDiff / (1000 * 60 * 60);
-    
-    // If more than 24 hours until deadline, task should be optional (no time display)
-    if (hoursUntilDeadline > 24) {
-      return null;
-    }
     
     // If deadline has passed, it's overdue
     if (timeDiff <= 0) {
       return null; // Will show as overdue
     }
     
-    // Within 24 hours of deadline, show countdown
-    const hoursLeft = Math.floor(timeDiff / (1000 * 60 * 60));
+    // Calculate time remaining
+    const daysLeft = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+    const hoursLeft = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutesLeft = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
     
-    if (hoursLeft > 0) {
-      return `${hoursLeft}h ${minutesLeft}m`;
+    // ✅ NEW: Show different formats based on time remaining
+    if (daysLeft > 1) {
+      // More than 1 day: show "X days, Y hours"
+      if (hoursLeft > 0) {
+        return `${daysLeft}d ${hoursLeft}h`;
+      } else {
+        return `${daysLeft}d`;
+      }
+    } else if (daysLeft === 1) {
+      // Tomorrow: show "1 day, X hours" or just "1 day" if evening
+      if (hoursLeft > 0) {
+        return `1d ${hoursLeft}h`;
+      } else {
+        return `1d`;
+      }
+    } else if (hoursLeft > 0) {
+      // Same day, more than 1 hour: show "X hours, Y minutes"
+      if (minutesLeft > 0 && hoursLeft < 6) {
+        return `${hoursLeft}h ${minutesLeft}m`;
+      } else {
+        return `${hoursLeft}h`;
+      }
     } else {
+      // Less than 1 hour: show minutes only
       return `${minutesLeft}m`;
     }
   }
@@ -1368,7 +1404,11 @@ private calculateTimeRemaining(habit: any): string | null {
   const minutesLeft = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
   
   if (hoursLeft > 0) {
-    return `${hoursLeft}h ${minutesLeft}m`;
+    if (minutesLeft > 0 && hoursLeft < 6) {
+      return `${hoursLeft}h ${minutesLeft}m`;
+    } else {
+      return `${hoursLeft}h`;
+    }
   } else {
     return `${minutesLeft}m`;
   }
@@ -1411,18 +1451,19 @@ private calculateTimeRemaining(habit: any): string | null {
     this.newTaskDescription = '';
   }
 
-editAdHocTask(habit: ScheduledHabit): void {
+editAdHocTask(task: ScheduledHabit): void {
   // Prevent editing completed ad-hoc tasks
-  if (habit.isCompleted) {
+  if (task.isCompleted) {
     console.log('Cannot edit completed ad-hoc tasks');
     return;
   }
 
   // Proceed with original edit logic
-  this.editingTask = habit;
-  this.editTaskName = habit.name;
-  this.editTaskDescription = habit.description;
+  this.editingTask = task;
+  this.editTaskName = task.name;
+  this.editTaskDescription = task.description || '';
   this.showEditTaskDialog = true;
+  this.errorMessage = '';
 }
 
 // Alternative version with more detailed information

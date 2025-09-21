@@ -2637,3 +2637,78 @@ button:focus-visible {
   }
 }
 
+.task-deadline {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Critical - Less than 30 minutes (RED) */
+.task-deadline.critical {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+  animation: pulse-red 2s infinite;
+}
+
+/* Urgent - Less than 2 hours (ORANGE) */
+.task-deadline.urgent {
+  background: rgba(255, 152, 0, 0.2);
+  color: #ff9800;
+  border-color: rgba(255, 152, 0, 0.4);
+}
+
+/* Moderate - Less than 1 day (YELLOW) */
+.task-deadline.moderate {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+  border-color: rgba(255, 193, 7, 0.4);
+}
+
+/* Normal - More than 1 day (BLUE/GRAY) */
+.task-deadline.normal {
+  background: rgba(100, 181, 246, 0.15);
+  color: #64b5f6;
+  border-color: rgba(100, 181, 246, 0.3);
+}
+
+/* Pulsing animation for critical deadlines */
+@keyframes pulse-red {
+  0%, 100% { 
+    opacity: 1; 
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% { 
+    opacity: 0.8;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+  }
+}
+
+/* Hover effects */
+.task-deadline:hover {
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+.task-deadline.critical:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.task-deadline.urgent:hover {
+  background: rgba(255, 152, 0, 0.3);
+}
+
+.task-deadline.moderate:hover {
+  background: rgba(255, 193, 7, 0.3);
+}
+
+.task-deadline.normal:hover {
+  background: rgba(100, 181, 246, 0.25);
+}
