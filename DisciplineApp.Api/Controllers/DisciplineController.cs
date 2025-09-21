@@ -917,13 +917,13 @@ public class DisciplineController : ControllerBase
             var completedDays = new List<DateTime>();
 
             // Check each day individually to see if it was "complete"
-            // Go back a reasonable amount (e.g., 90 days) to find the streak
-            for (int daysBack = 0; daysBack <= 90; daysBack++)
+            // Go back a reasonable amount (e.g., 30 days) to find the streak
+            for (int daysBack = 0; daysBack <= 30; daysBack++) // REDUCED from 90 to 30 for performance
             {
                 var checkDate = fromDate.Date.AddDays(-daysBack);
 
-                // Check if this specific day was completed
-                bool dayWasCompleted = await IsDayCompleted(checkDate);
+                // ✅ FIX: Use non-recursive method to check day completion
+                bool dayWasCompleted = await IsDayCompletedNonRecursive(checkDate);
 
                 if (dayWasCompleted)
                 {
@@ -946,7 +946,7 @@ public class DisciplineController : ControllerBase
         }
     }
 
-    private async Task<bool> IsDayCompleted(DateTime date)
+    private async Task<bool> IsDayCompletedNonRecursive(DateTime date)
     {
         try
         {
@@ -969,7 +969,7 @@ public class DisciplineController : ControllerBase
                 .Where(t => t.Date.Date == date.Date)
                 .ToListAsync();
 
-            // Use the same logic as BuildCurrentDayResponse to determine completion
+            // Build habits list
             var allHabits = new List<object>();
 
             // Add scheduled habits
@@ -980,23 +980,21 @@ public class DisciplineController : ControllerBase
                 var habit = await _context.Habits.FindAsync(scheduledHabit.HabitId);
                 var isRequired = habit?.IsOptional != true;
 
-                allHabits.Add(new { isCompleted, isRequired });
+                allHabits.Add(new { isCompleted, isRequired, name = habit?.Name ?? "" });
             }
 
             // Add ad-hoc tasks (all are optional)
             foreach (var adHocTask in adHocTasks)
             {
-                allHabits.Add(new { isCompleted = adHocTask.IsCompleted, isRequired = false });
+                allHabits.Add(new { isCompleted = adHocTask.IsCompleted, isRequired = false, name = adHocTask.Name });
             }
 
-            // Calculate completion using the SAME logic as the main method
-            var requiredHabits = allHabits.Where(h => ((dynamic)h).isRequired).ToList();
-            var completedRequiredCount = requiredHabits.Count(h => ((dynamic)h).isCompleted);
+            // ✅ SIMPLE LOGIC: Check Phone Lock Box for early days, all required habits for later days
+            var totalCompletedDays = await GetTotalCompletedDaysCount(date);
 
-            // 🎯 Apply the same first 7 days rule recursively (but prevent infinite recursion)
-            if (await IsInFirst7DaysOfStreak(date))
+            if (totalCompletedDays <= 7)
             {
-                // For first 7 days, only check if "Phone Lock Box" is completed
+                // First 7 days: only check if "Phone Lock Box" is completed
                 var phoneLockCompletion = completions.FirstOrDefault(c =>
                     _context.Habits.Any(h => h.Id == c.HabitId && h.Name.Contains("Phone Lock")));
 
@@ -1004,16 +1002,36 @@ public class DisciplineController : ControllerBase
             }
             else
             {
-                // Normal logic: all required habits must be completed
+                // After 7 days: all required habits must be completed
+                var requiredHabits = allHabits.Where(h => ((dynamic)h).isRequired).ToList();
+                var completedRequiredCount = requiredHabits.Count(h => ((dynamic)h).isCompleted);
+
                 return completedRequiredCount == requiredHabits.Count && requiredHabits.Count > 0;
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error checking if day {date:yyyy-MM-dd} was completed: {ex.Message}");
+            Console.WriteLine($"Error checking if day {date:yyyy-MM-dd} was completed (non-recursive): {ex.Message}");
             return false;
         }
     }
+
+    private async Task<int> GetTotalCompletedDaysCount(DateTime upToDate)
+    {
+        try
+        {
+            return await _context.HabitCompletions
+                .Where(c => c.IsCompleted && c.Date.Date <= upToDate.Date)
+                .Select(c => c.Date.Date)
+                .Distinct()
+                .CountAsync();
+        }
+        catch
+        {
+            return 0;
+        }
+    }
+
 
 }
 
