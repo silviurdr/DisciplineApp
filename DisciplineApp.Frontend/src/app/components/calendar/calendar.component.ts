@@ -202,8 +202,17 @@ private async loadCurrentWeekDataAsPromise(): Promise<void> {
             // Process deadline and overdue information
             this.todayData.allHabits.forEach(habit => {
               if (habit.hasDeadline) {
-                habit.timeRemaining = this.calculateTimeRemaining(habit) || undefined;
+                // ✅ ONLY calculate isOverdue, keep backend timeRemaining
                 habit.isOverdue = this.isHabitOverdue(habit);
+                
+                // Debug what we have
+                console.log(`🔧 Processing ${habit.name}:`, {
+                  backendTimeRemaining: habit.timeRemaining,
+                  hasDeadline: habit.hasDeadline,
+                  isCompleted: habit.isCompleted,
+                  isOverdue: habit.isOverdue,
+                  willShow: !!(habit.timeRemaining && !habit.isCompleted && !habit.isOverdue)
+                });
               }
             });
           }
@@ -230,7 +239,20 @@ private async loadCurrentWeekDataAsPromise(): Promise<void> {
                 habit.isMustDo = (remainingTasks === daysRemaining && remainingTasks > 0);
               }
             });
+
+                      this.todayData.allHabits.forEach(habit => {
+            console.log(`🔍 Frontend received for ${habit.name}:`, {
+              timeRemaining: habit.timeRemaining,
+              hasDeadline: habit.hasDeadline,
+              isCompleted: habit.isCompleted,
+              isOverdue: habit.isOverdue,
+              isAdHoc: habit.isAdHoc,
+              priority: habit.priority
+            });
+          });
           }
+
+          
 
           console.log('📅 Today\'s data (with sub-habits):', this.todayData);
           
@@ -1121,23 +1143,14 @@ private isHabitOverdue(habit: any): boolean {
     return false;
   }
 
-  const now = new Date();
-  
-  // For adhoc tasks with future deadline dates
-  if (habit.deadlineDate) {
-    const deadlineDate = new Date(habit.deadlineDate);
-    const [hours, minutes] = habit.deadlineTime.split(':').map(Number);
-    deadlineDate.setHours(hours, minutes, 0, 0);
-    
-    return now > deadlineDate;
+  // ✅ Trust backend timeRemaining calculation
+  // If backend sent timeRemaining = null and task has deadline, it's overdue
+  if (habit.timeRemaining === null || habit.timeRemaining === undefined) {
+    return true;
   }
-  
-  // For regular habits with same-day deadlines
-  const [hours, minutes] = habit.deadlineTime.split(':').map(Number);
-  const deadline = new Date();
-  deadline.setHours(hours, minutes, 0, 0);
-  
-  return now > deadline;
+
+  // If backend calculated timeRemaining, it's not overdue
+  return false;
 }
 
   // Date utility methods

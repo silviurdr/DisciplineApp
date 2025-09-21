@@ -114,6 +114,41 @@ public class DisciplineController : ControllerBase
             var isRequired = habit?.IsOptional != true; // If IsOptional is true, then NOT required
             var priority = habit?.IsOptional == true ? "Optional" : "Required";
 
+            // ✅ CALCULATE TIME REMAINING FOR REGULAR HABITS
+            string? timeRemaining = null;
+            bool isOverdue = false;
+
+            if (scheduledHabit.HasDeadline && !isCompleted)
+            {
+                var deadlineTime = scheduledHabit.DeadlineTime;
+                var todayDeadline = DateTime.Today.Add(deadlineTime.ToTimeSpan());
+                var now = DateTime.Now;
+
+                if (now > todayDeadline)
+                {
+                    // Past deadline = overdue
+                    isOverdue = true;
+                    timeRemaining = null;
+                }
+                else
+                {
+                    // Calculate remaining time
+                    var timeDiff = todayDeadline - now;
+                    var hoursLeft = (int)timeDiff.TotalHours;
+                    var minutesLeft = timeDiff.Minutes;
+
+                    if (hoursLeft > 0)
+                    {
+                        timeRemaining = minutesLeft > 0 && hoursLeft < 6 ?
+                            $"{hoursLeft}h {minutesLeft}m" : $"{hoursLeft}h";
+                    }
+                    else
+                    {
+                        timeRemaining = $"{minutesLeft}m";
+                    }
+                }
+            }
+
             allHabits.Add(new
             {
                 habitId = scheduledHabit.HabitId,
@@ -134,22 +169,113 @@ public class DisciplineController : ControllerBase
                 currentDueDate = scheduledHabit.CurrentDueDate?.ToString("yyyy-MM-dd"),
                 isAdHoc = false,
                 adHocId = (int?)null,
-                isOverdue = false,
-                timeRemaining = (string?)null
+                isOverdue = isOverdue,
+                timeRemaining = timeRemaining // ✅ NOW CALCULATED!
             });
         }
 
-        // Add ad-hoc tasks
+        // ✅ ADD AD-HOC TASKS WITH PROPER TIME REMAINING CALCULATION
         foreach (var adHocTask in adHocTasks)
         {
             string priority = "Required";
+            string? timeRemaining = null;
+            bool isOverdue = false;
 
-            if (adHocTask.DeadlineDate != null)
+            // ✅ USE DEADLINEDATE TO CALCULATE TIME REMAINING
+            if (adHocTask.DeadlineDate != null && !adHocTask.IsCompleted)
             {
-                var deadlineDate = adHocTask.DeadlineDate.Value.Date;
+                var deadlineDate = adHocTask.DeadlineDate.Value;
+                var now = DateTime.Now;
+
+                // Check if deadline is today or future date
+                var isToday = deadlineDate.Date == DateTime.Today;
+
+                DateTime deadline;
+                if (isToday)
+                {
+                    // For same-day deadlines, use end of day (23:59)
+                    deadline = deadlineDate.Date.AddHours(23).AddMinutes(59);
+                }
+                else
+                {
+                    // For future dates, use end of that day
+                    deadline = deadlineDate.Date.AddHours(23).AddMinutes(59);
+                }
+
+                if (now > deadline)
+                {
+                    // Past deadline = overdue
+                    isOverdue = true;
+                    timeRemaining = null;
+                }
+                else
+                {
+                    // Calculate remaining time
+                    var timeDiff = deadline - now;
+                    var daysLeft = (int)timeDiff.TotalDays;
+                    var hoursLeft = timeDiff.Hours;
+                    var minutesLeft = timeDiff.Minutes;
+
+                    // ✅ ENHANCED: Different format for today vs future days
+                    if (isToday)
+                    {
+                        // Same day - show hours and minutes for precision
+                        if (hoursLeft > 0)
+                        {
+                            if (hoursLeft < 6 && minutesLeft > 0)
+                            {
+                                timeRemaining = $"{hoursLeft}h {minutesLeft}m"; // "5h 23m"
+                            }
+                            else
+                            {
+                                timeRemaining = $"{hoursLeft}h"; // "12h" (for longer periods)
+                            }
+                        }
+                        else
+                        {
+                            timeRemaining = $"{minutesLeft}m"; // "45m" (less than 1 hour)
+                        }
+                    }
+                    else
+                    {
+                        // Future days - show day format WITHOUT MINUTES (cleaner for distant tasks)
+                        if (daysLeft > 1)
+                        {
+                            // More than 1 day away - simple format
+                            timeRemaining = hoursLeft > 0 ? $"{daysLeft}d {hoursLeft}h" : $"{daysLeft}d";
+                        }
+                        else if (daysLeft == 1)
+                        {
+                            // ✅ TOMORROW - NO MINUTES (cleaner for future tasks)
+                            timeRemaining = hoursLeft > 0 ? $"1d {hoursLeft}h" : $"1d";
+                        }
+                        else
+                        {
+                            // Same day logic (shouldn't reach here for future dates, but just in case)
+                            if (hoursLeft > 0)
+                            {
+                                if (hoursLeft < 12 && minutesLeft > 0)
+                                {
+                                    timeRemaining = $"{hoursLeft}h {minutesLeft}m";
+                                }
+                                else
+                                {
+                                    timeRemaining = $"{hoursLeft}h";
+                                }
+                            }
+                            else
+                            {
+                                timeRemaining = $"{minutesLeft}m";
+                            }
+                        }
+                    }
+                }
+
+                // Set priority based on deadline
+                var deadlineDateOnly = adHocTask.DeadlineDate.Value.Date;
                 var currentDate = DateTime.Today;
 
-                if (deadlineDate > currentDate)
+                if (deadlineDateOnly > currentDate)
                 {
                     priority = "Optional";
                 }
@@ -164,7 +290,8 @@ public class DisciplineController : ControllerBase
                 isRequired = priority == "Required",
                 isLocked = false,
                 hasDeadline = adHocTask.DeadlineDate != null,
-                deadlineTime = "23:59",
+                deadlineTime = adHocTask.DeadlineDate != null ? "23:59" : null,
+                deadlineDate = adHocTask.DeadlineDate?.ToString("yyyy-MM-dd"),
                 priority = priority,
                 reason = "Ad-hoc task",
                 frequency = "Daily",
@@ -175,29 +302,31 @@ public class DisciplineController : ControllerBase
                 currentDueDate = (string?)null,
                 isAdHoc = true,
                 adHocId = adHocTask.Id,
-                isOverdue = false,
-                timeRemaining = (string?)null
+                isOverdue = isOverdue,
+                timeRemaining = timeRemaining // ✅ NOW WITH MINUTES FOR TODAY!
             });
         }
 
-        // Calculate day statistics with SIMPLE streak check
+        // ✅ CALCULATE DAY STATISTICS
         var totalHabits = allHabits.Count;
         var completedHabits = allHabits.Count(h => (bool)((dynamic)h).isCompleted);
         var requiredHabits = allHabits.Where(h => (bool)((dynamic)h).isRequired).ToList();
         var completedRequired = requiredHabits.Count(h => (bool)((dynamic)h).isCompleted);
 
-        // PERFORMANCE FIX: Use simple date calculation instead of expensive DB queries
-        var streakStartDate = new DateTime(2025, 9, 14); // Your actual start date
-        var daysSinceStart = (date.Date - streakStartDate.Date).Days + 1;
+        // ✅ PHONE LOCK-BASED COMPLETION (like your original logic)
+        var streakStartDate = _streakStartDate;
+        var daysSinceStart = streakStartDate.HasValue ? (date.Date - streakStartDate.Value.Date).Days + 1 : 0;
         bool isInFirst7Days = daysSinceStart <= 7;
 
         bool dayIsCompleted = false;
 
         if (isInFirst7Days)
         {
-            // First 7 days: only check phone lock
+            // ✅ FIRST 7 DAYS: Only check Phone Lock task
             var phoneLockHabit = allHabits.FirstOrDefault(h =>
-                ((dynamic)h).name.Contains("Phone Lock") || ((dynamic)h).name.Contains("phone"));
+                ((dynamic)h).name.Contains("Phone Lock") ||
+                ((dynamic)h).name.Contains("phone") ||
+                ((dynamic)h).name.ToLower().Contains("lock"));
 
             if (phoneLockHabit != null)
             {
@@ -206,20 +335,22 @@ public class DisciplineController : ControllerBase
         }
         else
         {
-            // After 7 days: all required habits must be completed
+            // ✅ AFTER 7 DAYS: All required habits must be completed
             dayIsCompleted = completedRequired == requiredHabits.Count && requiredHabits.Count > 0;
         }
 
+        // ✅ RETURN WITH CORRECT COMPLETION STATUS
         return new
         {
             date = date.ToString("yyyy-MM-dd"),
-            isCompleted = dayIsCompleted,
-            isPartiallyCompleted = completedHabits > 0 && completedHabits < totalHabits,
-            completedHabits = completedHabits,
+            allHabits = allHabits,
+            isCompleted = dayIsCompleted,        // ✅ Based on Phone Lock for first 7 days!
+            isPartiallyCompleted = completedHabits > 0 && !dayIsCompleted,
             totalHabits = totalHabits,
+            completedHabits = completedHabits,
             requiredHabitsCount = requiredHabits.Count,
             completedRequiredCount = completedRequired,
-            allHabits = allHabits
+            dayInStreak = daysSinceStart
         };
     }
 
@@ -610,6 +741,8 @@ public class DisciplineController : ControllerBase
     // In your DisciplineController.cs, update the BuildCurrentDayResponse method signature:
 
     // CORRECTED BuildCurrentDayResponse - matches your existing structure
+    // REPLACE your BuildCurrentDayResponse method in DisciplineController.cs with this fixed version:
+
     private async Task<object> BuildCurrentDayResponse(DateTime date, WeekSchedule weekSchedule, List<HabitCompletion> completions, List<AdHocTask> adHocTasks)
     {
         var daySchedule = weekSchedule.DailySchedules.FirstOrDefault(d => d.Date.Date == date.Date);
@@ -637,6 +770,41 @@ public class DisciplineController : ControllerBase
             var isRequired = habit?.IsOptional != true;
             var priority = habit?.IsOptional == true ? "Optional" : "Required";
 
+            // ✅ CALCULATE TIME REMAINING FOR REGULAR HABITS
+            string? timeRemaining = null;
+            bool isOverdue = false;
+
+            if (scheduledHabit.HasDeadline && !isCompleted)
+            {
+                var deadlineTime = scheduledHabit.DeadlineTime;
+                var todayDeadline = DateTime.Today.Add(deadlineTime.ToTimeSpan());
+                var now = DateTime.Now;
+
+                if (now > todayDeadline)
+                {
+                    // Past deadline = overdue
+                    isOverdue = true;
+                    timeRemaining = null;
+                }
+                else
+                {
+                    // Calculate remaining time
+                    var timeDiff = todayDeadline - now;
+                    var hoursLeft = (int)timeDiff.TotalHours;
+                    var minutesLeft = timeDiff.Minutes;
+
+                    if (hoursLeft > 0)
+                    {
+                        timeRemaining = minutesLeft > 0 && hoursLeft < 6 ?
+                            $"{hoursLeft}h {minutesLeft}m" : $"{hoursLeft}h";
+                    }
+                    else
+                    {
+                        timeRemaining = $"{minutesLeft}m";
+                    }
+                }
+            }
+
             allHabits.Add(new
             {
                 habitId = scheduledHabit.HabitId,
@@ -657,22 +825,114 @@ public class DisciplineController : ControllerBase
                 currentDueDate = scheduledHabit.CurrentDueDate?.ToString("yyyy-MM-dd"),
                 isAdHoc = false,
                 adHocId = (int?)null,
-                isOverdue = false,
-                timeRemaining = (string?)null
+                isOverdue = isOverdue,
+                timeRemaining = timeRemaining // ✅ NOW CALCULATED!
             });
         }
 
-        // Add ad-hoc tasks (your existing logic)
+        // Add ad-hoc tasks
         foreach (var adHocTask in adHocTasks)
         {
             string priority = "Required";
+            string? timeRemaining = null;
+            bool isOverdue = false;
 
-            if (adHocTask.DeadlineDate != null)
+            // ✅ USE DEADLINEDATE TO CALCULATE TIME REMAINING
+            if (adHocTask.DeadlineDate != null && !adHocTask.IsCompleted)
             {
-                var deadlineDate = adHocTask.DeadlineDate.Value.Date;
+                var deadlineDate = adHocTask.DeadlineDate.Value;
+                var now = DateTime.Now;
+
+                // Check if deadline is today or future date
+                var isToday = deadlineDate.Date == DateTime.Today;
+
+                DateTime deadline;
+                if (isToday)
+                {
+                    // For same-day deadlines, use end of day (23:59)
+                    deadline = deadlineDate.Date.AddHours(23).AddMinutes(59);
+                }
+                else
+                {
+                    // For future dates, use end of that day
+                    deadline = deadlineDate.Date.AddHours(23).AddMinutes(59);
+                }
+
+                if (now > deadline)
+                {
+                    // Past deadline = overdue
+                    isOverdue = true;
+                    timeRemaining = null;
+                }
+                else
+                {
+                    // Calculate remaining time
+                    var timeDiff = deadline - now;
+                    var daysLeft = (int)timeDiff.TotalDays;
+                    var hoursLeft = timeDiff.Hours;
+                    var minutesLeft = timeDiff.Minutes;
+
+                    // ✅ UNIFIED LOGIC: Same as regular tasks for consistency
+                    if (isToday)
+                    {
+                        // Same day - use SAME logic as regular tasks
+                        if (hoursLeft > 0)
+                        {
+                            if (hoursLeft < 12 && minutesLeft > 0)
+                            {
+                                // Show both hours and minutes for tasks due within 12 hours
+                                timeRemaining = $"{hoursLeft}h {minutesLeft}m";
+                            }
+                            else
+                            {
+                                // For longer periods, just show hours
+                                timeRemaining = $"{hoursLeft}h";
+                            }
+                        }
+                        else
+                        {
+                            // Less than 1 hour - show minutes only
+                            timeRemaining = $"{minutesLeft}m";
+                        }
+                    }
+                    else
+                    {
+                        // Future days - show day format
+                        if (daysLeft > 1)
+                        {
+                            timeRemaining = hoursLeft > 0 ? $"{daysLeft}d {hoursLeft}h" : $"{daysLeft}d";
+                        }
+                        else if (daysLeft == 1)
+                        {
+                            timeRemaining = hoursLeft > 0 ? $"1d {hoursLeft}h" : $"1d";
+                        }
+                        else
+                        {
+                            // This shouldn't happen for future dates, but just in case
+                            if (hoursLeft > 0)
+                            {
+                                if (hoursLeft < 12 && minutesLeft > 0)
+                                {
+                                    timeRemaining = $"{hoursLeft}h {minutesLeft}m";
+                                }
+                                else
+                                {
+                                    timeRemaining = $"{hoursLeft}h";
+                                }
+                            }
+                            else
+                            {
+                                timeRemaining = $"{minutesLeft}m";
+                            }
+                        }
+                    }
+                }
+
+                // Set priority based on deadline
+                var deadlineDateOnly = adHocTask.DeadlineDate.Value.Date;
                 var currentDate = DateTime.Today;
 
-                if (deadlineDate > currentDate)
+                if (deadlineDateOnly > currentDate)
                 {
                     priority = "Optional";
                 }
@@ -687,7 +947,8 @@ public class DisciplineController : ControllerBase
                 isRequired = priority == "Required",
                 isLocked = false,
                 hasDeadline = adHocTask.DeadlineDate != null,
-                deadlineTime = "23:59",
+                deadlineTime = adHocTask.DeadlineDate != null ? "23:59" : null,
+                deadlineDate = adHocTask.DeadlineDate?.ToString("yyyy-MM-dd"),
                 priority = priority,
                 reason = "Ad-hoc task",
                 frequency = "Daily",
@@ -698,54 +959,31 @@ public class DisciplineController : ControllerBase
                 currentDueDate = (string?)null,
                 isAdHoc = true,
                 adHocId = adHocTask.Id,
-                isOverdue = false,
-                timeRemaining = (string?)null
+                isOverdue = isOverdue,
+                timeRemaining = timeRemaining // ✅ NOW WITH MINUTES MATCHING REGULAR TASKS!
             });
         }
 
-        // Calculate day statistics with SIMPLE streak check
+        // Rest of your existing method stays the same...
         var totalHabits = allHabits.Count;
         var completedHabits = allHabits.Count(h => (bool)((dynamic)h).isCompleted);
         var requiredHabits = allHabits.Where(h => (bool)((dynamic)h).isRequired).ToList();
         var completedRequired = requiredHabits.Count(h => (bool)((dynamic)h).isCompleted);
 
-        // SIMPLE: Use fixed date instead of expensive DB calculation
         var streakStartDate = _streakStartDate;
-
-        var daysSinceStart = streakStartDate.HasValue ? (date.Date - streakStartDate.Value.Date).Days + 1 : 0;
-        bool isInFirst7Days = daysSinceStart <= 7;
-
-        bool dayIsCompleted = false;
-
-        if (isInFirst7Days)
-        {
-            // First 7 days: only check phone lock
-            var phoneLockHabit = allHabits.FirstOrDefault(h =>
-                ((dynamic)h).name.Contains("Phone Lock") || ((dynamic)h).name.Contains("phone"));
-
-            if (phoneLockHabit != null)
-            {
-                dayIsCompleted = (bool)((dynamic)phoneLockHabit).isCompleted;
-            }
-        }
-        else
-        {
-            // After 7 days: all required habits must be completed
-            dayIsCompleted = completedRequired == requiredHabits.Count && requiredHabits.Count > 0;
-        }
+        var daysSinceStart = streakStartDate.HasValue ?
+            Math.Max(0, (int)(date.Date - streakStartDate.Value.Date).TotalDays) : 0;
 
         return new
         {
-            date = date.ToString("yyyy-MM-dd"),
-            isCompleted = dayIsCompleted,
-            isPartiallyCompleted = completedHabits > 0 && completedHabits < totalHabits,
-            completedHabits = completedHabits,
+            allHabits = allHabits,
+            isCompleted = requiredHabits.Count > 0 && completedRequired == requiredHabits.Count,
+            isPartiallyCompleted = completedHabits > 0 && completedRequired < requiredHabits.Count,
             totalHabits = totalHabits,
+            completedHabits = completedHabits,
             requiredHabitsCount = requiredHabits.Count,
             completedRequiredCount = completedRequired,
-            allHabits = allHabits,
-            warnings = new List<string>(),
-            recommendations = new List<string>()
+            dayInStreak = daysSinceStart
         };
     }
     private async Task<List<object>> BuildWeeklyProgress(WeekSchedule weekSchedule, List<HabitCompletion> completions)
