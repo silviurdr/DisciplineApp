@@ -128,14 +128,18 @@ ngOnInit(): void {
   }
 // Replace your existing initializeMonthlyView method with this:
 private async initializeMonthlyView(): Promise<void> {
+  this.loading = true;           // ADD THIS
+  this.error = null;             // ADD THIS  
+  this.loadingService.show();    // ADD THIS
+
   try {
     await this.loadMonthDataAsPromise();
   } catch (error) {
     console.error('Error loading monthly view:', error);
     this.error = 'Failed to load monthly data. Please try again.';
   } finally {
-    // CRITICAL: Always hide loading after data loading completes
-    this.loadingService.hide();
+    this.loading = false;        // ADD THIS
+    this.loadingService.hide();  // This stays
   }
 }
 private loadMonthDataAsPromise(): Promise<void> {
@@ -168,12 +172,12 @@ private loadMonthDataAsPromise(): Promise<void> {
     } else {
       this.generateCalendarWithTodayData(null);
       this.generateProjectedTasksForFutureDays();
-      this.loading = false;
       resolve();
     }
 
     this.loadMonthlyStatsAsPromise().then(() => {
       // Monthly stats loaded
+      this.loadingService.hide();
     }).catch(error => {
       console.error('Error loading monthly stats:', error);
     });
