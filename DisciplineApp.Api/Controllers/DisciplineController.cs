@@ -570,7 +570,8 @@ public class DisciplineController : ControllerBase
                 Name = request.Name,
                 Description = request.Description,
                 Date = request.Date == default(DateTime) ? DateTime.Today : request.Date,
-                DeadlineDate = request.DeadlineDate,
+                // ✅ NEW: If no deadline provided, automatically set it to today
+                DeadlineDate = request.DeadlineDate ?? DateTime.Today,
                 CreatedAt = DateTime.UtcNow,
                 Notes = "Test"
             };
