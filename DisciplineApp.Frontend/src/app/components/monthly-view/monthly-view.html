@@ -64,7 +64,7 @@
         [class.other-month]="!day.isCurrentMonth"
         [class.today]="day.isToday"
         [class.future]="day.isFuture"
-        [class.completed]="day.isCompleted && day.isCurrentMonth && !day.isToday"
+        [class.completed]="day.isCompleted && day.isCurrentMonth"
         [class.incomplete]="!day.isCompleted && day.isCurrentMonth && !day.isFuture && day.totalHabits > 0 && !day.isToday"
         [class.free-day]="day.totalHabits === 0 && day.isCurrentMonth && !day.isFuture">
         
@@ -75,11 +75,11 @@
         <div class="status-icon-weekly" *ngIf="day.isCurrentMonth && !day.projectedReward">
           
           <!-- TODAY: Always show in-progress (partial diamond) -->
-          <span *ngIf="day.isToday && day.totalHabits > 0" class="partial-diamond">◆</span>
+          <span *ngIf="day.isToday && day.totalHabits > 0 && !day.isCompleted" class="partial-diamond">◆</span>
           
           <!-- PAST DAYS: Binary success/failure -->
-          <span *ngIf="!day.isToday && !day.isFuture && day.isCompleted" class="completion-check">✓</span>
-          <span *ngIf="!day.isToday && !day.isFuture && !day.isCompleted && day.totalHabits > 0" class="failure-x">✕</span>
+          <span *ngIf="!day.isFuture && day.isCompleted" class="completion-check">✓</span>
+          <span *ngIf="!day.isFuture && !day.isCompleted && day.totalHabits > 0" class="failure-x">✕</span>
           
           <!-- FREE DAYS: No tasks scheduled -->
           <span *ngIf="day.totalHabits === 0 && !day.isFuture" class="free-circle">○</span>
@@ -116,9 +116,6 @@
         </div>
 
         <!-- Before Streak Start indicator -->
-<!--         <div class="before-streak-indicator" *ngIf="day.isCurrentMonth">
-          <span class="before-streak-text">⋯</span>
-        </div> -->
       </div>
     </div>
   </div>

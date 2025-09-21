@@ -160,7 +160,11 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
   // NEW METHOD: Load from DailyStats
   // ===================================
 
-  async loadMonthDataFromDailyStats(): Promise<void> {
+  // ===================================
+  // UPDATED DATA LOADING METHODS
+  // ===================================
+
+  public async loadMonthDataFromDailyStats(): Promise<void> {
     return new Promise((resolve, reject) => {
       // Check if the getMonthData method exists on the service
       if (!this.disciplineService.getMonthData) {
@@ -281,8 +285,14 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
       const currentDate = new Date(startDate);
       currentDate.setDate(startDate.getDate() + i);
       
-      // ✅ Use consistent date string generation (no timezone offset)
-      const dateString = currentDate.toISOString().split('T')[0];
+      // ✅ TIMEZONE FIX: Use local date instead of UTC to avoid date shifting
+      const year = currentDate.getFullYear();
+      const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+      const day = currentDate.getDate().toString().padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      
+      // ✅ DEBUG: Show the timezone issue fix
+      const utcDateString = currentDate.toISOString().split('T')[0];
       const isCurrentMonth = currentDate.getMonth() === this.currentMonth;
       const isToday = currentDate.toDateString() === today.toDateString();
       const isFuture = currentDate > today;
