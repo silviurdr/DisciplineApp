@@ -214,7 +214,28 @@ private getWeekNumber(date: Date): number {
       );
   }
 
-  getMonthData(year: number, month: number): Observable<DayData[]> {
+getMonthData(year: number, month: number): Observable<any> {
+  const url = `${this.baseUrl}/month/${year}/${month}`;
+  console.log(`📅 Calling month data API: ${url}`);
+  return this.http.get(url).pipe(
+    map(response => {
+      console.log(`✅ GetMonthData API response:`, response);
+      return response;
+    }),
+    catchError(error => {
+      console.error(`❌ GetMonthData API error:`, error);
+      return throwError(() => error);
+    })
+  );
+}
+getDayStats(date: string): Observable<any> {
+  const url = `${this.baseUrl}/day-stats/${date}`;
+  return this.http.get(url).pipe(
+    catchError(this.handleError)
+  );
+}
+
+/*   getMonthData(year: number, month: number): Observable<DayData[]> {
   return this.http.get<any>(`${this.baseUrl}/month/${year}/${month}`)
     .pipe(
       map(response => {
@@ -253,7 +274,7 @@ private getWeekNumber(date: Date): number {
       }),
       catchError(this.handleError)
     );
-}
+} */
 
 /**
  * Get monthly statistics
@@ -433,7 +454,28 @@ getMonthDataWithRealTimeToday(year: number, month: number): Observable<DayData[]
   }).pipe(
     map(({ monthData, todayData }) => {
       const todayString = today.toISOString().split('T')[0];
-      const todayIndex = monthData.findIndex(day => day.date.split('T')[0] === todayString);
+      interface MonthDayData {
+        date: string;
+        isCompleted?: boolean;
+        isPartiallyCompleted?: boolean;
+        completedHabits?: number;
+        totalHabits?: number;
+        requiredHabitsCount?: number;
+        completedRequiredCount?: number;
+        optionalHabitsCount?: number;
+        completedOptionalCount?: number;
+        canUseGrace?: boolean;
+        usedGrace?: boolean;
+        allHabits?: any[];
+        warnings?: any[];
+        recommendations?: any[];
+        dayOfWeek?: string;
+        isToday?: boolean;
+        isFuture?: boolean;
+        isPast?: boolean;
+      }
+
+      const todayIndex: number = (monthData as MonthDayData[]).findIndex((day: MonthDayData) => day.date.split('T')[0] === todayString);
       
       if (todayIndex !== -1) {
         // Replace today's data with real-time data

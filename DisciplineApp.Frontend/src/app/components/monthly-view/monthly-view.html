@@ -25,7 +25,7 @@
   <!-- Error State -->
   <div *ngIf="error && !loading" class="error-state">
     <p>{{ error }}</p>
-    <button (click)="loadMonthData()" class="retry-btn">Retry</button>
+    <button (click)="loadMonthDataFromDailyStats()" class="retry-btn">Retry</button>
   </div>
 
   <!-- Stats Overview - FIXED: Only show when data is loaded -->
@@ -66,14 +66,13 @@
         [class.future]="day.isFuture"
         [class.completed]="day.isCompleted && day.isCurrentMonth && !day.isToday"
         [class.incomplete]="!day.isCompleted && day.isCurrentMonth && !day.isFuture && day.totalHabits > 0 && !day.isToday"
-        [class.free-day]="day.totalHabits === 0 && day.isCurrentMonth && !day.isFuture && !day.isBeforeStreakStart"
-        [class.ignored-day]="day.isBeforeStreakStart">
+        [class.free-day]="day.totalHabits === 0 && day.isCurrentMonth && !day.isFuture">
         
         <!-- Day Number -->
         <div class="day-number">{{ day.dayNumber }}</div>
         
         <!-- Binary Complete/Fail Status Icons for Past Days -->
-        <div class="status-icon-weekly" *ngIf="day.isCurrentMonth && !day.projectedReward && !day.isBeforeStreakStart">
+        <div class="status-icon-weekly" *ngIf="day.isCurrentMonth && !day.projectedReward">
           
           <!-- TODAY: Always show in-progress (partial diamond) -->
           <span *ngIf="day.isToday && day.totalHabits > 0" class="partial-diamond">◆</span>
@@ -98,7 +97,7 @@
         </div>
 
         <!-- Habit Progress for Current Month Days (when not showing reward) -->
-        <div class="habit-progress" *ngIf="day.isCurrentMonth && !day.isFuture && !day.projectedReward && !day.isBeforeStreakStart && day.totalHabits > 0">
+        <div class="habit-progress" *ngIf="day.isCurrentMonth && !day.isFuture && !day.projectedReward && day.totalHabits > 0">
           <div class="progress-bar">
             <div class="progress-fill" [style.width.%]="day.completionPercentage"></div>
           </div>
@@ -117,9 +116,9 @@
         </div>
 
         <!-- Before Streak Start indicator -->
-        <div class="before-streak-indicator" *ngIf="day.isBeforeStreakStart && day.isCurrentMonth">
+<!--         <div class="before-streak-indicator" *ngIf="day.isCurrentMonth">
           <span class="before-streak-text">⋯</span>
-        </div>
+        </div> -->
       </div>
     </div>
   </div>
