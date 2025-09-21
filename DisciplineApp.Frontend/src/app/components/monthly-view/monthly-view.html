@@ -67,8 +67,7 @@
         [class.completed]="day.isCompleted && day.isCurrentMonth && !day.isToday"
         [class.incomplete]="!day.isCompleted && day.isCurrentMonth && !day.isFuture && day.totalHabits > 0 && !day.isToday"
         [class.free-day]="day.totalHabits === 0 && day.isCurrentMonth && !day.isFuture && !day.isBeforeStreakStart"
-        [class.ignored-day]="day.isBeforeStreakStart"
-        (click)="onDayClick(day)">
+        [class.ignored-day]="day.isBeforeStreakStart">
         
         <!-- Day Number -->
         <div class="day-number">{{ day.dayNumber }}</div>

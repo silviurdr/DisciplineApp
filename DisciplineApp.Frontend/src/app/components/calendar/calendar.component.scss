@@ -9,7 +9,7 @@
   margin: 0 auto;
   background: #1a1b26;  /* Darker main background like in image */
   min-height: 100vh;
-  color: #a9adc1;
+  color: whitesmoke;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
 }
 
@@ -1272,13 +1272,9 @@ button:focus-visible {
 
 /* Keep the task name slightly lighter for optional tasks */
 .task-row.optional-task .task-name {
-  color: #b8bcc8; /* Lighter shade of the original text color */
+  color: whitesmoke; /* Lighter shade of the original text color */
 }
 
-/* Optional task checkbox with subtle styling */
-.task-row.optional-task .checkbox-label {
-  border-color: #3a3d50; /* Slightly more muted border */
-}
 
 .task-row.optional-task .checkbox-label:hover {
   border-color: #4a4d66; /* Maintain hover effect but more subtle */
@@ -2640,3 +2636,4 @@ button:focus-visible {
     cursor: not-allowed;
   }
 }
+
