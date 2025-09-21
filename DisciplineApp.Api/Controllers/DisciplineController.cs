@@ -13,14 +13,16 @@ public class DisciplineController : ControllerBase
     private readonly DisciplineDbContext _context;
     private readonly WeeklyScheduleService _scheduleService;
     private readonly FlexibleTaskService _flexibleTaskService;
+    private readonly IDailyStatsService _dailyStatsService;
     private static DateTime? _streakStartDate = DateTime.Now;
     private static bool _streakStartCalculated = false;
 
-    public DisciplineController(DisciplineDbContext context, WeeklyScheduleService scheduleService, FlexibleTaskService flexibleTaskService)
+    public DisciplineController(DisciplineDbContext context, WeeklyScheduleService scheduleService, FlexibleTaskService flexibleTaskService, IDailyStatsService dailyStatsService)
     {
         _context = context;
         _scheduleService = scheduleService;
         _flexibleTaskService = flexibleTaskService;
+        _dailyStatsService = dailyStatsService;
     }
 
     [HttpGet("health")]
@@ -39,8 +41,27 @@ public class DisciplineController : ControllerBase
 
             Console.WriteLine($"🔍 GetWeekData: Loading week starting {weekStart:yyyy-MM-dd}");
 
-            // 🔥 KEY FIX: Generate the smart schedule for this week (includes deferral logic)
+            // Generate the smart schedule for this week (includes deferral logic)
             var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+
+            // ✅ NEW: Ensure today's stats are calculated
+            var today = DateTime.Today;
+            if (!await _dailyStatsService.AreStatsStoredForDate(today))
+            {
+                await _dailyStatsService.CalculateAndStoreDailyStatsAsync(today);
+                Console.WriteLine($"🔄 Auto-calculated today's stats");
+            }
+
+            // ✅ NEW: Calculate stats for any missing days in current week
+            for (int i = 0; i < 7; i++)
+            {
+                var date = weekStart.AddDays(i);
+                if (date <= today && !await _dailyStatsService.AreStatsStoredForDate(date))
+                {
+                    await _dailyStatsService.CalculateAndStoreDailyStatsAsync(date);
+                    Console.WriteLine($"🔄 Auto-calculated missing stats for {date:yyyy-MM-dd}");
+                }
+            }
 
             // Get actual completion data for the entire week
             var completions = await _context.HabitCompletions
@@ -60,7 +81,7 @@ public class DisciplineController : ControllerBase
                 var dayCompletions = completions.Where(c => c.Date.Date == daySchedule.Date.Date).ToList();
                 var dayAdHocTasks = adHocTasks.Where(t => t.Date.Date == daySchedule.Date.Date).ToList();
 
-                // 🔥 FIX: Use the daySchedule from WeeklyScheduleService (which respects deferrals)
+                // Use the daySchedule from WeeklyScheduleService (which respects deferrals)
                 var dayData = await BuildDayResponse(daySchedule.Date, daySchedule, dayCompletions, dayAdHocTasks);
                 allDays.Add(dayData);
             }
@@ -95,6 +116,7 @@ public class DisciplineController : ControllerBase
             return StatusCode(500, new { error = "Failed to load week data", details = ex.Message });
         }
     }
+
     // Add this new helper method to build individual day responses
     // CORRECTED BuildDayResponse - matches your existing structure with performance fix
     private async Task<object> BuildDayResponse(DateTime date, DailySchedule daySchedule,
@@ -354,56 +376,118 @@ public class DisciplineController : ControllerBase
         };
     }
 
-
-    // Add this method to your DisciplineController.cs
-
     [HttpGet("month/{year}/{month}")]
     public async Task<IActionResult> GetMonthData(int year, int month)
     {
         try
         {
-            // Calculate month boundaries
+            Console.WriteLine($"🔍 GetMonthData: Loading {month}/{year} using stored daily stats");
+
+            // Get stored daily stats for the entire month
+            var dailyStats = await _dailyStatsService.GetMonthlyStatsAsync(year, month);
+
+            // Convert to API response format
+            var monthDays = new List<object>();
+
             var monthStart = new DateTime(year, month, 1);
             var monthEnd = monthStart.AddMonths(1).AddDays(-1);
 
-            // Get all completion data for the month
-            var completions = await _context.HabitCompletions
-                .Where(h => h.Date >= monthStart && h.Date <= monthEnd)
-                .ToListAsync();
-
-            // Get all ad-hoc tasks for the month
-            var adHocTasks = await _context.AdHocTasks
-                .Where(t => t.Date >= monthStart && t.Date <= monthEnd)
-                .ToListAsync();
-
-            var monthDays = new List<object>();
-
-            // Generate data for each day of the month
             for (var date = monthStart; date <= monthEnd; date = date.AddDays(1))
             {
-                // Generate weekly schedule for this day to get the planned habits
-                var weekStart = GetWeekStart(date);
-                var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+                var dayStats = dailyStats.FirstOrDefault(d => d.Date.Date == date.Date);
 
-                // Find the day's schedule
-                var daySchedule = weekSchedule.DailySchedules.FirstOrDefault(d => d.Date.Date == date.Date);
-
-                // Get completions and ad-hoc tasks for this specific day
-                var dayCompletions = completions.Where(c => c.Date.Date == date.Date).ToList();
-                var dayAdHocTasks = adHocTasks.Where(t => t.Date.Date == date.Date).ToList();
-
-                // Build day data
-                var dayData = await BuildDayResponse(date, daySchedule ?? new DailySchedule
+                if (dayStats != null)
                 {
-                    Date = date,
-                    ScheduledHabits = new List<ScheduledHabit>()
-                }, dayCompletions, dayAdHocTasks);
+                    // Use stored stats
+                    monthDays.Add(new
+                    {
+                        date = date.ToString("yyyy-MM-dd"),
+                        isCompleted = dayStats.IsDayCompleted,
+                        isPartiallyCompleted = dayStats.CompletedTasks > 0 && !dayStats.IsDayCompleted,
+                        completedHabits = dayStats.CompletedTasks,
+                        totalHabits = dayStats.TotalTasks,
+                        requiredHabitsCount = dayStats.RequiredTasks,
+                        completedRequiredCount = dayStats.CompletedRequiredTasks,
+                        completionPercentage = dayStats.CompletionPercentage,
+                        streakDayNumber = dayStats.StreakDayNumber,
+                        isInFirst7Days = dayStats.IsInFirst7Days,
+                        completionRules = dayStats.CompletionRules,
+                        dataSource = "stored_stats"
+                    });
 
-                monthDays.Add(dayData);
+                    Console.WriteLine($"📊 {date:MM-dd}: {dayStats.CompletedTasks}/{dayStats.TotalTasks} ({dayStats.IsDayCompleted})");
+                }
+                else
+                {
+                    // No stored stats - either future date or missing data
+                    var isToday = date.Date == DateTime.Today;
+                    var isFuture = date.Date > DateTime.Today;
+
+                    if (isToday)
+                    {
+                        // Calculate today's stats in real-time
+                        var todayStats = await _dailyStatsService.CalculateAndStoreDailyStatsAsync(date);
+                        monthDays.Add(new
+                        {
+                            date = date.ToString("yyyy-MM-dd"),
+                            isCompleted = todayStats.IsDayCompleted,
+                            isPartiallyCompleted = todayStats.CompletedTasks > 0 && !todayStats.IsDayCompleted,
+                            completedHabits = todayStats.CompletedTasks,
+                            totalHabits = todayStats.TotalTasks,
+                            requiredHabitsCount = todayStats.RequiredTasks,
+                            completedRequiredCount = todayStats.CompletedRequiredTasks,
+                            completionPercentage = todayStats.CompletionPercentage,
+                            streakDayNumber = todayStats.StreakDayNumber,
+                            isInFirst7Days = todayStats.IsInFirst7Days,
+                            completionRules = todayStats.CompletionRules,
+                            dataSource = "real_time_calculation"
+                        });
+                    }
+                    else if (isFuture)
+                    {
+                        // Future date - empty stats
+                        monthDays.Add(new
+                        {
+                            date = date.ToString("yyyy-MM-dd"),
+                            isCompleted = false,
+                            isPartiallyCompleted = false,
+                            completedHabits = 0,
+                            totalHabits = 0,
+                            requiredHabitsCount = 0,
+                            completedRequiredCount = 0,
+                            completionPercentage = 0m,
+                            streakDayNumber = 0,
+                            isInFirst7Days = false,
+                            completionRules = "future",
+                            dataSource = "future_date"
+                        });
+                    }
+                    else
+                    {
+                        // Past date with missing stats - calculate and store
+                        Console.WriteLine($"⚠️ Missing stats for {date:yyyy-MM-dd}, calculating...");
+                        var calculatedStats = await _dailyStatsService.CalculateAndStoreDailyStatsAsync(date);
+                        monthDays.Add(new
+                        {
+                            date = date.ToString("yyyy-MM-dd"),
+                            isCompleted = calculatedStats.IsDayCompleted,
+                            isPartiallyCompleted = calculatedStats.CompletedTasks > 0 && !calculatedStats.IsDayCompleted,
+                            completedHabits = calculatedStats.CompletedTasks,
+                            totalHabits = calculatedStats.TotalTasks,
+                            requiredHabitsCount = calculatedStats.RequiredTasks,
+                            completedRequiredCount = calculatedStats.CompletedRequiredTasks,
+                            completionPercentage = calculatedStats.CompletionPercentage,
+                            streakDayNumber = calculatedStats.StreakDayNumber,
+                            isInFirst7Days = calculatedStats.IsInFirst7Days,
+                            completionRules = calculatedStats.CompletionRules,
+                            dataSource = "calculated_on_demand"
+                        });
+                    }
+                }
             }
 
-            // Calculate monthly statistics
-            var monthlyStats = CalculateMonthlyStats(monthDays, monthStart, monthEnd);
+            // Calculate monthly statistics from the daily stats
+            var monthlyStats = CalculateMonthlyStatsFromDailyStats(dailyStats, monthStart, monthEnd);
 
             var response = new
             {
@@ -412,16 +496,110 @@ public class DisciplineController : ControllerBase
                 monthStart = monthStart.ToString("yyyy-MM-dd"),
                 monthEnd = monthEnd.ToString("yyyy-MM-dd"),
                 days = monthDays,
-                monthlyStats = monthlyStats
+                monthlyStats = monthlyStats,
+                dataSource = "daily_stats_optimized"
             };
 
+            Console.WriteLine($"✅ GetMonthData: Returning {monthDays.Count} days using stored daily stats");
             return Ok(response);
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"❌ GetMonthData error: {ex.Message}");
             return StatusCode(500, new { error = $"Failed to get month data: {ex.Message}" });
         }
     }
+
+    private object CalculateMonthlyStatsFromDailyStats(List<DailyStats> dailyStats, DateTime monthStart, DateTime monthEnd)
+    {
+        var pastDays = dailyStats.Where(d => d.Date < DateTime.Today).ToList();
+
+        return new
+        {
+            totalDays = pastDays.Count,
+            completedDays = pastDays.Count(d => d.IsDayCompleted),
+            partialDays = pastDays.Count(d => !d.IsDayCompleted && d.CompletedTasks > 0),
+            incompleteDays = pastDays.Count(d => d.CompletedTasks == 0),
+            completionRate = pastDays.Count > 0 ?
+                Math.Round((double)pastDays.Count(d => d.IsDayCompleted) / pastDays.Count * 100, 1) : 0,
+            totalTasks = pastDays.Sum(d => d.TotalTasks),
+            completedTasks = pastDays.Sum(d => d.CompletedTasks),
+            taskCompletionRate = pastDays.Sum(d => d.TotalTasks) > 0 ?
+                Math.Round((double)pastDays.Sum(d => d.CompletedTasks) / pastDays.Sum(d => d.TotalTasks) * 100, 1) : 0,
+            averageTasksPerDay = pastDays.Count > 0 ?
+                Math.Round((double)pastDays.Sum(d => d.TotalTasks) / pastDays.Count, 1) : 0,
+            monthName = monthStart.ToString("MMMM")
+        };
+    }
+
+
+    //// Add this method to your DisciplineController.cs
+
+    //[HttpGet("month/{year}/{month}")]
+    //public async Task<IActionResult> GetMonthData(int year, int month)
+    //{
+    //    try
+    //    {
+    //        // Calculate month boundaries
+    //        var monthStart = new DateTime(year, month, 1);
+    //        var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+    //        // Get all completion data for the month
+    //        var completions = await _context.HabitCompletions
+    //            .Where(h => h.Date >= monthStart && h.Date <= monthEnd)
+    //            .ToListAsync();
+
+    //        // Get all ad-hoc tasks for the month
+    //        var adHocTasks = await _context.AdHocTasks
+    //            .Where(t => t.Date >= monthStart && t.Date <= monthEnd)
+    //            .ToListAsync();
+
+    //        var monthDays = new List<object>();
+
+    //        // Generate data for each day of the month
+    //        for (var date = monthStart; date <= monthEnd; date = date.AddDays(1))
+    //        {
+    //            // Generate weekly schedule for this day to get the planned habits
+    //            var weekStart = GetWeekStart(date);
+    //            var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+
+    //            // Find the day's schedule
+    //            var daySchedule = weekSchedule.DailySchedules.FirstOrDefault(d => d.Date.Date == date.Date);
+
+    //            // Get completions and ad-hoc tasks for this specific day
+    //            var dayCompletions = completions.Where(c => c.Date.Date == date.Date).ToList();
+    //            var dayAdHocTasks = adHocTasks.Where(t => t.Date.Date == date.Date).ToList();
+
+    //            // Build day data
+    //            var dayData = await BuildDayResponse(date, daySchedule ?? new DailySchedule
+    //            {
+    //                Date = date,
+    //                ScheduledHabits = new List<ScheduledHabit>()
+    //            }, dayCompletions, dayAdHocTasks);
+
+    //            monthDays.Add(dayData);
+    //        }
+
+    //        // Calculate monthly statistics
+    //        var monthlyStats = CalculateMonthlyStats(monthDays, monthStart, monthEnd);
+
+    //        var response = new
+    //        {
+    //            year = year,
+    //            month = month,
+    //            monthStart = monthStart.ToString("yyyy-MM-dd"),
+    //            monthEnd = monthEnd.ToString("yyyy-MM-dd"),
+    //            days = monthDays,
+    //            monthlyStats = monthlyStats
+    //        };
+
+    //        return Ok(response);
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        return StatusCode(500, new { error = $"Failed to get month data: {ex.Message}" });
+    //    }
+    //}
 
     // Helper method to calculate monthly statistics
     private object CalculateMonthlyStats(List<object> monthDays, DateTime monthStart, DateTime monthEnd)
@@ -494,6 +672,7 @@ public class DisciplineController : ControllerBase
         return streak;
     }
 
+    // ✅ UPDATED: Complete habit with automatic stats calculation
     [HttpPost("complete-habit")]
     public async Task<IActionResult> CompleteHabit([FromBody] CompleteHabitRequest request)
     {
@@ -523,7 +702,7 @@ public class DisciplineController : ControllerBase
             {
                 existingCompletion.IsCompleted = request.IsCompleted;
                 existingCompletion.CompletedAt = request.IsCompleted ? DateTime.UtcNow : null;
-                existingCompletion.Notes = request.Notes;
+                existingCompletion.Notes = request.Notes ?? "";
             }
             else
             {
@@ -533,24 +712,29 @@ public class DisciplineController : ControllerBase
                     Date = request.Date.Date,
                     IsCompleted = request.IsCompleted,
                     CompletedAt = request.IsCompleted ? DateTime.UtcNow : null,
-                    Notes = request.Notes
+                    Notes = request.Notes ?? ""
                 });
             }
 
             await _context.SaveChangesAsync();
 
-            // Return updated day status
+            // ✅ NEW: Automatically update daily stats when a habit is completed
+            var updatedStats = await _dailyStatsService.CalculateAndStoreDailyStatsAsync(request.Date.Date);
+
+            // Return updated day data using current calculation method
             var weekStart = GetWeekStart(request.Date);
             var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
             var completions = await _context.HabitCompletions
                 .Where(h => h.Date.Date == request.Date.Date)
                 .ToListAsync();
-
             var adHocTasks = await _context.AdHocTasks
-            .Where(t => t.Date.Date == request.Date.Date)
-            .ToListAsync();
+                .Where(t => t.Date.Date == request.Date.Date)
+                .ToListAsync();
 
             var dayResponse = await BuildCurrentDayResponse(request.Date, weekSchedule, completions, adHocTasks);
+
+            Console.WriteLine($"📊 Updated daily stats: {updatedStats.CompletedTasks}/{updatedStats.TotalTasks}, completed: {updatedStats.IsDayCompleted}");
+
             return Ok(dayResponse);
         }
         catch (Exception ex)
@@ -558,7 +742,8 @@ public class DisciplineController : ControllerBase
             return BadRequest(new { error = ex.Message });
         }
     }
-    // UPDATE your AddAdHocTask method in DisciplineController.cs to return the created task:
+
+
 
     [HttpPost("add-adhoc-task")]
     public async Task<IActionResult> AddAdHocTask([FromBody] AddAdHocTaskRequest request)
@@ -619,6 +804,52 @@ public class DisciplineController : ControllerBase
             return BadRequest(new { error = ex.Message });
         }
     }
+
+    [HttpPost("calculate-daily-stats")]
+    public async Task<IActionResult> CalculateDailyStats([FromBody] CalculateStatsRequest request)
+    {
+        try
+        {
+            await _dailyStatsService.RecalculateStatsForPeriodAsync(request.StartDate, request.EndDate);
+
+            var dayCount = (request.EndDate - request.StartDate).Days + 1;
+
+            return Ok(new
+            {
+                message = $"Successfully calculated daily stats for {dayCount} days",
+                startDate = request.StartDate.ToString("yyyy-MM-dd"),
+                endDate = request.EndDate.ToString("yyyy-MM-dd"),
+                daysProcessed = dayCount
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { error = $"Failed to calculate daily stats: {ex.Message}" });
+        }
+    }
+
+    //// ✅ HELPER: Calculate monthly stats from daily stats
+    //private object CalculateMonthlyStatsFromDailyStats(List<DailyStats> dailyStats, DateTime monthStart, DateTime monthEnd)
+    //{
+    //    var pastDays = dailyStats.Where(d => d.Date < DateTime.Today).ToList();
+
+    //    return new
+    //    {
+    //        totalDays = pastDays.Count,
+    //        completedDays = pastDays.Count(d => d.IsDayCompleted),
+    //        partialDays = pastDays.Count(d => !d.IsDayCompleted && d.CompletedTasks > 0),
+    //        incompleteDays = pastDays.Count(d => d.CompletedTasks == 0),
+    //        completionRate = pastDays.Count > 0 ?
+    //            Math.Round((double)pastDays.Count(d => d.IsDayCompleted) / pastDays.Count * 100, 1) : 0,
+    //        totalTasks = pastDays.Sum(d => d.TotalTasks),
+    //        completedTasks = pastDays.Sum(d => d.CompletedTasks),
+    //        taskCompletionRate = pastDays.Sum(d => d.TotalTasks) > 0 ?
+    //            Math.Round((double)pastDays.Sum(d => d.CompletedTasks) / pastDays.Sum(d => d.TotalTasks) * 100, 1) : 0,
+    //        averageTasksPerDay = pastDays.Count > 0 ?
+    //            Math.Round((double)pastDays.Sum(d => d.TotalTasks) / pastDays.Count, 1) : 0,
+    //        monthName = monthStart.ToString("MMMM")
+    //    };
+    //}
 
     // Add to your DisciplineController.cs
 
@@ -1400,6 +1631,13 @@ public class SmartDeferRequest
     public string FromDate { get; set; } = string.Empty;
     public string? Reason { get; set; }
 }
+
+public class CalculateStatsRequest
+{
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+}
+
 
 // ==============================================================================
 // HELPER METHOD - GetWeekStart (if it doesn't exist)

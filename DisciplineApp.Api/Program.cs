@@ -21,6 +21,9 @@ builder.Services.AddScoped<DataMigrationService>();
 builder.Services.AddScoped<FlexibleTaskService>();
 builder.Services.AddScoped<TaskMovementService>();
 builder.Services.AddHostedService<DailyTaskMovementService>();
+builder.Services.AddScoped<IDailyStatsService, DailyStatsService>();
+builder.Services.AddHostedService<DailyStatsBackgroundService>();
+
 
 // Add CORS
 builder.Services.AddCors(options =>

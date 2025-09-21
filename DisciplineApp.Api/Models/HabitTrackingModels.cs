@@ -236,4 +236,30 @@ namespace DisciplineApp.Api.Models
         public DateTime? CompletedAt { get; set; }
         public string Notes { get; set; }
     }
+
+    public class DailyStats
+    {
+        public int Id { get; set; }
+        public DateTime Date { get; set; }
+
+        // Essential stats for monthly calendar
+        public int TotalTasks { get; set; }
+        public int CompletedTasks { get; set; }
+        public int RequiredTasks { get; set; }
+        public int CompletedRequiredTasks { get; set; }
+        public bool IsDayCompleted { get; set; }
+
+        // Streak context when this day was calculated
+        public int StreakDayNumber { get; set; } // What day of streak this was (1, 2, 3, etc.)
+        public bool IsInFirst7Days { get; set; } // Was this in the "easy" period?
+
+        // Completion percentage for visual display
+        public decimal CompletionPercentage { get; set; }
+
+        // When this was calculated (for cache invalidation)
+        public DateTime CalculatedAt { get; set; } = DateTime.UtcNow;
+
+        // Optional: Store the specific completion rules used
+        public string CompletionRules { get; set; } = string.Empty; // e.g., "First7Days:PhoneLockOnly"
+    }
 }

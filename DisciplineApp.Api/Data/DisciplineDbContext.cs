@@ -18,6 +18,7 @@ public class DisciplineDbContext : DbContext
     public DbSet<AdHocTask> AdHocTasks { get; set; }
     public DbSet<SubHabit> SubHabits { get; set; }
     public DbSet<SubHabitCompletion> SubHabitCompletions { get; set; }
+    public DbSet<DailyStats> DailyStats { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // DisciplineEntry configuration
@@ -87,6 +88,36 @@ public class DisciplineDbContext : DbContext
                   .OnDelete(DeleteBehavior.Cascade)
                   .HasConstraintName("FK_SubHabits_Habits");
         });
+
+        modelBuilder.Entity<DailyStats>(entity =>
+        {
+            entity.HasKey(d => d.Id);
+
+            entity.Property(d => d.Date)
+                  .IsRequired()
+                  .HasColumnType("date");
+
+            entity.Property(d => d.CompletionPercentage)
+                  .HasPrecision(5, 2); // e.g., 100.00
+
+            entity.Property(d => d.CalculatedAt)
+                  .IsRequired()
+                  .HasColumnType("datetime2")
+                  .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(d => d.CompletionRules)
+                  .HasMaxLength(200);
+
+            // Unique constraint - one record per date
+            entity.HasIndex(d => d.Date)
+                  .IsUnique()
+                  .HasDatabaseName("IX_DailyStats_Date");
+
+            // Index for streak queries
+            entity.HasIndex(d => new { d.Date, d.IsDayCompleted })
+                  .HasDatabaseName("IX_DailyStats_Date_Completed");
+        });
+
 
         // HabitCompletion configuration
         modelBuilder.Entity<HabitCompletion>(entity =>
