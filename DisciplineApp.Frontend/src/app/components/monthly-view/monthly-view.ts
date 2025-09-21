@@ -257,6 +257,8 @@ private generateProjectedTasksForFutureDays(): void {
 }
 // Update the generateCalendarWithRealData method:
 
+// COMPLETE UPDATED METHOD for monthly-view.ts:
+
 private generateCalendarWithRealData(weekData: WeekData): void {
   // First generate the calendar structure
   this.generateCalendarWithTodayData(null);
@@ -272,32 +274,29 @@ private generateCalendarWithRealData(weekData: WeekData): void {
     if (matchingDay && matchingDay.isCurrentMonth) {
       console.log(`Updating day ${matchingDay.dayNumber} with real data: ${weekDay.completedHabits}/${weekDay.totalHabits}`);
       
-      // ✅ UPDATED: Set real data from backend
+      // ✅ Set real data from backend
       matchingDay.completedHabits = weekDay.completedHabits || 0;
       matchingDay.totalHabits = weekDay.totalHabits || 0;
       matchingDay.requiredHabitsCount = weekDay.requiredHabitsCount || 0;
       matchingDay.completedRequiredCount = weekDay.completedRequiredCount || 0;
       
-      // ✅ UPDATED: Calculate completion percentage based on REQUIRED tasks only
+      // ✅ Calculate completion percentage based on REQUIRED tasks only
       matchingDay.completionPercentage = this.getRequiredTaskCompletionPercentage(matchingDay);
       
-      // ✅ UPDATED: Day completion status based on REQUIRED tasks only
+      // ✅ CRITICAL FIX: Use the completion status from the API (which includes first 7 days rule)
       if (matchingDay.isToday) {
-        // Today: Show as in progress if there are tasks
-        matchingDay.isCompleted = false;
-        matchingDay.isPartiallyCompleted = weekDay.totalHabits > 0;
+        // Today: Use API completion status (includes first 7 days rule)
+        matchingDay.isCompleted = weekDay.isCompleted;
+        matchingDay.isPartiallyCompleted = weekDay.isPartiallyCompleted;
       } else if (!matchingDay.isFuture) {
-        // ✅ UPDATED: Past days completion based on REQUIRED tasks only
-        const requiredCount = weekDay.requiredHabitsCount || 0;
-        const completedRequired = weekDay.completedRequiredCount || 0;
-        
-        if (requiredCount > 0) {
-          matchingDay.isCompleted = (completedRequired === requiredCount);
-          matchingDay.isPartiallyCompleted = false;
-        } else {
-          matchingDay.isCompleted = true; // No required tasks = completed day
-          matchingDay.isPartiallyCompleted = false;
-        }
+        // ✅ FIXED: Past days use the API completion status (includes first 7 days rule)
+        matchingDay.isCompleted = weekDay.isCompleted; // ✅ This includes our special rule!
+        matchingDay.isPartiallyCompleted = weekDay.isPartiallyCompleted;
+      }
+      
+      // ✅ DEBUG: Log the first 7 days status if available
+      if ((weekDay as any).isInFirst7Days !== undefined) {
+        console.log(`📱 Day ${matchingDay.dayNumber} - First 7 days rule: ${(weekDay as any).isInFirst7Days}, Completed: ${weekDay.isCompleted}`);
       }
     }
   });

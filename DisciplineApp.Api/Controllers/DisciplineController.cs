@@ -192,11 +192,25 @@ public class DisciplineController : ControllerBase
         var completedHabits = allHabits.Count(h => (bool)((dynamic)h).isCompleted);
         var requiredHabits = allHabits.Where(h => (bool)((dynamic)h).isRequired).ToList();
         var completedRequired = requiredHabits.Count(h => (bool)((dynamic)h).isCompleted);
+        bool isInFirst7Days = await IsInFirst7DaysOfStreak(date);
+        bool dayIsCompleted = false;
+
+        if (isInFirst7Days)
+        {
+            // HARDCODED: For first 7 days, only check if "Phone Lock Box" is completed
+            var phoneLockHabit = allHabits.FirstOrDefault(h =>
+                ((dynamic)h).name.Contains("Phone Lock") || ((dynamic)h).name.Contains("phone"));
+
+            if (phoneLockHabit != null)
+            {
+                dayIsCompleted = (bool)((dynamic)phoneLockHabit).isCompleted;
+            }
+        }
 
         return new
         {
             date = date.ToString("yyyy-MM-dd"),
-            isCompleted = completedRequired == requiredHabits.Count && requiredHabits.Count > 0,
+            isCompleted = isInFirst7Days? dayIsCompleted : completedRequired == requiredHabits.Count && requiredHabits.Count > 0,
             isPartiallyCompleted = completedHabits > 0 && completedHabits < totalHabits,
             completedHabits = completedHabits,
             totalHabits = totalHabits,
@@ -869,7 +883,141 @@ public class DisciplineController : ControllerBase
         var mondayOffset = (dayOfWeek == 0) ? -6 : -(dayOfWeek - 1);
         return date.AddDays(mondayOffset);
     }
+
+    private async Task<bool> IsInFirst7DaysOfStreak(DateTime date)
+    {
+        try
+        {
+            var currentStreakStartDate = await GetCurrentStreakStartDate(date);
+
+            if (currentStreakStartDate == null)
+            {
+                // No current streak, so this could be day 1
+                return true;
+            }
+
+            // Calculate days since current streak started
+            var daysSinceStreakStart = (date.Date - currentStreakStartDate.Value.Date).Days + 1; // +1 because first day is day 1
+
+            Console.WriteLine($"📱 Current streak started on: {currentStreakStartDate.Value:yyyy-MM-dd}, today is day {daysSinceStreakStart} of streak");
+
+            return daysSinceStreakStart <= 7;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking first 7 days: {ex.Message}");
+            return false; // Default to normal behavior if error
+        }
+    }
+
+    private async Task<DateTime?> GetCurrentStreakStartDate(DateTime fromDate)
+    {
+        try
+        {
+            var completedDays = new List<DateTime>();
+
+            // Check each day individually to see if it was "complete"
+            // Go back a reasonable amount (e.g., 90 days) to find the streak
+            for (int daysBack = 0; daysBack <= 90; daysBack++)
+            {
+                var checkDate = fromDate.Date.AddDays(-daysBack);
+
+                // Check if this specific day was completed
+                bool dayWasCompleted = await IsDayCompleted(checkDate);
+
+                if (dayWasCompleted)
+                {
+                    completedDays.Add(checkDate);
+                }
+                else
+                {
+                    // Found the first incomplete day, stop here
+                    break;
+                }
+            }
+
+            // Return the earliest day in the current streak
+            return completedDays.Any() ? completedDays.Min() : (DateTime?)null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error calculating current streak start: {ex.Message}");
+            return null;
+        }
+    }
+
+    private async Task<bool> IsDayCompleted(DateTime date)
+    {
+        try
+        {
+            // Get the schedule for this day
+            var weekStart = GetWeekStart(date);
+            var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+            var daySchedule = weekSchedule.DailySchedules.FirstOrDefault(d => d.Date.Date == date.Date);
+
+            if (daySchedule == null)
+            {
+                return false; // No schedule = not completed
+            }
+
+            // Get completions for this day
+            var completions = await _context.HabitCompletions
+                .Where(h => h.Date.Date == date.Date)
+                .ToListAsync();
+
+            var adHocTasks = await _context.AdHocTasks
+                .Where(t => t.Date.Date == date.Date)
+                .ToListAsync();
+
+            // Use the same logic as BuildCurrentDayResponse to determine completion
+            var allHabits = new List<object>();
+
+            // Add scheduled habits
+            foreach (var scheduledHabit in daySchedule.ScheduledHabits)
+            {
+                var completion = completions.FirstOrDefault(c => c.HabitId == scheduledHabit.HabitId);
+                var isCompleted = completion?.IsCompleted ?? false;
+                var habit = await _context.Habits.FindAsync(scheduledHabit.HabitId);
+                var isRequired = habit?.IsOptional != true;
+
+                allHabits.Add(new { isCompleted, isRequired });
+            }
+
+            // Add ad-hoc tasks (all are optional)
+            foreach (var adHocTask in adHocTasks)
+            {
+                allHabits.Add(new { isCompleted = adHocTask.IsCompleted, isRequired = false });
+            }
+
+            // Calculate completion using the SAME logic as the main method
+            var requiredHabits = allHabits.Where(h => ((dynamic)h).isRequired).ToList();
+            var completedRequiredCount = requiredHabits.Count(h => ((dynamic)h).isCompleted);
+
+            // 🎯 Apply the same first 7 days rule recursively (but prevent infinite recursion)
+            if (await IsInFirst7DaysOfStreak(date))
+            {
+                // For first 7 days, only check if "Phone Lock Box" is completed
+                var phoneLockCompletion = completions.FirstOrDefault(c =>
+                    _context.Habits.Any(h => h.Id == c.HabitId && h.Name.Contains("Phone Lock")));
+
+                return phoneLockCompletion?.IsCompleted ?? false;
+            }
+            else
+            {
+                // Normal logic: all required habits must be completed
+                return completedRequiredCount == requiredHabits.Count && requiredHabits.Count > 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking if day {date:yyyy-MM-dd} was completed: {ex.Message}");
+            return false;
+        }
+    }
+
 }
+
+
 
 public class CompleteHabitRequest
 {

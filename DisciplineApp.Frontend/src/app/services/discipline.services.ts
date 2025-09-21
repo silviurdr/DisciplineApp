@@ -295,16 +295,20 @@ getMonthlyStats(year: number, month: number): Observable<any> {
   /**
    * Edit ad-hoc task
    */
-  editAdHocTask(request: { 
-    adHocId: number; 
-    name: string; 
-    description: string 
-  }): Observable<any> {
-    return this.http.put(`${this.baseUrl}/edit-adhoc-task`, request)
-      .pipe(
-        catchError(this.handleError)
-      );
-  }
+editAdHocTask(request: { 
+  adHocId: number; 
+  name: string; 
+  description: string 
+}): Observable<any> {
+  // ✅ FIX: Include the taskId in the URL path
+  return this.http.put(`${this.baseUrl}/edit-adhoc-task/${request.adHocId}`, {
+    name: request.name,
+    description: request.description
+  })
+    .pipe(
+      catchError(this.handleError)
+    );
+}
 
   // ===================================
   // NEW FLEXIBLE TASK METHODS
