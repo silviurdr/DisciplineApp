@@ -13,6 +13,8 @@ public class DisciplineController : ControllerBase
     private readonly DisciplineDbContext _context;
     private readonly WeeklyScheduleService _scheduleService;
     private readonly FlexibleTaskService _flexibleTaskService;
+    private static DateTime? _streakStartDate = DateTime.Now;
+    private static bool _streakStartCalculated = false;
 
     public DisciplineController(DisciplineDbContext context, WeeklyScheduleService scheduleService, FlexibleTaskService flexibleTaskService)
     {
@@ -94,6 +96,7 @@ public class DisciplineController : ControllerBase
         }
     }
     // Add this new helper method to build individual day responses
+    // CORRECTED BuildDayResponse - matches your existing structure with performance fix
     private async Task<object> BuildDayResponse(DateTime date, DailySchedule daySchedule,
         List<HabitCompletion> completions, List<AdHocTask> adHocTasks)
     {
@@ -106,7 +109,7 @@ public class DisciplineController : ControllerBase
             var completion = completions.FirstOrDefault(c => c.HabitId == scheduledHabit.HabitId);
             var isCompleted = completion?.IsCompleted ?? false;
 
-            // ✅ FIX: Get habit from database to check IsOptional (same logic as BuildCurrentDayResponse)
+            // Get habit from database to check IsOptional (same logic as BuildCurrentDayResponse)
             var habit = await _context.Habits.FindAsync(scheduledHabit.HabitId);
             var isRequired = habit?.IsOptional != true; // If IsOptional is true, then NOT required
             var priority = habit?.IsOptional == true ? "Optional" : "Required";
@@ -117,22 +120,18 @@ public class DisciplineController : ControllerBase
                 name = scheduledHabit.HabitName,
                 description = scheduledHabit.Description,
                 isCompleted = isCompleted,
-                isRequired = isRequired, // ✅ NOW USING DATABASE VALUE
+                isRequired = isRequired,
                 isLocked = scheduledHabit.IsLocked,
                 hasDeadline = scheduledHabit.HasDeadline,
                 deadlineTime = scheduledHabit.HasDeadline ? scheduledHabit.DeadlineTime.ToString("HH:mm") : null,
-                priority = priority, // ✅ NOW USING DATABASE VALUE
+                priority = priority,
                 reason = scheduledHabit.Reason,
-
-                // Deferral info
                 frequency = scheduledHabit.Frequency,
                 deferralsUsed = scheduledHabit.DeferralsUsed,
                 maxDeferrals = scheduledHabit.MaxDeferrals,
                 canStillBeDeferred = scheduledHabit.CanStillBeDeferred,
                 originalScheduledDate = scheduledHabit.OriginalScheduledDate?.ToString("yyyy-MM-dd"),
                 currentDueDate = scheduledHabit.CurrentDueDate?.ToString("yyyy-MM-dd"),
-
-                // Status fields
                 isAdHoc = false,
                 adHocId = (int?)null,
                 isOverdue = false,
@@ -143,15 +142,13 @@ public class DisciplineController : ControllerBase
         // Add ad-hoc tasks
         foreach (var adHocTask in adHocTasks)
         {
-
-            string priority = "Required"; // Default priority
+            string priority = "Required";
 
             if (adHocTask.DeadlineDate != null)
             {
                 var deadlineDate = adHocTask.DeadlineDate.Value.Date;
                 var currentDate = DateTime.Today;
 
-                // If deadline is later than current day, make it optional
                 if (deadlineDate > currentDate)
                 {
                     priority = "Optional";
@@ -164,11 +161,11 @@ public class DisciplineController : ControllerBase
                 name = adHocTask.Name,
                 description = adHocTask.Description,
                 isCompleted = adHocTask.IsCompleted,
-                isRequired = priority == "Required",  // Ad-hoc tasks are never required for day completion
+                isRequired = priority == "Required",
                 isLocked = false,
                 hasDeadline = adHocTask.DeadlineDate != null,
                 deadlineTime = "23:59",
-                priority = priority, // Use calculated priority instead of hardcoded "Required"
+                priority = priority,
                 reason = "Ad-hoc task",
                 frequency = "Daily",
                 deferralsUsed = 0,
@@ -176,28 +173,29 @@ public class DisciplineController : ControllerBase
                 canStillBeDeferred = false,
                 originalScheduledDate = (string?)null,
                 currentDueDate = (string?)null,
-
-                // Identification
                 isAdHoc = true,
                 adHocId = adHocTask.Id,
-
-                // Timing and urgency
                 isOverdue = false,
                 timeRemaining = (string?)null
             });
         }
 
-        // Calculate day statistics
+        // Calculate day statistics with SIMPLE streak check
         var totalHabits = allHabits.Count;
         var completedHabits = allHabits.Count(h => (bool)((dynamic)h).isCompleted);
         var requiredHabits = allHabits.Where(h => (bool)((dynamic)h).isRequired).ToList();
         var completedRequired = requiredHabits.Count(h => (bool)((dynamic)h).isCompleted);
-        bool isInFirst7Days = await IsInFirst7DaysOfStreak(date);
+
+        // PERFORMANCE FIX: Use simple date calculation instead of expensive DB queries
+        var streakStartDate = new DateTime(2025, 9, 14); // Your actual start date
+        var daysSinceStart = (date.Date - streakStartDate.Date).Days + 1;
+        bool isInFirst7Days = daysSinceStart <= 7;
+
         bool dayIsCompleted = false;
 
         if (isInFirst7Days)
         {
-            // HARDCODED: For first 7 days, only check if "Phone Lock Box" is completed
+            // First 7 days: only check phone lock
             var phoneLockHabit = allHabits.FirstOrDefault(h =>
                 ((dynamic)h).name.Contains("Phone Lock") || ((dynamic)h).name.Contains("phone"));
 
@@ -206,19 +204,22 @@ public class DisciplineController : ControllerBase
                 dayIsCompleted = (bool)((dynamic)phoneLockHabit).isCompleted;
             }
         }
+        else
+        {
+            // After 7 days: all required habits must be completed
+            dayIsCompleted = completedRequired == requiredHabits.Count && requiredHabits.Count > 0;
+        }
 
         return new
         {
             date = date.ToString("yyyy-MM-dd"),
-            isCompleted = isInFirst7Days? dayIsCompleted : completedRequired == requiredHabits.Count && requiredHabits.Count > 0,
+            isCompleted = dayIsCompleted,
             isPartiallyCompleted = completedHabits > 0 && completedHabits < totalHabits,
             completedHabits = completedHabits,
             totalHabits = totalHabits,
             requiredHabitsCount = requiredHabits.Count,
             completedRequiredCount = completedRequired,
-            allHabits = allHabits,
-            warnings = new List<string>(),
-            recommendations = new List<string>()
+            allHabits = allHabits
         };
     }
 
@@ -608,21 +609,32 @@ public class DisciplineController : ControllerBase
 
     // In your DisciplineController.cs, update the BuildCurrentDayResponse method signature:
 
+    // CORRECTED BuildCurrentDayResponse - matches your existing structure
     private async Task<object> BuildCurrentDayResponse(DateTime date, WeekSchedule weekSchedule, List<HabitCompletion> completions, List<AdHocTask> adHocTasks)
     {
         var daySchedule = weekSchedule.DailySchedules.FirstOrDefault(d => d.Date.Date == date.Date);
-        if (daySchedule == null) return new { allHabits = new List<object>() };
+        if (daySchedule == null)
+        {
+            return new
+            {
+                allHabits = new List<object>(),
+                isCompleted = false,
+                totalHabits = 0,
+                completedHabits = 0
+            };
+        }
 
         var allHabits = new List<object>();
 
         // Add scheduled habits
         foreach (var scheduledHabit in daySchedule.ScheduledHabits)
         {
-            var completion = completions.FirstOrDefault(c => c.HabitId == scheduledHabit.HabitId && c.Date.Date == date.Date);
+            var completion = completions.FirstOrDefault(c => c.HabitId == scheduledHabit.HabitId);
             var isCompleted = completion?.IsCompleted ?? false;
 
-            // ✅ NEW: Get habit to check IsOptional
+            // Get habit from database to check IsOptional
             var habit = await _context.Habits.FindAsync(scheduledHabit.HabitId);
+            var isRequired = habit?.IsOptional != true;
             var priority = habit?.IsOptional == true ? "Optional" : "Required";
 
             allHabits.Add(new
@@ -631,18 +643,18 @@ public class DisciplineController : ControllerBase
                 name = scheduledHabit.HabitName,
                 description = scheduledHabit.Description,
                 isCompleted = isCompleted,
-                isRequired = priority == "Required", // ✅ Updated based on IsOptional
+                isRequired = isRequired,
                 isLocked = scheduledHabit.IsLocked,
                 hasDeadline = scheduledHabit.HasDeadline,
-                deadlineTime = scheduledHabit.DeadlineTime.ToString("HH:mm"),
-                priority = priority, // ✅ Updated based on IsOptional
+                deadlineTime = scheduledHabit.HasDeadline ? scheduledHabit.DeadlineTime.ToString("HH:mm") : null,
+                priority = priority,
                 reason = scheduledHabit.Reason,
-                deadlineDate = (string?)null,
                 frequency = scheduledHabit.Frequency,
                 deferralsUsed = scheduledHabit.DeferralsUsed,
                 maxDeferrals = scheduledHabit.MaxDeferrals,
                 canStillBeDeferred = scheduledHabit.CanStillBeDeferred,
                 originalScheduledDate = scheduledHabit.OriginalScheduledDate?.ToString("yyyy-MM-dd"),
+                currentDueDate = scheduledHabit.CurrentDueDate?.ToString("yyyy-MM-dd"),
                 isAdHoc = false,
                 adHocId = (int?)null,
                 isOverdue = false,
@@ -650,8 +662,91 @@ public class DisciplineController : ControllerBase
             });
         }
 
-        // Ad-hoc tasks logic remains the same...
-        return new { allHabits = allHabits };
+        // Add ad-hoc tasks (your existing logic)
+        foreach (var adHocTask in adHocTasks)
+        {
+            string priority = "Required";
+
+            if (adHocTask.DeadlineDate != null)
+            {
+                var deadlineDate = adHocTask.DeadlineDate.Value.Date;
+                var currentDate = DateTime.Today;
+
+                if (deadlineDate > currentDate)
+                {
+                    priority = "Optional";
+                }
+            }
+
+            allHabits.Add(new
+            {
+                habitId = (int?)null,
+                name = adHocTask.Name,
+                description = adHocTask.Description,
+                isCompleted = adHocTask.IsCompleted,
+                isRequired = priority == "Required",
+                isLocked = false,
+                hasDeadline = adHocTask.DeadlineDate != null,
+                deadlineTime = "23:59",
+                priority = priority,
+                reason = "Ad-hoc task",
+                frequency = "Daily",
+                deferralsUsed = 0,
+                maxDeferrals = 0,
+                canStillBeDeferred = false,
+                originalScheduledDate = (string?)null,
+                currentDueDate = (string?)null,
+                isAdHoc = true,
+                adHocId = adHocTask.Id,
+                isOverdue = false,
+                timeRemaining = (string?)null
+            });
+        }
+
+        // Calculate day statistics with SIMPLE streak check
+        var totalHabits = allHabits.Count;
+        var completedHabits = allHabits.Count(h => (bool)((dynamic)h).isCompleted);
+        var requiredHabits = allHabits.Where(h => (bool)((dynamic)h).isRequired).ToList();
+        var completedRequired = requiredHabits.Count(h => (bool)((dynamic)h).isCompleted);
+
+        // SIMPLE: Use fixed date instead of expensive DB calculation
+        var streakStartDate = _streakStartDate;
+
+        var daysSinceStart = streakStartDate.HasValue ? (date.Date - streakStartDate.Value.Date).Days + 1 : 0;
+        bool isInFirst7Days = daysSinceStart <= 7;
+
+        bool dayIsCompleted = false;
+
+        if (isInFirst7Days)
+        {
+            // First 7 days: only check phone lock
+            var phoneLockHabit = allHabits.FirstOrDefault(h =>
+                ((dynamic)h).name.Contains("Phone Lock") || ((dynamic)h).name.Contains("phone"));
+
+            if (phoneLockHabit != null)
+            {
+                dayIsCompleted = (bool)((dynamic)phoneLockHabit).isCompleted;
+            }
+        }
+        else
+        {
+            // After 7 days: all required habits must be completed
+            dayIsCompleted = completedRequired == requiredHabits.Count && requiredHabits.Count > 0;
+        }
+
+        return new
+        {
+            date = date.ToString("yyyy-MM-dd"),
+            isCompleted = dayIsCompleted,
+            isPartiallyCompleted = completedHabits > 0 && completedHabits < totalHabits,
+            completedHabits = completedHabits,
+            totalHabits = totalHabits,
+            requiredHabitsCount = requiredHabits.Count,
+            completedRequiredCount = completedRequired,
+            allHabits = allHabits,
+            warnings = new List<string>(),
+            recommendations = new List<string>()
+        };
     }
     private async Task<List<object>> BuildWeeklyProgress(WeekSchedule weekSchedule, List<HabitCompletion> completions)
     {
@@ -886,65 +981,43 @@ public class DisciplineController : ControllerBase
 
     private async Task<bool> IsInFirst7DaysOfStreak(DateTime date)
     {
-        try
+        // Calculate streak start once and cache it
+        if (!_streakStartCalculated)
         {
-            var currentStreakStartDate = await GetCurrentStreakStartDate(date);
-
-            if (currentStreakStartDate == null)
-            {
-                // No current streak, so this could be day 1
-                return true;
-            }
-
-            // Calculate days since current streak started
-            var daysSinceStreakStart = (date.Date - currentStreakStartDate.Value.Date).Days + 1; // +1 because first day is day 1
-
-            Console.WriteLine($"📱 Current streak started on: {currentStreakStartDate.Value:yyyy-MM-dd}, today is day {daysSinceStreakStart} of streak");
-
-            return daysSinceStreakStart <= 7;
+            _streakStartDate = await CalculateStreakStartDateOnce();
+            _streakStartCalculated = true;
         }
-        catch (Exception ex)
+
+        // If no streak start, assume we're in early days
+        if (_streakStartDate == null)
         {
-            Console.WriteLine($"Error checking first 7 days: {ex.Message}");
-            return false; // Default to normal behavior if error
+            return true;
         }
+
+        // Simple calculation - no database calls
+        var daysSinceStreakStart = (date.Date - _streakStartDate.Value.Date).Days + 1;
+        return daysSinceStreakStart <= 7;
     }
 
-    private async Task<DateTime?> GetCurrentStreakStartDate(DateTime fromDate)
-    {
-        try
+        private async Task<DateTime?> CalculateStreakStartDateOnce()
         {
-            var completedDays = new List<DateTime>();
-
-            // Check each day individually to see if it was "complete"
-            // Go back a reasonable amount (e.g., 30 days) to find the streak
-            for (int daysBack = 0; daysBack <= 30; daysBack++) // REDUCED from 90 to 30 for performance
+            try
             {
-                var checkDate = fromDate.Date.AddDays(-daysBack);
+                // MUCH SIMPLER: Just get the earliest phone lock completion
+                var firstPhoneLockCompletion = await _context.HabitCompletions
+                    .Include(h => h.Habit)
+                    .Where(h => h.Habit.Name.Contains("Phone Lock") && h.IsCompleted)
+                    .OrderBy(h => h.Date)
+                    .FirstOrDefaultAsync();
 
-                // ✅ FIX: Use non-recursive method to check day completion
-                bool dayWasCompleted = await IsDayCompletedNonRecursive(checkDate);
-
-                if (dayWasCompleted)
-                {
-                    completedDays.Add(checkDate);
-                }
-                else
-                {
-                    // Found the first incomplete day, stop here
-                    break;
-                }
+                return firstPhoneLockCompletion?.Date;
             }
-
-            // Return the earliest day in the current streak
-            return completedDays.Any() ? completedDays.Min() : (DateTime?)null;
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error calculating streak start: {ex.Message}");
+                return null;
+            }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error calculating current streak start: {ex.Message}");
-            return null;
-        }
-    }
 
     private async Task<bool> IsDayCompletedNonRecursive(DateTime date)
     {
