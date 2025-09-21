@@ -234,18 +234,7 @@
                 {{ habit.timeRemaining }}
               </span>
             </div>
-          </div>
-
-          <!-- Task Actions -->
-          <div class="task-actions">
-            <!-- Quick Complete All Button (for habits with sub-habits) -->
-            <button *ngIf="habit.hasSubHabits && !habit.isCompleted" 
-                    class="action-btn quick-complete-btn" 
-                    (click)="quickCompleteAllSubHabits(habit.habitId)"
-                    title="Complete all sub-habits at once">
-              <span class="quick-complete-icon">✓</span>
-              <span class="quick-complete-text">Complete All</span>
-            </button>
+                      <div class="task-actions">
 
             <!-- Edit button for ad-hoc tasks -->
             <button *ngIf="habit.isAdHoc" 
@@ -267,6 +256,9 @@
               </svg>
             </button>
           </div>
+          </div>
+
+          <!-- Task Actions -->
         </div>
 
         <!-- Sub-Habits Section (Collapsible) -->
@@ -278,6 +270,12 @@
             <span class="sub-habits-progress">
               {{ habit.completedSubHabitsCount }}/{{ habit.totalSubHabitsCount }} completed
             </span>
+                <button class="action-btn quick-complete-btn" 
+                    (click)="quickCompleteAllSubHabits(habit.habitId)"
+                    title="Complete all sub-habits at once">
+              <span class="quick-complete-icon">✓</span>
+              <span class="quick-complete-text">Complete All</span>
+            </button>
           </div>
 
           <div class="sub-habits-list">

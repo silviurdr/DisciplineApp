@@ -1731,7 +1731,6 @@ button:focus-visible {
 }
 
 .quick-complete-btn {
-  background: linear-gradient(135deg, #4caf50, #66bb6a);
   color: white;
   border: none;
   padding: 6px 12px;
@@ -1745,9 +1744,7 @@ button:focus-visible {
   font-weight: 500;
 
   &:hover {
-    background: linear-gradient(135deg, #45a049, #5cb85c);
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
   }
 
   .quick-complete-icon {
@@ -1841,7 +1838,6 @@ button:focus-visible {
 }
 
 .quick-complete-btn {
-  background: linear-gradient(135deg, #4caf50, #66bb6a);
   color: white;
   border: none;
   padding: 6px 12px;
@@ -1855,9 +1851,8 @@ button:focus-visible {
   font-weight: 500;
 
   &:hover {
-    background: linear-gradient(135deg, #45a049, #5cb85c);
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+
   }
 
   .quick-complete-icon {
@@ -1951,7 +1946,7 @@ button:focus-visible {
 }
 
 .quick-complete-btn {
-  background: linear-gradient(135deg, #4caf50, #66bb6a);
+  background: rgba(139, 143, 163, 0.1);
   color: white;
   border: none;
   padding: 6px 12px;
@@ -1965,9 +1960,7 @@ button:focus-visible {
   font-weight: 500;
 
   &:hover {
-    background: linear-gradient(135deg, #45a049, #5cb85c);
     transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
   }
 
   .quick-complete-icon {
@@ -2010,6 +2003,7 @@ button:focus-visible {
   }
 
   .sub-habits-progress {
+    margin-left: 8px;
     font-size: 0.8rem;
     color: #8b8fa3;
     padding: 2px 8px;
@@ -2382,4 +2376,239 @@ button:focus-visible {
   .error-state p {
     font-size: 0.9rem;
   }
+}
+
+/* ADD this to your calendar.component.scss to fix the move button spacing */
+
+.task-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Add gap between all action buttons */
+  flex-shrink: 0;
+}
+
+/* Specifically target the move button to add extra left margin */
+.task-actions .action-btn.move-btn {
+  background: #2a2b3d;
+  border: 1px solid #4a4d66;
+  color: #a9adc1;
+  margin-left: 6px; /* Add extra left margin to separate from other badges */
+}
+
+.task-actions .action-btn.move-btn:hover {
+  background: #4a4d66;
+  border-color: #5865f2;
+  color: #ffffff;
+}
+
+/* Alternative: If you want even more space, increase the gap */
+.task-actions {
+  gap: 12px; /* Increase gap for more spacing between ALL buttons */
+}
+
+/* Or if you want to separate the move button more specifically */
+.task-actions .action-btn.move-btn {
+  margin-left: 16px; /* Increase this value for more space */
+}
+
+.task-actions {
+  display: flex;
+  gap: 8px; /* Change from 4px to 8px for more space between buttons */
+  flex-shrink: 0;
+  justify-content: flex-end;
+  min-width: 80px; /* Increase from 60px to 80px to reserve more space */
+  margin-left: 12px; /* Add left margin to separate from badges */
+}
+
+/* REPLACE the previous fix with this improved version for consistent spacing */
+
+.task-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 16px; /* Increase the gap to ensure consistent spacing */
+}
+
+.task-name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0; /* Allow truncation if needed */
+}
+
+.task-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  min-width: 80px;
+  margin-left: auto; /* This pushes buttons to the far right consistently */
+  /* Remove the fixed margin-left: 12px */
+}
+
+/* Alternative approach: Create a fixed-width area for badges */
+.task-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+/* Or third approach: Use CSS Grid for precise control */
+.task-header-grid {
+  display: grid;
+  grid-template-columns: 1fr auto auto; /* name area | badges area | buttons area */
+  gap: 16px;
+  align-items: center;
+  width: 100%;
+}
+
+.task-name-wrapper-grid {
+  grid-column: 1;
+}
+
+.task-meta-grid {
+  grid-column: 2;
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  min-width: 150px; /* Fixed width for badge area */
+}
+
+.task-actions-grid {
+  grid-column: 3;
+  display: flex;
+  gap: 8px;
+}
+
+/* ===================================
+   FIXED TASK ACTIONS STYLING
+   =================================== */
+
+.task-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* Reduced gap between buttons for tighter grouping */
+  flex-shrink: 0; /* Prevent the actions from shrinking */
+}
+
+.task-actions .action-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #6b6f80;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0; /* Prevent buttons from shrinking */
+}
+
+.task-actions .action-btn:hover {
+  background: #4a4d66;
+  color: #d1d3db;
+}
+
+.task-actions .action-btn:disabled,
+.task-actions .action-btn.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.task-actions .action-btn svg {
+  fill: currentColor;
+  width: 14px;
+  height: 14px;
+}
+
+/* Specific styling for the move button */
+.task-actions .action-btn.move-btn {
+  background: rgba(42, 43, 61, 0.8); /* Subtle background */
+  border: 1px solid #4a4d66; /* Border to define shape */
+  color: #a9adc1; /* Brighter icon color */
+}
+
+.task-actions .action-btn.move-btn:hover {
+  background: #4a4d66;
+  border-color: #5865f2; /* Accent color on hover */
+  color: #ffffff;
+  transform: translateY(-1px); /* Slight lift effect */
+}
+
+/* Specific styling for the edit button */
+.task-actions .action-btn.edit-btn {
+  background: rgba(42, 43, 61, 0.8);
+  border: 1px solid #4a4d66;
+  color: #a9adc1;
+}
+
+.task-actions .action-btn.edit-btn:hover {
+  background: #4a4d66;
+  border-color: #64b5f6;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* Quick complete button styling */
+.quick-complete-btn {
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  flex-shrink: 0;
+  margin-left: 8px; /* Space from other buttons */
+}
+
+.quick-complete-btn:hover {
+  transform: translateY(-1px);
+}
+
+.quick-complete-btn .quick-complete-icon {
+  font-size: 1rem;
+}
+
+.quick-complete-btn .quick-complete-text {
+  font-size: 0.8rem;
+}
+
+/* Ensure the task header has proper spacing */
+.task-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  min-height: 32px; /* Ensure consistent height */
+}
+
+.task-name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0; /* Allow text to truncate if needed */
+}
+
+/* Ensure task meta doesn't interfere with actions */
+.task-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: 60%; /* Prevent meta from taking too much space */
 }
