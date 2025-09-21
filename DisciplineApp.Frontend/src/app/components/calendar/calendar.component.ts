@@ -388,6 +388,13 @@ async toggleSubHabitCompletion(subHabitId: number, isCompleted: boolean): Promis
 }
 
 async quickCompleteAllSubHabits(habitId: number): Promise<void> {
+
+  const habit = this.habitsWithSubHabits.find(h => h.habitId === habitId);
+    if (habit?.isCompleted) {
+        console.log('Habit already completed, ignoring request');
+        return;
+    }
+  
     const today = new Date().toISOString().split('T')[0];
     
     const request: CompleteAllSubHabitsRequest = {
@@ -412,7 +419,7 @@ async quickCompleteAllSubHabits(habitId: number): Promise<void> {
           habit.isCompleted = true;
           
           // Refresh week data to get updated stats
-          await this.refreshWeekData();
+/*           await this.refreshWeekData(); */
         }
 
         // Play completion sound

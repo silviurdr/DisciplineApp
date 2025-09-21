@@ -2612,3 +2612,31 @@ button:focus-visible {
   flex-wrap: wrap;
   max-width: 60%; /* Prevent meta from taking too much space */
 }
+
+.quick-complete-btn {
+  // ... existing styles ...
+  
+  &:disabled,
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    
+    &:hover {
+      transform: none !important;
+      box-shadow: none !important;
+    }
+  }
+}
+
+.sub-habit-checkbox {
+  input[type="checkbox"]:disabled ~ .checkbox-label {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .checkbox-label.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

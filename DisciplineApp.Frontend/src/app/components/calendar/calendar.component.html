@@ -270,7 +270,7 @@
             <span class="sub-habits-progress">
               {{ habit.completedSubHabitsCount }}/{{ habit.totalSubHabitsCount }} completed
             </span>
-                <button class="action-btn quick-complete-btn" 
+                <button type="button"  class="action-btn quick-complete-btn" 
                     (click)="quickCompleteAllSubHabits(habit.habitId)"
                     title="Complete all sub-habits at once">
               <span class="quick-complete-icon">✓</span>
@@ -288,8 +288,9 @@
                 <input type="checkbox" 
                        [id]="'sub-habit-' + subHabit.id"
                        [checked]="subHabit.isCompleted" 
+                       [disabled]="habit.isCompleted || subHabit.isCompleted"
                        (change)="toggleSubHabitCompletion(subHabit.id, !subHabit.isCompleted)">
-                <label [for]="'sub-habit-' + subHabit.id" class="checkbox-label"></label>
+                <label [for]="'sub-habit-' + subHabit.id" [class.disabled]="habit.isCompleted || subHabit.isCompleted" class="checkbox-label"></label>
               </div>
 
               <!-- Sub-habit Content -->
