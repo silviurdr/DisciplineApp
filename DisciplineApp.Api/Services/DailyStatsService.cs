@@ -1,7 +1,7 @@
 ﻿using DisciplineApp.Api.Data;
 using DisciplineApp.Api.Models;
 using DisciplineApp.Api.Services;
-using System.Data.Entity;
+using Microsoft.EntityFrameworkCore;
 
 public class DailyStatsService : IDailyStatsService
 {
