@@ -860,6 +860,8 @@ public class DisciplineController : ControllerBase
 
             _context.AdHocTasks.Add(task);
             await _context.SaveChangesAsync();
+            var updatedStats = await _dailyStatsService.CalculateAndStoreDailyStatsAsync(task.Date.Date);
+
 
             // CRITICAL: Return the created task with its real database ID
             var createdTaskResponse = new
@@ -1013,6 +1015,8 @@ public class DisciplineController : ControllerBase
             task.CompletedAt = request.IsCompleted ? DateTime.UtcNow : null;
 
             await _context.SaveChangesAsync();
+
+            var updatedStats = await _dailyStatsService.CalculateAndStoreDailyStatsAsync(task.Date.Date);
 
             return Ok(new { message = "Ad-hoc task updated successfully" });
         }
