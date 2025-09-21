@@ -973,66 +973,90 @@ addAdHocTask(): void {
     return;
   }
 
-  const today = new Date().toISOString().split('T')[0];
-
   this.disciplineService.addAdHocTask({
     name: this.newTaskName.trim(),
     description: this.newTaskDescription.trim(),
-    date: today,
-    deadlineDate: this.hasDeadline ? this.deadlineDate : undefined,  
+    date: new Date().toISOString().split('T')[0],
+    deadlineDate: this.hasDeadline && this.deadlineDate ? 
+      this.deadlineDate : undefined,  
     deadlineTime: "23:59"
   }).subscribe({
     next: (response) => {
       console.log('Ad-hoc task added successfully:', response);
       
-      // FIXED: Use the real task returned by the API (with real database ID)
-      if (response && response.task) {
+      // ✅ SOLUTION: Use the complete dayData from backend OR reload the day
+      if (response && response.dayData) {
+        // Use the complete updated day data from backend
+        this.todayData = response.dayData;
+        this.habitsWithSubHabits = response.dayData.allHabits || [];
+        this.updateTaskCounts();
+        console.log('✅ Used complete dayData from backend API response');
+      } else if (response && response.task) {
+        // Fallback: manually create task with ALL required properties from backend structure
         const newTask: HabitWithSubHabits = {
-          // Use the REAL IDs from the database
-          habitId: 0, // Keep as 0 for ad-hoc tasks
-          adHocId: response.task.id, // ✅ Use the REAL database ID
-          
-          // Task details from API response
+          // Core properties (matching ScheduledHabit interface)
+          habitId: 0, // Keep as 0 for ad-hoc tasks  
           name: response.task.name,
           description: response.task.description,
-          isCompleted: response.task.isCompleted,
-          isRequired: false,
+          isCompleted: response.task.isCompleted || false,
+          isRequired: true, // ✅ Default ad-hoc tasks to required (shows today)
           isLocked: false,
-          hasDeadline: this.hasDeadline,
-          deadlineTime: this.hasDeadline ? "23:59" : undefined,
+          hasDeadline: true, // ✅ Always true now (auto-set to today)
+          deadlineTime: "23:59",
+          timeRemaining: this.calculateTimeRemainingForToday(), // ✅ Calculate remaining time
           isOverdue: false,
           urgencyLevel: 'Normal',
-          priority: 'Required',
+          
+          // ✅ Meta properties for tags
+          reason: "Ad-hoc task",
+          priority: "Required", // ✅ Shows as Required, not Optional
+          frequency: "Daily",   // ✅ Shows Daily frequency chip
+          
+          // ✅ Deadline properties
+          deadlineDate: this.hasDeadline && this.deadlineDate ? 
+            this.deadlineDate : 
+            new Date().toISOString().split('T')[0], // Today's date
+          
+          // Flexibility properties (set to defaults for ad-hoc)
+          deferralsUsed: 0,
+          maxDeferrals: 0,
+          canStillBeDeferred: false,
+          originalScheduledDate: undefined,
+          currentDueDate: undefined,
+          flexibilityStatus: undefined,
           
           // Ad-hoc specific properties
           isAdHoc: true,
+          adHocId: response.task.id || response.task.adHocId,
           
-          // Sub-habits properties (all false/empty for ad-hoc tasks)
+          // Sub-habits properties (defaults for ad-hoc tasks)
           hasSubHabits: false,
           subHabits: [],
           totalSubHabitsCount: 0,
           completedSubHabitsCount: 0,
           allSubHabitsCompleted: false,
-          isExpanded: false,
-          
-          // Optional deadline properties
-          deadlineDate: this.hasDeadline ? this.deadlineDate : undefined
+          isExpanded: false
         };
         
-        // Add to BOTH arrays to keep them in sync
+        // Add to both arrays to keep them synchronized
         if (this.todayData && this.todayData.allHabits) {
           this.todayData.allHabits = [...this.todayData.allHabits, newTask as ScheduledHabit];
         }
-        
-        // Add to habitsWithSubHabits (this is the main display array)
         this.habitsWithSubHabits = [...this.habitsWithSubHabits, newTask];
-        
-        // Update task counts manually
         this.updateTaskCounts();
         
-        console.log('✅ Successfully added ad-hoc task with REAL database ID');
-        console.log('📊 Real adHocId from database:', response.task.id);
-        console.log('📊 habitsWithSubHabits count:', this.habitsWithSubHabits.length);
+        console.log('✅ Successfully added ad-hoc task with all properties');
+        console.log('📊 Task properties:', {
+          priority: newTask.priority,
+          frequency: newTask.frequency,
+          timeRemaining: newTask.timeRemaining,
+          hasDeadline: newTask.hasDeadline,
+          deadlineDate: newTask.deadlineDate
+        });
+      } else {
+        // Last resort: reload the entire day data
+        console.log('⚠️ No complete data in response, reloading day');
+        this.loadCurrentWeekData();
       }
       
       // Close modal and reset form
@@ -1048,6 +1072,31 @@ addAdHocTask(): void {
       this.errorMessage = 'Failed to add task. Please try again.';
     }
   });
+}
+
+private calculateTimeRemainingForToday(): string {
+  const now = new Date();
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
+  
+  const timeDiff = endOfDay.getTime() - now.getTime();
+  
+  if (timeDiff <= 0) {
+    return "0m"; // Past deadline
+  }
+  
+  const hoursLeft = Math.floor(timeDiff / (1000 * 60 * 60));
+  const minutesLeft = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (hoursLeft > 0) {
+    if (hoursLeft < 6 && minutesLeft > 0) {
+      return `${hoursLeft}h ${minutesLeft}m`;
+    } else {
+      return `${hoursLeft}h`;
+    }
+  } else {
+    return `${minutesLeft}m`;
+  }
 }
 
 saveEditedTask(): void {
