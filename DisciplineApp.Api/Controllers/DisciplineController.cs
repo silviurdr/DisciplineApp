@@ -610,7 +610,7 @@ public class DisciplineController : ControllerBase
     private int CalculateCurrentStreakFromDailyStats(List<DailyStats> dailyStats)
     {
         var sortedStats = dailyStats
-            .Where(d => d.Date <= DateTime.Today) // Only consider today and past
+            .Where(d => d.Date < DateTime.Today) // Only consider today and past
             .OrderByDescending(d => d.Date)
             .ToList();
 
@@ -752,8 +752,8 @@ public class DisciplineController : ControllerBase
             // Parse the date string safely
             if (DateTime.TryParse((string)day.date, out var dayDate))
             {
-                // Only count days up to today
-                if (dayDate > today) continue;
+                // ✅ SKIP today completely - only count past days
+                if (dayDate >= today) continue;
 
                 if (day.isCompleted == true)
                 {
@@ -761,7 +761,7 @@ public class DisciplineController : ControllerBase
                 }
                 else
                 {
-                    break; // Streak is broken
+                    break; // Streak is broken by an incomplete past day
                 }
             }
         }

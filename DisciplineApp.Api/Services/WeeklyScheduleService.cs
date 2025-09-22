@@ -260,7 +260,8 @@ public class WeeklyScheduleService
                                 IsCompleted = false,
                                 IsAdHoc = false
                             });
-                            break; // Only schedule once per week
+                            // ✅ REMOVE THE break; STATEMENT HERE
+                            // Rolling habits might need to be scheduled multiple times per week
                         }
                     }
                 }

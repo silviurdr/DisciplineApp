@@ -79,7 +79,7 @@
           
           <!-- PAST DAYS: Binary success/failure -->
           <span *ngIf="!day.isFuture && day.isCompleted" class="completion-check">✓</span>
-          <span *ngIf="!day.isFuture && !day.isCompleted && day.totalHabits > 0" class="failure-x">✕</span>
+          <span *ngIf="!day.isToday &&!day.isFuture && !day.isCompleted && day.totalHabits > 0" class="failure-x">✕</span>
           
           <!-- FREE DAYS: No tasks scheduled -->
           <span *ngIf="day.totalHabits === 0 && !day.isFuture" class="free-circle">○</span>
