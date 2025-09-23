@@ -269,9 +269,11 @@ public class WeeklyScheduleService
         }
     }
 
+
     private async Task AssignWeeklyHabits(WeekSchedule schedule, List<Habit> habits, List<TaskDeferral> deferrals)
     {
         var weeklyHabits = habits.Where(h => h.Frequency == HabitFrequency.Weekly).ToList();
+        var today = DateTime.Today;
 
         foreach (var habit in weeklyHabits)
         {
@@ -280,7 +282,27 @@ public class WeeklyScheduleService
                               habit.Name.Contains("Bathroom") ? 1 : 1;
 
             var scheduled = 0;
-            foreach (var day in schedule.DailySchedules.OrderBy(d => d.ScheduledHabits.Count))
+
+            // ✅ Calculate time loads for each day and sort by utilization percentage
+            var dayTimeLoads = new List<(DailySchedule day, int currentMinutes, int maxMinutes, double utilization)>();
+
+            foreach (var day in schedule.DailySchedules.Where(d => d.Date.Date != today.Date))
+            {
+                var currentLoad = await CalculateDayTimeLoad(day.Date);
+                var maxLoad = GetMaxDailyMinutes(day.Date);
+                var utilization = (double)currentLoad / maxLoad * 100;
+
+                dayTimeLoads.Add((day, currentLoad, maxLoad, utilization));
+            }
+
+            // Sort by utilization percentage (lowest first)
+            var sortedDays = dayTimeLoads
+                .Where(d => d.currentMinutes + habit.EstimatedDurationMinutes <= d.maxMinutes) // Only days that won't be overloaded
+                .OrderBy(d => d.utilization)
+                .Select(d => d.day)
+                .ToList();
+
+            foreach (var day in sortedDays)
             {
                 if (scheduled >= timesPerWeek) break;
 
@@ -300,20 +322,68 @@ public class WeeklyScheduleService
                         Priority = SchedulePriority.Required,
                         Reason = $"Weekly target: {scheduled + 1}/{timesPerWeek}",
                         Frequency = habit.Frequency.ToString(),
+                        EstimatedDurationMinutes = habit.EstimatedDurationMinutes, // ✅ Include duration
                         IsRequired = true,
                         IsCompleted = false,
                         IsAdHoc = false
                     });
                     scheduled++;
+
+                    var dayLoad = dayTimeLoads.First(d => d.day.Date.Date == day.Date.Date);
+                    Console.WriteLine($"📌 Scheduled {habit.Name} ({habit.EstimatedDurationMinutes}m) to {day.Date:yyyy-MM-dd} (utilization: {dayLoad.utilization:F1}%)");
                 }
             }
         }
+    }
+
+
+    private async Task<int> CalculateDayTimeLoad(DateTime date)
+    {
+        var weekStart = GetWeekStart(date);
+        var schedule = await GenerateWeekSchedule(weekStart);
+
+        var daySchedule = schedule.DailySchedules.FirstOrDefault(d => d.Date.Date == date.Date);
+        var scheduledMinutes = daySchedule?.ScheduledHabits?.Sum(h => h.EstimatedDurationMinutes) ?? 0;
+
+        // Count deferred tasks coming TO this day
+        var deferredTasks = await _context.TaskDeferrals
+            .Include(d => d.Habit)
+            .Where(d => d.DeferredToDate.Date == date.Date && !d.IsCompleted)
+            .ToListAsync();
+        var deferredMinutes = deferredTasks.Sum(d => d.Habit.EstimatedDurationMinutes);
+
+        // Count ad-hoc tasks for this day (assume 15 minutes each if no duration specified)
+        var adHocTasks = await _context.AdHocTasks
+            .Where(t => t.Date.Date == date.Date && !t.IsCompleted)
+            .ToListAsync();
+        var adHocMinutes = adHocTasks.Count * 15; // Default 15 minutes per ad-hoc task
+
+        var totalMinutes = scheduledMinutes + deferredMinutes + adHocMinutes;
+
+        Console.WriteLine($"📊 Day time load for {date:yyyy-MM-dd}: {scheduledMinutes}m scheduled + {deferredMinutes}m deferred + {adHocMinutes}m ad-hoc = {totalMinutes}m total");
+
+        return totalMinutes;
+    }
+
+    // ✅ NEW: Get maximum allowed minutes per day (Saturday gets double)
+    private int GetMaxDailyMinutes(DateTime date)
+    {
+        var baseMinutes = 120; // 2 hours on regular days
+
+        // Saturday can handle double workload
+        if (date.DayOfWeek == DayOfWeek.Saturday)
+        {
+            return baseMinutes * 2; // 4 hours on Saturday
+        }
+
+        return baseMinutes;
     }
 
     private async Task AssignMonthlyHabits(WeekSchedule schedule, List<Habit> habits,
         List<HabitCompletion> recentCompletions, List<TaskDeferral> deferrals)
     {
         var monthlyHabits = habits.Where(h => h.Frequency == HabitFrequency.Monthly).ToList();
+        var today = DateTime.Today;
 
         foreach (var habit in monthlyHabits)
         {
@@ -325,7 +395,6 @@ public class WeeklyScheduleService
 
             if (!completedThisMonth)
             {
-                // Check if this habit is already deferred to any day this week
                 var isAlreadyDeferredThisWeek = deferrals.Any(d =>
                     d.HabitId == habit.Id &&
                     d.DeferredToDate >= schedule.WeekStart &&
@@ -333,10 +402,11 @@ public class WeeklyScheduleService
 
                 if (!isAlreadyDeferredThisWeek)
                 {
-                    // Find optimal day (least busy, not moved away from)
+                    // ✅ EXCLUDE TODAY from optimal day selection
                     var optimalDay = schedule.DailySchedules
-                        .Where(day => !deferrals.Any(d =>
-                            d.HabitId == habit.Id && d.OriginalDate.Date == day.Date.Date))
+                        .Where(day => day.Date.Date != today.Date && // ← EXCLUDE TODAY!
+                                     !deferrals.Any(d => d.HabitId == habit.Id &&
+                                                   d.OriginalDate.Date == day.Date.Date))
                         .OrderBy(d => d.ScheduledHabits.Count)
                         .FirstOrDefault();
 
@@ -354,6 +424,12 @@ public class WeeklyScheduleService
                             IsCompleted = false,
                             IsAdHoc = false
                         });
+
+                        Console.WriteLine($"📅 Monthly {habit.Name} scheduled to {optimalDay.Date:yyyy-MM-dd} (excluded today)");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"⚠️ Could not schedule monthly {habit.Name} - no suitable days (today excluded)");
                     }
                 }
             }
@@ -364,6 +440,7 @@ public class WeeklyScheduleService
         List<HabitCompletion> recentCompletions, List<TaskDeferral> deferrals)
     {
         var seasonalHabits = habits.Where(h => h.Frequency == HabitFrequency.Seasonal).ToList();
+        var today = DateTime.Today;
 
         foreach (var habit in seasonalHabits)
         {
@@ -373,7 +450,6 @@ public class WeeklyScheduleService
 
             if (recentCompletion == null)
             {
-                // Similar logic to monthly habits
                 var isAlreadyDeferredThisWeek = deferrals.Any(d =>
                     d.HabitId == habit.Id &&
                     d.DeferredToDate >= schedule.WeekStart &&
@@ -381,9 +457,11 @@ public class WeeklyScheduleService
 
                 if (!isAlreadyDeferredThisWeek)
                 {
+                    // ✅ EXCLUDE TODAY from optimal day selection
                     var optimalDay = schedule.DailySchedules
-                        .Where(day => !deferrals.Any(d =>
-                            d.HabitId == habit.Id && d.OriginalDate.Date == day.Date.Date))
+                        .Where(day => day.Date.Date != today.Date && // ← EXCLUDE TODAY!
+                                     !deferrals.Any(d => d.HabitId == habit.Id &&
+                                                   d.OriginalDate.Date == day.Date.Date))
                         .OrderBy(d => d.ScheduledHabits.Count)
                         .FirstOrDefault();
 
@@ -401,6 +479,8 @@ public class WeeklyScheduleService
                             IsCompleted = false,
                             IsAdHoc = false
                         });
+
+                        Console.WriteLine($"📅 Seasonal {habit.Name} scheduled to {optimalDay.Date:yyyy-MM-dd} (excluded today)");
                     }
                 }
             }
@@ -524,13 +604,16 @@ public class WeeklyScheduleService
             }
         }
 
-        // Calculate task load for each remaining day
-        var dayLoads = new Dictionary<DateTime, int>();
+        // Calculate time load for each remaining day
+        var dayLoads = new Dictionary<DateTime, (int currentMinutes, int maxMinutes, double utilizationPercent)>();
 
         foreach (var date in remainingDaysThisWeek)
         {
-            var loadCount = await CalculateDayTaskLoad(date);
-            dayLoads[date] = loadCount;
+            var currentLoadUpdated = await CalculateDayTimeLoad(date);
+            var maxLoadUpdated = GetMaxDailyMinutes(date);
+            var utilizationUpdated = (double)currentLoadUpdated / maxLoadUpdated * 100;
+
+            dayLoads[date] = (currentLoadUpdated, maxLoadUpdated, utilizationUpdated);
         }
 
         // Filter out dates that aren't suitable for this habit
@@ -540,22 +623,33 @@ public class WeeklyScheduleService
         {
             if (await IsDateSuitableForHabit(habit, date))
             {
-                suitableDates.Add(date);
+                var (currentMinutes, maxMinutes, _) = dayLoads[date];
+
+                // Only consider days that won't be overloaded after adding this task
+                if (currentMinutes + habit.EstimatedDurationMinutes <= maxMinutes)
+                {
+                    suitableDates.Add(date);
+                }
             }
         }
 
         if (!suitableDates.Any())
         {
-            return null; // No suitable dates found
+            Console.WriteLine($"❌ No suitable dates found for {habit.Name} ({habit.EstimatedDurationMinutes}m) - all days would be overloaded");
+            return null;
         }
 
-        // ✅ SMART DISTRIBUTION: Choose date with lowest task load
+        // ✅ SMART TIME-BASED DISTRIBUTION: Choose date with lowest utilization percentage
         var optimalDate = suitableDates
-            .OrderBy(date => dayLoads[date])
+            .OrderBy(date => dayLoads[date].utilizationPercent)
             .ThenBy(date => date) // If tie, choose earlier date
             .First();
 
-        Console.WriteLine($"📅 Smart deferral: Moving {habit.Name} to {optimalDate:yyyy-MM-dd} (load: {dayLoads[optimalDate]} tasks)");
+        var (currentLoad, maxLoad, utilization) = dayLoads[optimalDate];
+        var newUtilization = (double)(currentLoad + habit.EstimatedDurationMinutes) / maxLoad * 100;
+
+        Console.WriteLine($"📅 Smart time-based deferral: Moving {habit.Name} ({habit.EstimatedDurationMinutes}m) to {optimalDate:yyyy-MM-dd}");
+        Console.WriteLine($"   Current: {currentLoad}m/{maxLoad}m ({utilization:F1}%) → New: {currentLoad + habit.EstimatedDurationMinutes}m/{maxLoad}m ({newUtilization:F1}%)");
 
         return optimalDate;
     }
@@ -583,6 +677,8 @@ public class WeeklyScheduleService
 
         return totalLoad;
     }
+
+
 
     private async Task<bool> IsDateSuitableForHabit(Habit habit, DateTime date)
     {
@@ -675,6 +771,7 @@ public class WeeklyScheduleService
         return !existingDeferral;
     }
 
+
     private async Task CreateDeferralRecord(int habitId, DateTime fromDate, DateTime toDate, string reason)
     {
         // Check if deferral record already exists
@@ -713,6 +810,7 @@ public class WeeklyScheduleService
         var mondayOffset = (dayOfWeek == 0) ? -6 : -(dayOfWeek - 1);
         return date.AddDays(mondayOffset);
     }
+
 
     // ==============================================================================
     // RESULT MODEL (Required by the service)
@@ -757,8 +855,24 @@ public class ScheduledHabit
     public int DeferralsUsed { get; set; } = 0;
     public int MaxDeferrals { get; set; } = 0;
     public bool CanStillBeDeferred { get; set; } = false;
+    public int EstimatedDurationMinutes { get; set; } = 15;
+    public string FormattedDuration => FormatDuration(EstimatedDurationMinutes);
     public DateTime? OriginalScheduledDate { get; set; }
     public DateTime? CurrentDueDate { get; set; }
+
+    private string FormatDuration(int minutes)
+    {
+        if (minutes < 60)
+            return $"{minutes}m";
+
+        var hours = minutes / 60;
+        var remainingMinutes = minutes % 60;
+
+        if (remainingMinutes == 0)
+            return $"{hours}h";
+
+        return $"{hours}h {remainingMinutes}m";
+    }
 
     // Status fields for frontend compatibility
     public bool IsCompleted { get; set; } = false;

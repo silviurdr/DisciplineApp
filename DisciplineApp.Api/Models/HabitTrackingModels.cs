@@ -19,6 +19,7 @@ namespace DisciplineApp.Api.Models
         public bool IsActive { get; set; } = true;
         public int MaxDeferrals { get; set; } = 0; // 🔥 ENSURE THIS FIELD EXISTS
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public int EstimatedDurationMinutes { get; set; } = 15; // Default 15 minutes
 
         // Navigation properties
         public virtual ICollection<HabitCompletion> Completions { get; set; } = new List<HabitCompletion>();
