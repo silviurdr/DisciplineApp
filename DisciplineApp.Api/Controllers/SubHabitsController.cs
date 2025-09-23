@@ -12,10 +12,12 @@ namespace DisciplineApp.Api.Controllers;
 public class SubHabitsController : ControllerBase
 {
     private readonly DisciplineDbContext _context;
+    private readonly IDailyStatsService _dailyStatsService;
 
-    public SubHabitsController(DisciplineDbContext context)
+    public SubHabitsController(DisciplineDbContext context, IDailyStatsService dailyStatsService)
     {
         _context = context;
+        _dailyStatsService = dailyStatsService;
     }
 
     // GET: api/subhabits/habit/{habitId}
@@ -354,6 +356,16 @@ public class SubHabitsController : ControllerBase
             }
 
             await _context.SaveChangesAsync();
+            try
+            {
+                var updatedStats = await _dailyStatsService.CalculateAndStoreDailyStatsAsync(date.Date);
+                Console.WriteLine($"📊 Updated daily stats after parent habit completion: {updatedStats.CompletedTasks}/{updatedStats.TotalTasks}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error updating daily stats: {ex.Message}");
+                // Don't fail the entire operation if stats update fails
+            }
         }
 
         return allCompleted;
