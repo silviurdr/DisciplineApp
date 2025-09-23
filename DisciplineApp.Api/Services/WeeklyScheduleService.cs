@@ -274,6 +274,7 @@ public class WeeklyScheduleService
     {
         var weeklyHabits = habits.Where(h => h.Frequency == HabitFrequency.Weekly).ToList();
         var today = DateTime.Today;
+        var weekStart = schedule.WeekStart;
 
         foreach (var habit in weeklyHabits)
         {
@@ -281,30 +282,53 @@ public class WeeklyScheduleService
                               habit.Name.Contains("Vacuum") ? 2 :
                               habit.Name.Contains("Bathroom") ? 1 : 1;
 
+            // ✅ NEW: Get last completion date for this habit
+            var lastCompleted = await GetLastCompletionDate(habit.Id);
+
+            // ✅ NEW: Check completions THIS WEEK
+            var thisWeekCompletions = await _context.HabitCompletions
+                .Where(c => c.HabitId == habit.Id &&
+                           c.IsCompleted &&
+                           c.Date >= weekStart &&
+                           c.Date <= weekStart.AddDays(6))
+                .CountAsync();
+
+            // ✅ SMART: Only schedule if we haven't met the weekly target yet
+            var remainingThisWeek = timesPerWeek - thisWeekCompletions;
+
+            Console.WriteLine($"🔄 {habit.Name}: Last completed {lastCompleted?.ToString("yyyy-MM-dd") ?? "never"}, " +
+                             $"completed {thisWeekCompletions}/{timesPerWeek} this week, need {remainingThisWeek} more");
+
+            if (remainingThisWeek <= 0)
+            {
+                Console.WriteLine($"✅ {habit.Name}: Weekly target already met, skipping scheduling");
+                continue; // Target already met this week
+            }
+
             var scheduled = 0;
 
-            // ✅ Calculate time loads for each day using the CURRENT schedule
+            // Calculate time loads and sort by utilization
             var dayTimeLoads = new List<(DailySchedule day, int currentMinutes, int maxMinutes, double utilization)>();
 
             foreach (var day in schedule.DailySchedules.Where(d => d.Date.Date != today.Date))
             {
-                var currentLoad = await CalculateDayTimeLoad(day.Date, schedule); // ✅ Pass current schedule!
+                var currentLoad = await CalculateDayTimeLoad(day.Date, schedule);
                 var maxLoad = GetMaxDailyMinutes(day.Date);
                 var utilization = (double)currentLoad / maxLoad * 100;
 
                 dayTimeLoads.Add((day, currentLoad, maxLoad, utilization));
             }
 
-            // Sort by utilization percentage (lowest first), but only include days that won't be overloaded
+            // Sort by utilization, only include days that won't be overloaded
             var sortedDays = dayTimeLoads
-                .Where(d => d.currentMinutes + habit.EstimatedDurationMinutes <= d.maxMinutes) // Won't be overloaded
+                .Where(d => d.currentMinutes + habit.EstimatedDurationMinutes <= d.maxMinutes)
                 .OrderBy(d => d.utilization)
                 .Select(d => d.day)
                 .ToList();
 
             foreach (var day in sortedDays)
             {
-                if (scheduled >= timesPerWeek) break;
+                if (scheduled >= remainingThisWeek) break; // ✅ Only schedule what's needed
 
                 // Skip if moved away or already deferred here
                 var wasMovedFromThisDay = deferrals.Any(d =>
@@ -320,9 +344,10 @@ public class WeeklyScheduleService
                         HabitName = habit.Name,
                         Description = habit.Description,
                         Priority = SchedulePriority.Required,
-                        Reason = $"Weekly target: {scheduled + 1}/{timesPerWeek}",
+                        Reason = $"Weekly target: {thisWeekCompletions + scheduled + 1}/{timesPerWeek} " +
+                               $"(last completed: {lastCompleted?.ToString("MMM dd") ?? "never"})",
                         Frequency = habit.Frequency.ToString(),
-                        EstimatedDurationMinutes = habit.EstimatedDurationMinutes, // ✅ Include duration
+                        EstimatedDurationMinutes = habit.EstimatedDurationMinutes,
                         IsRequired = true,
                         IsCompleted = false,
                         IsAdHoc = false
@@ -330,7 +355,8 @@ public class WeeklyScheduleService
                     scheduled++;
 
                     var dayLoad = dayTimeLoads.First(d => d.day.Date.Date == day.Date.Date);
-                    Console.WriteLine($"📌 Scheduled {habit.Name} ({habit.EstimatedDurationMinutes}m) to {day.Date:yyyy-MM-dd} (utilization: {dayLoad.utilization:F1}%)");
+                    Console.WriteLine($"📌 Scheduled {habit.Name} ({habit.EstimatedDurationMinutes}m) to {day.Date:yyyy-MM-dd} " +
+                                    $"(utilization: {dayLoad.utilization:F1}%)");
                 }
             }
         }
@@ -387,53 +413,116 @@ public class WeeklyScheduleService
 
         foreach (var habit in monthlyHabits)
         {
-            var monthStart = new DateTime(schedule.WeekStart.Year, schedule.WeekStart.Month, 1);
+            // ✅ NEW: Get last completion date
+            var lastCompleted = await GetLastCompletionDate(habit.Id);
+
+            // ✅ NEW: Calculate when this habit is actually due again
+            var dueDate = CalculateNextDueDate(habit.Frequency, lastCompleted, today);
+
+            // ✅ SMART: Only schedule if due within this week or overdue
+            var weekEnd = schedule.WeekEnd;
+            var isDueThisWeek = dueDate <= weekEnd;
+            var isOverdue = dueDate < today;
+
+            Console.WriteLine($"🔄 {habit.Name}: Last completed {lastCompleted?.ToString("yyyy-MM-dd") ?? "never"}, " +
+                             $"next due {dueDate:yyyy-MM-dd}, due this week: {isDueThisWeek}");
+
+            if (!isDueThisWeek && !isOverdue)
+            {
+                Console.WriteLine($"⏰ {habit.Name}: Not due until {dueDate:yyyy-MM-dd}, skipping scheduling");
+                continue; // Not due yet
+            }
+
+            // Check if already completed this month
+            var monthStart = new DateTime(today.Year, today.Month, 1);
             var monthEnd = monthStart.AddMonths(1).AddDays(-1);
 
-            var completedThisMonth = recentCompletions
-                .Any(c => c.HabitId == habit.Id && c.Date >= monthStart && c.Date <= monthEnd);
+            var completedThisMonth = await _context.HabitCompletions
+                .AnyAsync(c => c.HabitId == habit.Id &&
+                              c.IsCompleted &&
+                              c.Date >= monthStart &&
+                              c.Date <= monthEnd);
 
-            if (!completedThisMonth)
+            if (completedThisMonth)
             {
-                var isAlreadyDeferredThisWeek = deferrals.Any(d =>
-                    d.HabitId == habit.Id &&
-                    d.DeferredToDate >= schedule.WeekStart &&
-                    d.DeferredToDate <= schedule.WeekEnd);
+                Console.WriteLine($"✅ {habit.Name}: Already completed this month, skipping");
+                continue; // Already done this month
+            }
 
-                if (!isAlreadyDeferredThisWeek)
+            // Check if already deferred this week
+            var isAlreadyDeferredThisWeek = deferrals.Any(d =>
+                d.HabitId == habit.Id &&
+                d.DeferredToDate >= schedule.WeekStart &&
+                d.DeferredToDate <= schedule.WeekEnd);
+
+            if (!isAlreadyDeferredThisWeek)
+            {
+                // Find optimal day, excluding today
+                var optimalDay = schedule.DailySchedules
+                    .Where(day => day.Date.Date != today.Date &&
+                                 !deferrals.Any(d => d.HabitId == habit.Id &&
+                                               d.OriginalDate.Date == day.Date.Date))
+                    .OrderBy(d => d.ScheduledHabits.Sum(h => h.EstimatedDurationMinutes)) // Duration-based sorting
+                    .FirstOrDefault();
+
+                if (optimalDay != null)
                 {
-                    // ✅ EXCLUDE TODAY from optimal day selection
-                    var optimalDay = schedule.DailySchedules
-                        .Where(day => day.Date.Date != today.Date && // ← EXCLUDE TODAY!
-                                     !deferrals.Any(d => d.HabitId == habit.Id &&
-                                                   d.OriginalDate.Date == day.Date.Date))
-                        .OrderBy(d => d.ScheduledHabits.Count)
-                        .FirstOrDefault();
+                    var urgencyLabel = isOverdue ? "OVERDUE" :
+                                      dueDate <= today.AddDays(3) ? "DUE SOON" : "DUE";
 
-                    if (optimalDay != null)
+                    optimalDay.ScheduledHabits.Add(new ScheduledHabit
                     {
-                        optimalDay.ScheduledHabits.Add(new ScheduledHabit
-                        {
-                            HabitId = habit.Id,
-                            HabitName = habit.Name,
-                            Description = habit.Description,
-                            Priority = SchedulePriority.Required,
-                            Reason = "Monthly requirement",
-                            Frequency = habit.Frequency.ToString(),
-                            IsRequired = true,
-                            IsCompleted = false,
-                            IsAdHoc = false
-                        });
+                        HabitId = habit.Id,
+                        HabitName = habit.Name,
+                        Description = habit.Description,
+                        Priority = isOverdue ? SchedulePriority.Critical : SchedulePriority.Required,
+                        Reason = $"Monthly requirement ({urgencyLabel}: {dueDate:MMM dd}) " +
+                               $"(last: {lastCompleted?.ToString("MMM dd") ?? "never"})",
+                        Frequency = habit.Frequency.ToString(),
+                        EstimatedDurationMinutes = habit.EstimatedDurationMinutes,
+                        IsRequired = true,
+                        IsCompleted = false,
+                        IsAdHoc = false
+                    });
 
-                        Console.WriteLine($"📅 Monthly {habit.Name} scheduled to {optimalDay.Date:yyyy-MM-dd} (excluded today)");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"⚠️ Could not schedule monthly {habit.Name} - no suitable days (today excluded)");
-                    }
+                    Console.WriteLine($"📅 Monthly {habit.Name} scheduled to {optimalDay.Date:yyyy-MM-dd} " +
+                                    $"({urgencyLabel}, last completed: {lastCompleted?.ToString("MMM dd") ?? "never"})");
                 }
             }
         }
+    }
+
+    private DateTime CalculateNextDueDate(HabitFrequency frequency, DateTime? lastCompleted, DateTime today)
+    {
+        if (lastCompleted == null)
+        {
+            return today; // Never done, due now
+        }
+
+        return frequency switch
+        {
+            HabitFrequency.Daily => lastCompleted.Value.AddDays(1),
+            HabitFrequency.EveryTwoDays => lastCompleted.Value.AddDays(2),
+            HabitFrequency.Weekly => lastCompleted.Value.AddDays(7),
+            HabitFrequency.Monthly => lastCompleted.Value.AddMonths(1),
+            HabitFrequency.Seasonal => lastCompleted.Value.AddMonths(4), // 3 times per 8-month season
+            _ => today
+        };
+    }
+
+    private bool IsInSeason(Habit habit, DateTime date)
+    {
+        if (habit.Frequency != HabitFrequency.Seasonal)
+            return true;
+
+        // Windows cleaning: March (3) to October (10)
+        if (habit.Name.Contains("Windows"))
+        {
+            return date.Month >= 3 && date.Month <= 10;
+        }
+
+        // Add other seasonal habits as needed
+        return true; // Default to always in season
     }
 
     private async Task AssignSeasonalHabits(WeekSchedule schedule, List<Habit> habits,
@@ -444,44 +533,66 @@ public class WeeklyScheduleService
 
         foreach (var habit in seasonalHabits)
         {
-            // Check if completed recently (within 4 months for seasonal tasks)
-            var recentCompletion = recentCompletions
-                .FirstOrDefault(c => c.HabitId == habit.Id && c.Date >= DateTime.Now.AddMonths(-4));
-
-            if (recentCompletion == null)
+            // ✅ NEW: Check if we're in the right season (March-October for windows)
+            var isInSeason = IsInSeason(habit, today);
+            if (!isInSeason)
             {
-                var isAlreadyDeferredThisWeek = deferrals.Any(d =>
-                    d.HabitId == habit.Id &&
-                    d.DeferredToDate >= schedule.WeekStart &&
-                    d.DeferredToDate <= schedule.WeekEnd);
+                Console.WriteLine($"🌍 {habit.Name}: Out of season, skipping");
+                continue;
+            }
 
-                if (!isAlreadyDeferredThisWeek)
+            // Get last completion date
+            var lastCompleted = await GetLastCompletionDate(habit.Id);
+
+            // ✅ NEW: Calculate seasonal due date (every 4 months for 3x per season)
+            var dueDate = CalculateNextDueDate(habit.Frequency, lastCompleted, today);
+            var isDueThisWeek = dueDate <= schedule.WeekEnd;
+            var isOverdue = dueDate < today;
+
+            Console.WriteLine($"🔄 {habit.Name}: Last completed {lastCompleted?.ToString("yyyy-MM-dd") ?? "never"}, " +
+                             $"next due {dueDate:yyyy-MM-dd}, in season: {isInSeason}, due this week: {isDueThisWeek}");
+
+            if (!isDueThisWeek && !isOverdue)
+            {
+                Console.WriteLine($"⏰ {habit.Name}: Not due until {dueDate:yyyy-MM-dd}, skipping");
+                continue;
+            }
+
+            // Rest of the seasonal assignment logic...
+            var isAlreadyDeferredThisWeek = deferrals.Any(d =>
+                d.HabitId == habit.Id &&
+                d.DeferredToDate >= schedule.WeekStart &&
+                d.DeferredToDate <= schedule.WeekEnd);
+
+            if (!isAlreadyDeferredThisWeek)
+            {
+                var optimalDay = schedule.DailySchedules
+                    .Where(day => day.Date.Date != today.Date &&
+                                 !deferrals.Any(d => d.HabitId == habit.Id &&
+                                               d.OriginalDate.Date == day.Date.Date))
+                    .OrderBy(d => d.ScheduledHabits.Sum(h => h.EstimatedDurationMinutes))
+                    .FirstOrDefault();
+
+                if (optimalDay != null)
                 {
-                    // ✅ EXCLUDE TODAY from optimal day selection
-                    var optimalDay = schedule.DailySchedules
-                        .Where(day => day.Date.Date != today.Date && // ← EXCLUDE TODAY!
-                                     !deferrals.Any(d => d.HabitId == habit.Id &&
-                                                   d.OriginalDate.Date == day.Date.Date))
-                        .OrderBy(d => d.ScheduledHabits.Count)
-                        .FirstOrDefault();
+                    var urgencyLabel = isOverdue ? "OVERDUE" : "DUE";
 
-                    if (optimalDay != null)
+                    optimalDay.ScheduledHabits.Add(new ScheduledHabit
                     {
-                        optimalDay.ScheduledHabits.Add(new ScheduledHabit
-                        {
-                            HabitId = habit.Id,
-                            HabitName = habit.Name,
-                            Description = habit.Description,
-                            Priority = SchedulePriority.Required,
-                            Reason = "Seasonal requirement",
-                            Frequency = habit.Frequency.ToString(),
-                            IsRequired = true,
-                            IsCompleted = false,
-                            IsAdHoc = false
-                        });
+                        HabitId = habit.Id,
+                        HabitName = habit.Name,
+                        Description = habit.Description,
+                        Priority = isOverdue ? SchedulePriority.Critical : SchedulePriority.Required,
+                        Reason = $"Seasonal requirement ({urgencyLabel}: {dueDate:MMM dd}) " +
+                               $"(last: {lastCompleted?.ToString("MMM dd") ?? "never"})",
+                        Frequency = habit.Frequency.ToString(),
+                        EstimatedDurationMinutes = habit.EstimatedDurationMinutes,
+                        IsRequired = true,
+                        IsCompleted = false,
+                        IsAdHoc = false
+                    });
 
-                        Console.WriteLine($"📅 Seasonal {habit.Name} scheduled to {optimalDay.Date:yyyy-MM-dd} (excluded today)");
-                    }
+                    Console.WriteLine($"📅 Seasonal {habit.Name} scheduled to {optimalDay.Date:yyyy-MM-dd}");
                 }
             }
         }
@@ -794,6 +905,16 @@ public class WeeklyScheduleService
         return null; // No available date found
     }
 
+    private async Task<DateTime?> GetLastCompletionDate(int habitId)
+    {
+        var lastCompletion = await _context.HabitCompletions
+            .Where(c => c.HabitId == habitId && c.IsCompleted)
+            .OrderByDescending(c => c.Date)
+            .FirstOrDefaultAsync();
+
+        return lastCompletion?.Date;
+    }
+
     private async Task<bool> IsDateAvailable(Habit habit, DateTime date)
     {
         // Check if already deferred to this date
@@ -917,5 +1038,6 @@ public enum SchedulePriority
 {
     Required,
     Optional,
-    Bonus
+    Bonus,
+    Critical
 }
