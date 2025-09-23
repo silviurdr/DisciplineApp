@@ -283,21 +283,21 @@ public class WeeklyScheduleService
 
             var scheduled = 0;
 
-            // ✅ Calculate time loads for each day and sort by utilization percentage
+            // ✅ Calculate time loads for each day using the CURRENT schedule
             var dayTimeLoads = new List<(DailySchedule day, int currentMinutes, int maxMinutes, double utilization)>();
 
             foreach (var day in schedule.DailySchedules.Where(d => d.Date.Date != today.Date))
             {
-                var currentLoad = await CalculateDayTimeLoad(day.Date);
+                var currentLoad = await CalculateDayTimeLoad(day.Date, schedule); // ✅ Pass current schedule!
                 var maxLoad = GetMaxDailyMinutes(day.Date);
                 var utilization = (double)currentLoad / maxLoad * 100;
 
                 dayTimeLoads.Add((day, currentLoad, maxLoad, utilization));
             }
 
-            // Sort by utilization percentage (lowest first)
+            // Sort by utilization percentage (lowest first), but only include days that won't be overloaded
             var sortedDays = dayTimeLoads
-                .Where(d => d.currentMinutes + habit.EstimatedDurationMinutes <= d.maxMinutes) // Only days that won't be overloaded
+                .Where(d => d.currentMinutes + habit.EstimatedDurationMinutes <= d.maxMinutes) // Won't be overloaded
                 .OrderBy(d => d.utilization)
                 .Select(d => d.day)
                 .ToList();
@@ -337,12 +337,12 @@ public class WeeklyScheduleService
     }
 
 
-    private async Task<int> CalculateDayTimeLoad(DateTime date)
+    private async Task<int> CalculateDayTimeLoad(DateTime date, WeekSchedule currentSchedule)
     {
-        var weekStart = GetWeekStart(date);
-        var schedule = await GenerateWeekSchedule(weekStart);
+        // ❌ REMOVED: var schedule = await GenerateWeekSchedule(weekStart); // This caused infinite loop!
 
-        var daySchedule = schedule.DailySchedules.FirstOrDefault(d => d.Date.Date == date.Date);
+        // ✅ USE THE PASSED SCHEDULE INSTEAD
+        var daySchedule = currentSchedule.DailySchedules.FirstOrDefault(d => d.Date.Date == date.Date);
         var scheduledMinutes = daySchedule?.ScheduledHabits?.Sum(h => h.EstimatedDurationMinutes) ?? 0;
 
         // Count deferred tasks coming TO this day
@@ -352,7 +352,7 @@ public class WeeklyScheduleService
             .ToListAsync();
         var deferredMinutes = deferredTasks.Sum(d => d.Habit.EstimatedDurationMinutes);
 
-        // Count ad-hoc tasks for this day (assume 15 minutes each if no duration specified)
+        // Count ad-hoc tasks for this day
         var adHocTasks = await _context.AdHocTasks
             .Where(t => t.Date.Date == date.Date && !t.IsCompleted)
             .ToListAsync();
@@ -604,16 +604,47 @@ public class WeeklyScheduleService
             }
         }
 
-        // Calculate time load for each remaining day
+        // ✅ CREATE A TEMPORARY MINIMAL SCHEDULE for calculation purposes only
+        var tempSchedule = new WeekSchedule
+        {
+            WeekStart = weekStart,
+            WeekEnd = weekEnd,
+            DailySchedules = remainingDaysThisWeek.Select(date => new DailySchedule
+            {
+                Date = date,
+                ScheduledHabits = new List<ScheduledHabit>() // Start empty, will be calculated
+            }).ToList()
+        };
+
+        // Calculate basic scheduled load for each day (without the habit we're trying to defer)
+        foreach (var day in tempSchedule.DailySchedules)
+        {
+            // Get habits that would normally be scheduled on this day (basic estimation)
+            var dailyHabits = await _context.Habits
+                .Where(h => h.IsActive && h.Frequency == HabitFrequency.Daily)
+                .ToListAsync();
+
+            // Add estimated daily habits to temp schedule
+            foreach (var dailyHabit in dailyHabits)
+            {
+                day.ScheduledHabits.Add(new ScheduledHabit
+                {
+                    HabitId = dailyHabit.Id,
+                    EstimatedDurationMinutes = dailyHabit.EstimatedDurationMinutes
+                });
+            }
+        }
+
+        // Calculate time load for each remaining day using the temp schedule
         var dayLoads = new Dictionary<DateTime, (int currentMinutes, int maxMinutes, double utilizationPercent)>();
 
         foreach (var date in remainingDaysThisWeek)
         {
-            var currentLoadUpdated = await CalculateDayTimeLoad(date);
-            var maxLoadUpdated = GetMaxDailyMinutes(date);
-            var utilizationUpdated = (double)currentLoadUpdated / maxLoadUpdated * 100;
+            var currentLoadUp = await CalculateDayTimeLoad(date, tempSchedule); // ✅ Pass schedule!
+            var maxLoadUp = GetMaxDailyMinutes(date);
+            var utilizationUP = (double)currentLoadUp / maxLoadUp * 100;
 
-            dayLoads[date] = (currentLoadUpdated, maxLoadUpdated, utilizationUpdated);
+            dayLoads[date] = (currentLoadUp, maxLoadUp, utilizationUP);
         }
 
         // Filter out dates that aren't suitable for this habit
@@ -653,6 +684,7 @@ public class WeeklyScheduleService
 
         return optimalDate;
     }
+
 
     private async Task<int> CalculateDayTaskLoad(DateTime date)
     {
