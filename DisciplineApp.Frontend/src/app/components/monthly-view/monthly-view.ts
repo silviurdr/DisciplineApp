@@ -410,6 +410,116 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
     })));
   }
 
+  isPastCompletedNotInCurrentStreak(day: MonthlyDayData): boolean {
+  // Only apply to completed days that are in the past
+  if (!day.isCompleted || day.isToday || day.isFuture) {
+    return false;
+  }
+
+  // If we don't have streak data, assume all past completed days are not in current streak
+  if (!this.monthlyStats) {
+    return true;
+  }
+
+  // Find the current active streak
+  const currentStreak = this.findCurrentStreak();
+  
+  if (!currentStreak) {
+    // No current streak, so all past completed days are standalone
+    return true;
+  }
+
+  // Check if this day falls within the current streak period
+  const dayDate = new Date(day.date);
+  const isInCurrentStreak = dayDate >= currentStreak.startDate && dayDate <= currentStreak.endDate;
+  
+  return !isInCurrentStreak;
+}
+
+private findCurrentStreak(): { startDate: Date, endDate: Date } | null {
+  const today = new Date();
+  
+  // Look for the most recent completed day to determine current streak
+  const completedDays = this.calendarDays
+    .filter(day => day.isCompleted)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  
+  if (completedDays.length === 0) {
+    return null;
+  }
+
+  // Start from the most recent completed day and work backwards
+  const mostRecentCompleted = new Date(completedDays[0].date);
+  
+  // If the most recent completion is more than 2 days ago, no current streak
+  const daysSinceLastCompletion = Math.floor((today.getTime() - mostRecentCompleted.getTime()) / (1000 * 60 * 60 * 24));
+  if (daysSinceLastCompletion > 2) {
+    return null; // Streak is broken
+  }
+
+  // Find the start of the current streak by going backwards
+  let streakStartDate = mostRecentCompleted;
+  let currentDate = new Date(mostRecentCompleted);
+  
+  while (currentDate.getTime() > today.getTime() - (30 * 24 * 60 * 60 * 1000)) { // Look back 30 days max
+    currentDate.setDate(currentDate.getDate() - 1);
+    const currentDateString = this.formatDateString(currentDate);
+    
+    const dayData = this.calendarDays.find(d => d.dateString === currentDateString);
+    
+    if (dayData && dayData.isCompleted) {
+      streakStartDate = new Date(currentDate);
+    } else {
+      // Found a gap, streak starts after this gap
+      break;
+    }
+  }
+
+  return {
+    startDate: streakStartDate,
+    endDate: mostRecentCompleted
+  };
+}
+
+getDayClasses(day: MonthlyDayData): string[] {
+  const classes: string[] = ['calendar-day'];
+  
+  if (!day.isCurrentMonth) {
+    classes.push('other-month');
+  }
+  
+  if (day.isToday) {
+    classes.push('today');
+  }
+  
+  if (day.isFuture) {
+    classes.push('future');
+  }
+  
+  if (day.isCompleted) {
+    classes.push('completed');
+    
+    // ✅ NEW: Add darker shade for past completed days not in current streak
+    if (this.isPastCompletedNotInCurrentStreak(day)) {
+      classes.push('past-not-in-streak');
+    }
+  } else if (day.isPartiallyCompleted) {
+    classes.push('partial');
+  } else if (!day.isFuture && !day.isBeforeStreakStart) {
+    classes.push('incomplete');
+  }
+  
+  if (day.isBeforeStreakStart) {
+    classes.push('ignored-day');
+  }
+  
+  return classes;
+}
+
+
+private formatDateString(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
   // ===================================
   // EXISTING FALLBACK METHOD (preserved)
   // ===================================
