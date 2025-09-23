@@ -436,20 +436,44 @@ public class WeeklyScheduleService
     // ==============================================================================
     // SMART DEFERRAL METHOD (For the API endpoints)
     // ==============================================================================
-    public async Task<SmartDeferralResult> SmartDeferTask(int habitId, DateTime fromDate, string reason = "User requested")
+    public async Task<SmartDeferralResult> SmartDeferTask(int habitId, DateTime fromDate, string reason)
     {
         var habit = await _context.Habits.FindAsync(habitId);
-        if (habit == null)
+        if (habit == null || !habit.IsActive)
         {
             return new SmartDeferralResult
             {
                 Success = false,
-                Message = "Habit not found."
+                Message = "Habit not found or inactive"
             };
         }
 
-        // Find next available date
-        var nextAvailableDate = await FindNextAvailableDate(habit, fromDate);
+        // ✅ CRITICAL: Daily tasks can NEVER be deferred!
+        if (habit.Frequency == HabitFrequency.Daily)
+        {
+            return new SmartDeferralResult
+            {
+                Success = false,
+                Message = "Daily habits cannot be deferred. They must be completed today to maintain the streak."
+            };
+        }
+
+        // Calculate deferral info before making changes
+        var deferralInfo = await CalculateDeferralInfo(habit, fromDate);
+        if (deferralInfo.DeferralsUsed >= deferralInfo.MaxDeferrals)
+        {
+            return new SmartDeferralResult
+            {
+                Success = false,
+                Message = $"Maximum deferrals ({deferralInfo.MaxDeferrals}) already used for this period"
+            };
+        }
+
+        // ✅ IMPROVEMENT 1: NO REPLACEMENT TASKS - Simply remove from today
+        // The original algorithm was adding replacement tasks, which we don't want
+
+        // ✅ IMPROVEMENT 2: Smart distribution across remaining week
+        var nextAvailableDate = await FindOptimalDeferralDate(habit, fromDate);
         if (nextAvailableDate == null)
         {
             return new SmartDeferralResult
@@ -463,15 +487,164 @@ public class WeeklyScheduleService
         await CreateDeferralRecord(habitId, fromDate, nextAvailableDate.Value, reason);
 
         // Calculate updated deferral info
-        var deferralInfo = await CalculateDeferralInfo(habit, fromDate);
+        var updatedDeferralInfo = await CalculateDeferralInfo(habit, fromDate);
 
         return new SmartDeferralResult
         {
             Success = true,
             Message = $"Task moved to {nextAvailableDate.Value:MMM dd}",
             NewDueDate = nextAvailableDate.Value,
-            DeferralsUsed = deferralInfo.DeferralsUsed,
-            RemainingDeferrals = deferralInfo.MaxDeferrals - deferralInfo.DeferralsUsed
+            DeferralsUsed = updatedDeferralInfo.DeferralsUsed,
+            RemainingDeferrals = updatedDeferralInfo.MaxDeferrals - updatedDeferralInfo.DeferralsUsed
+        };
+    }
+
+    private async Task<DateTime?> FindOptimalDeferralDate(Habit habit, DateTime fromDate)
+    {
+        var weekStart = GetWeekStart(fromDate);
+        var weekEnd = weekStart.AddDays(6);
+        var today = DateTime.Today;
+
+        // Get remaining days in current week (excluding today)
+        var remainingDaysThisWeek = new List<DateTime>();
+        for (var date = fromDate.AddDays(1); date <= weekEnd; date = date.AddDays(1))
+        {
+            remainingDaysThisWeek.Add(date);
+        }
+
+        // If no remaining days in current week, look at next week
+        if (!remainingDaysThisWeek.Any())
+        {
+            var nextWeekStart = weekEnd.AddDays(1);
+            var nextWeekEnd = nextWeekStart.AddDays(6);
+
+            for (var date = nextWeekStart; date <= nextWeekEnd; date = date.AddDays(1))
+            {
+                remainingDaysThisWeek.Add(date);
+            }
+        }
+
+        // Calculate task load for each remaining day
+        var dayLoads = new Dictionary<DateTime, int>();
+
+        foreach (var date in remainingDaysThisWeek)
+        {
+            var loadCount = await CalculateDayTaskLoad(date);
+            dayLoads[date] = loadCount;
+        }
+
+        // Filter out dates that aren't suitable for this habit
+        var suitableDates = new List<DateTime>();
+
+        foreach (var date in remainingDaysThisWeek)
+        {
+            if (await IsDateSuitableForHabit(habit, date))
+            {
+                suitableDates.Add(date);
+            }
+        }
+
+        if (!suitableDates.Any())
+        {
+            return null; // No suitable dates found
+        }
+
+        // ✅ SMART DISTRIBUTION: Choose date with lowest task load
+        var optimalDate = suitableDates
+            .OrderBy(date => dayLoads[date])
+            .ThenBy(date => date) // If tie, choose earlier date
+            .First();
+
+        Console.WriteLine($"📅 Smart deferral: Moving {habit.Name} to {optimalDate:yyyy-MM-dd} (load: {dayLoads[optimalDate]} tasks)");
+
+        return optimalDate;
+    }
+
+    private async Task<int> CalculateDayTaskLoad(DateTime date)
+    {
+        // Count scheduled habits for this day
+        var weekStart = GetWeekStart(date);
+        var schedule = await GenerateWeekSchedule(weekStart);
+
+        var daySchedule = schedule.DailySchedules.FirstOrDefault(d => d.Date.Date == date.Date);
+        var scheduledCount = daySchedule?.ScheduledHabits?.Count ?? 0;
+
+        // Count deferred tasks coming TO this day
+        var deferredToThisDay = await _context.TaskDeferrals
+            .CountAsync(d => d.DeferredToDate.Date == date.Date && !d.IsCompleted);
+
+        // Count ad-hoc tasks for this day
+        var adHocCount = await _context.AdHocTasks
+            .CountAsync(t => t.Date.Date == date.Date && !t.IsCompleted);
+
+        var totalLoad = scheduledCount + deferredToThisDay + adHocCount;
+
+        Console.WriteLine($"📊 Day load for {date:yyyy-MM-dd}: {scheduledCount} scheduled + {deferredToThisDay} deferred + {adHocCount} ad-hoc = {totalLoad} total");
+
+        return totalLoad;
+    }
+
+    private async Task<bool> IsDateSuitableForHabit(Habit habit, DateTime date)
+    {
+        // Check if already deferred to this date
+        var existingDeferral = await _context.TaskDeferrals
+            .AnyAsync(d => d.HabitId == habit.Id && d.DeferredToDate.Date == date.Date && !d.IsCompleted);
+
+        if (existingDeferral)
+        {
+            return false; // Already deferred to this date
+        }
+
+        // Check if already naturally scheduled for this date
+        var weekStart = GetWeekStart(date);
+        var schedule = await GenerateWeekSchedule(weekStart);
+        var daySchedule = schedule.DailySchedules.FirstOrDefault(d => d.Date.Date == date.Date);
+
+        if (daySchedule?.ScheduledHabits?.Any(h => h.HabitId == habit.Id) == true)
+        {
+            return false; // Already scheduled naturally
+        }
+
+        // Additional frequency-specific logic
+        switch (habit.Frequency)
+        {
+            case HabitFrequency.Daily:
+                return false; // ✅ Daily habits should NEVER be deferred - they can't reach this point anyway
+
+            case HabitFrequency.EveryTwoDays:
+                // Check if there's a 1-day gap from the last completion
+                var lastCompletion = await _context.HabitCompletions
+                    .Where(c => c.HabitId == habit.Id && c.IsCompleted)
+                    .OrderByDescending(c => c.Date)
+                    .FirstOrDefaultAsync();
+
+                if (lastCompletion == null) return true;
+                return (date - lastCompletion.Date).Days >= 1;
+
+            case HabitFrequency.Weekly:
+                // Weekly habits can be moved within the same week or to next week
+                return true;
+
+            case HabitFrequency.Monthly:
+                // Monthly habits should stay within the same month if possible
+                var originalMonth = DateTime.Today.Month;
+                return date.Month == originalMonth || DateTime.Today.Day > 25; // Allow month overflow near end
+
+            default:
+                return true;
+        }
+    }
+
+    private string GetDeferralFailureMessage(HabitFrequency frequency)
+    {
+        return frequency switch
+        {
+            HabitFrequency.Daily => "Cannot reschedule daily task. All remaining days in current and next week are fully booked.",
+            HabitFrequency.EveryTwoDays => "Cannot reschedule this task. No suitable days available that respect the 2-day cycle.",
+            HabitFrequency.Weekly => "Cannot reschedule weekly task. All remaining days this week are unsuitable or overloaded.",
+            HabitFrequency.Monthly => "Cannot reschedule monthly task. No suitable days remaining this month.",
+            HabitFrequency.Seasonal => "Cannot reschedule seasonal task. No nearby dates are available or suitable.",
+            _ => "Cannot reschedule this task. No optimal dates found with current workload distribution."
         };
     }
 
@@ -500,18 +673,6 @@ public class WeeklyScheduleService
             .AnyAsync(d => d.HabitId == habit.Id && d.DeferredToDate.Date == date.Date);
 
         return !existingDeferral;
-    }
-
-    private string GetDeferralFailureMessage(HabitFrequency frequency)
-    {
-        return frequency switch
-        {
-            HabitFrequency.Daily => "Cannot move daily task. All upcoming dates already scheduled.",
-            HabitFrequency.EveryTwoDays => "Cannot move this task. All available dates within the 2-day cycle already have this habit scheduled.",
-            HabitFrequency.Monthly => "Cannot move this monthly task. All remaining days this month already have this habit scheduled.",
-            HabitFrequency.Seasonal => "Cannot move this seasonal task. All nearby dates already have this habit scheduled.",
-            _ => "Cannot move this task. No available dates found."
-        };
     }
 
     private async Task CreateDeferralRecord(int habitId, DateTime fromDate, DateTime toDate, string reason)
