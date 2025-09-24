@@ -259,16 +259,31 @@ async loadHabits(): Promise<void> {
     }
   }
 
-   async loadSubHabitsForHabit(habit: Habit): Promise<void> {
+async loadSubHabitsForHabit(habit: Habit): Promise<void> {
     try {
       const subHabits = await this.http.get<SubHabit[]>(`${this.apiUrl}/subhabits/habit/${habit.id}`).toPromise();
       habit.subHabits = subHabits || [];
       habit.hasSubHabits = habit.subHabits.length > 0;
     } catch (error) {
       console.error(`Error loading sub-habits for habit ${habit.id}:`, error);
+      // Set default values even on error - this ensures habits can still have sub-habits added
       habit.subHabits = [];
       habit.hasSubHabits = false;
     }
+  }
+
+    openSubHabitsManager(habitId: number): void {
+    // First, make sure the habit is expanded to show the sub-habits section
+    if (!this.expandedHabits.has(habitId)) {
+      this.expandedHabits.add(habitId);
+    }
+    
+    // Give the DOM a moment to update before showing the form
+    setTimeout(() => {
+      this.showSubHabitForm[habitId] = true;
+      this.editingSubHabit = null;
+      this.subHabitForm.reset();
+    }, 100);
   }
 
  async saveHabit(): Promise<void> {

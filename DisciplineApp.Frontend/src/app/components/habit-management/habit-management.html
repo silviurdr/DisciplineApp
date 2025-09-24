@@ -182,7 +182,6 @@
             <div class="habit-name-section">
               <div class="habit-name">{{ habit.name }}</div>
               <button 
-                *ngIf="habit.hasSubHabits" 
                 class="expand-btn"
                 [class.expanded]="isHabitExpanded(habit.id)"
                 (click)="toggleHabitExpansion(habit.id)"
@@ -210,7 +209,7 @@
           </div>
           
           <!-- Sub-Habits Section (Collapsible) -->
-          <div *ngIf="habit.hasSubHabits && isHabitExpanded(habit.id)" class="sub-habits-section">
+          <div *ngIf="isHabitExpanded(habit.id)" class="sub-habits-section">
             <div class="sub-habits-header">
               <h4>Sub-Tasks</h4>
               <button class="add-sub-habit-btn" (click)="showAddSubHabitForm(habit.id)">
@@ -273,8 +272,8 @@
           
           <div class="habit-actions">
             <button class="action-btn sub-habits-btn" 
-                    (click)="showAddSubHabitForm(habit.id)"
-                    title="Add sub-habits">
+                    (click)="openSubHabitsManager(habit.id)"
+                    title="Manage sub-habits">
               <span class="btn-icon">📋</span>
               Sub-Tasks
             </button>
@@ -401,8 +400,8 @@
           
           <div class="habit-actions">
             <button class="action-btn sub-habits-btn" 
-                    (click)="showAddSubHabitForm(habit.id)"
-                    title="Add sub-habits">
+                    (click)="openSubHabitsManager(habit.id)"
+                    title="Manage sub-habits">
               <span class="btn-icon">📋</span>
               Sub-Tasks
             </button>
@@ -465,8 +464,8 @@
             <div class="deadline-info" *ngIf="habit.hasDeadline">{{ habit.deadlineTime }}</div>
           </div>
           
-          <!-- Sub-Habits Section (same structure) -->
-          <div *ngIf="habit.hasSubHabits && isHabitExpanded(habit.id)" class="sub-habits-section">
+          <!-- Sub-Habits Section (Collapsible) -->
+          <div *ngIf="isHabitExpanded(habit.id)" class="sub-habits-section">
             <div class="sub-habits-header">
               <h4>Sub-Tasks</h4>
               <button class="add-sub-habit-btn" (click)="showAddSubHabitForm(habit.id)">
@@ -513,7 +512,7 @@
           </div>
           
           <div class="habit-actions">
-            <button class="action-btn sub-habits-btn" (click)="showAddSubHabitForm(habit.id)" title="Add sub-habits">
+            <button class="action-btn sub-habits-btn" (click)="openSubHabitsManager(habit.id)" title="Manage sub-habits">
               <span class="btn-icon">📋</span> Sub-Tasks
             </button>
             <button class="action-btn edit-btn" (click)="openEditForm(habit)" title="Edit habit">✎</button>
@@ -562,7 +561,7 @@
           </div>
           
           <!-- Sub-Habits Section (same pattern) -->
-          <div *ngIf="habit.hasSubHabits && isHabitExpanded(habit.id)" class="sub-habits-section">
+          <div *ngIf="isHabitExpanded(habit.id)" class="sub-habits-section">
             <div class="sub-habits-header">
               <h4>Sub-Tasks</h4>
               <button class="add-sub-habit-btn" (click)="showAddSubHabitForm(habit.id)">
@@ -605,7 +604,7 @@
           </div>
           
           <div class="habit-actions">
-            <button class="action-btn sub-habits-btn" (click)="showAddSubHabitForm(habit.id)" title="Add sub-habits">
+            <button class="action-btn sub-habits-btn" (click)="openSubHabitsManager(habit.id)" title="Manage sub-habits">
               <span class="btn-icon">📋</span> Sub-Tasks
             </button>
             <button class="action-btn edit-btn" (click)="openEditForm(habit)" title="Edit habit">✎</button>
@@ -654,7 +653,7 @@
           </div>
           
           <!-- Sub-Habits Section (same pattern) -->
-          <div *ngIf="habit.hasSubHabits && isHabitExpanded(habit.id)" class="sub-habits-section">
+          <div *ngIf="isHabitExpanded(habit.id)" class="sub-habits-section">
             <div class="sub-habits-header">
               <h4>Sub-Tasks</h4>
               <button class="add-sub-habit-btn" (click)="showAddSubHabitForm(habit.id)">
@@ -697,7 +696,7 @@
           </div>
           
           <div class="habit-actions">
-            <button class="action-btn sub-habits-btn" (click)="showAddSubHabitForm(habit.id)" title="Add sub-habits">
+            <button class="action-btn sub-habits-btn" (click)="openSubHabitsManager(habit.id)" title="Manage sub-habits">
               <span class="btn-icon">📋</span> Sub-Tasks
             </button>
             <button class="action-btn edit-btn" (click)="openEditForm(habit)" title="Edit habit">✎</button>
