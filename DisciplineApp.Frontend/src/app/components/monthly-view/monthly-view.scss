@@ -1194,3 +1194,126 @@
   
   /* The .completed and .completed-current-streak classes above will override these colors */
 }
+
+
+/* ===================================
+   ENHANCED STREAK HIGHLIGHTING SYSTEM
+   =================================== */
+
+/* ✅ REGULAR COMPLETED DAYS - Past days NOT in current streak */
+.calendar-day.completed {
+  background: #1f2f1e !important; /* Darker green background */
+  border: 1px solid rgba(76, 175, 80, 0.15) !important; /* Much more subtle border */
+  
+  .day-number {
+    color: #3a7a3d !important; /* Darker green for day number */
+  }
+  
+  .status-icon-weekly .completion-check {
+    color: #3a7a3d !important; /* Darker green checkmark */
+    opacity: 0.7; /* Slightly transparent for faded effect */
+  }
+}
+
+/* ✅ CURRENT STREAK DAYS - SUBTLE BRIGHT GREEN */
+.calendar-day.completed-current-streak {
+  /* Brighter but more subtle green for current streak days */
+  background: #2d4a2b !important; /* Brighter green background, less saturated */
+  border: 1px solid #4caf50 !important; /* Normal border thickness, just brighter color */
+  
+  .day-number {
+    color: #5cbf60 !important; /* Brighter green for day number, but not too bright */
+    font-weight: 500 !important; /* Slightly bolder but not too heavy */
+  }
+  
+  .status-icon-weekly .completion-check {
+    color: #5cbf60 !important; /* Match the day number color */
+    opacity: 1 !important; /* Fully opaque */
+    font-size: 1rem !important; /* Keep normal size */
+  }
+}
+
+/* ✅ HOVER EFFECTS - More Subtle */
+.calendar-day.completed:hover {
+  background: #243025 !important; /* Slightly lighter on hover */
+  border-color: rgba(76, 175, 80, 0.25) !important; /* Subtle border change */
+  
+  .day-number {
+    color: #4a8a4d !important; /* Brighter on hover */
+  }
+  
+  .status-icon-weekly .completion-check {
+    color: #4a8a4d !important; /* Brighter checkmark on hover */
+    opacity: 0.85 !important; /* Less transparent on hover */
+  }
+}
+
+.calendar-day.completed-current-streak:hover {
+  background: #345a32 !important; /* Slightly brighter on hover, but subtle */
+  border-color: #5cbf60 !important; /* Match the text color */
+  
+  .day-number {
+    color: #66bb6a !important; /* Slightly brighter on hover */
+  }
+  
+  .status-icon-weekly .completion-check {
+    color: #66bb6a !important; /* Match day number on hover */
+  }
+}
+
+/* ✅ WEEKLY VIEW STYLING (if using weekly calendar component) */
+.weekly-calendar .calendar-day.completed:not(.completed-current-streak) {
+  background: #1f2f1e !important;
+  border: 1px solid rgba(76, 175, 80, 0.15) !important;
+  box-shadow: none !important;
+  
+  .day-header .day-number {
+    color: #3a7a3d !important;
+  }
+  
+  .status-icon {
+    color: #3a7a3d !important;
+    opacity: 0.7;
+  }
+}
+
+.weekly-calendar .calendar-day.completed-current-streak {
+  background: #2d5a2b !important;
+  border: 2px solid #4caf50 !important;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.3) !important;
+  
+  .day-header .day-number {
+    color: #66bb6a !important;
+    font-weight: 600;
+  }
+  
+  .status-icon {
+    color: #66bb6a !important;
+  }
+}
+
+/* ===================================
+   EXISTING STYLES - Keep your current styles and add the above
+   =================================== */
+
+// Keep all your existing monthly-view.scss styles below this point
+// The streak highlighting styles above will override the completion colors
+
+/* Example of how this integrates with your existing styles: */
+.calendar-day {
+  /* Your existing base styles */
+  background: #2a2b3d;
+  border: 1px solid #35364a;
+  border-radius: 8px;
+  padding: 12px 8px;
+  min-height: 90px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  
+  /* The .completed and .completed-current-streak classes above will override these colors */
+}

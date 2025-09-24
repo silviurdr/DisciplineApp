@@ -128,7 +128,6 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadingService.show();
     this.initializeMonthlyView();
-    setTimeout(() => this.manuallyMarkCurrentStreak(), 1000);
   }
 
   ngOnDestroy(): void {
@@ -464,27 +463,41 @@ private findCurrentStreak(): { startDate: Date, endDate: Date } | null {
     return null; // Streak is broken
   }
 
-  // Find the start of the current streak by going backwards
-  let streakStartDate = mostRecentCompleted;
-  let currentDate = new Date(mostRecentCompleted);
+  // ✅ FIX: Find the start of the current streak by going backwards through completed days
+  // Instead of using date arithmetic, work through the actual completed days array
+  let streakStartIndex = 0;
   
-  while (currentDate.getTime() > today.getTime() - (30 * 24 * 60 * 60 * 1000)) { // Look back 30 days max
-    currentDate.setDate(currentDate.getDate() - 1);
-    const currentDateString = this.formatDateString(currentDate);
+  // Find consecutive completed days working backwards from the most recent
+  for (let i = 0; i < completedDays.length - 1; i++) {
+    const currentDay = new Date(completedDays[i].date);
+    const nextDay = new Date(completedDays[i + 1].date);
     
-    const dayData = this.calendarDays.find(d => d.dateString === currentDateString);
+    // Check if the days are consecutive (difference of 1 day)
+    const dayDifference = Math.floor((currentDay.getTime() - nextDay.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (dayData && dayData.isCompleted) {
-      streakStartDate = new Date(currentDate);
+    if (dayDifference === 1) {
+      // Days are consecutive, continue the streak
+      streakStartIndex = i + 1;
     } else {
-      // Found a gap, streak starts after this gap
+      // Gap found, streak ends here
       break;
     }
   }
+  
+  const streakStartDate = new Date(completedDays[streakStartIndex].date);
+  const streakEndDate = new Date(completedDays[0].date);
+
+  console.log('🎯 FIXED: Current streak found:', {
+    start: streakStartDate.toDateString(),
+    end: streakEndDate.toDateString(),
+    startDay: streakStartDate.getDate(),
+    endDay: streakEndDate.getDate(),
+    length: streakStartIndex + 1
+  });
 
   return {
     startDate: streakStartDate,
-    endDate: mostRecentCompleted
+    endDate: streakEndDate
   };
 }
 
