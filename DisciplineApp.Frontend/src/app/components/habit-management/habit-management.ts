@@ -296,7 +296,7 @@ async loadSubHabitsForHabit(habit: Habit): Promise<void> {
 async saveHabit(): Promise<void> {
     if (this.habitForm.invalid) return;
 
-    this.loading = true;
+    // Remove this.loading = true for form actions
     this.error = null;
 
     try {
@@ -343,9 +343,8 @@ async saveHabit(): Promise<void> {
     } catch (error) {
       this.error = this.editingHabit ? 'Failed to update habit' : 'Failed to create habit';
       console.error('Error saving habit:', error);
-    } finally {
-      this.loading = false;
     }
+    // Remove finally block with this.loading = false
   }
 
   // ===================================
@@ -392,17 +391,16 @@ async saveHabit(): Promise<void> {
  async deleteHabit(): Promise<void> {
     if (!this.habitToDelete) return;
 
-    this.loading = true;
+    // Remove loading state for quick actions
     try {
       await this.http.delete(`${this.apiUrl}/habits/${this.habitToDelete.id}`).toPromise();
       
       // Remove from local state instead of reloading
       this.habits = this.habits.filter(h => h.id !== this.habitToDelete!.id);
+      this.habitToDelete = null;
     } catch (error) {
       this.error = 'Failed to delete habit';
       console.error('Error deleting habit:', error);
-    } finally {
-      this.loading = false;
       this.habitToDelete = null;
     }
   }
@@ -461,7 +459,7 @@ async saveHabit(): Promise<void> {
 async saveSubHabit(habitId: number): Promise<void> {
     if (this.subHabitForm.invalid) return;
 
-    this.loading = true;
+    // Remove loading state for sub-habit actions
     try {
       const formValue = this.subHabitForm.value;
 
@@ -506,8 +504,6 @@ async saveSubHabit(habitId: number): Promise<void> {
     } catch (error) {
       this.error = this.editingSubHabit ? 'Failed to update sub-habit' : 'Failed to create sub-habit';
       console.error('Error saving sub-habit:', error);
-    } finally {
-      this.loading = false;
     }
   }
 
@@ -518,7 +514,7 @@ async saveSubHabit(habitId: number): Promise<void> {
 async deleteSubHabit(): Promise<void> {
     if (!this.subHabitToDelete) return;
 
-    this.loading = true;
+    // Remove loading state for delete actions
     try {
       await this.http.delete(`${this.apiUrl}/subhabits/${this.subHabitToDelete.subHabit.id}`).toPromise();
       
@@ -528,11 +524,10 @@ async deleteSubHabit(): Promise<void> {
         habit.subHabits = habit.subHabits.filter(sh => sh.id !== this.subHabitToDelete!.subHabit.id);
         habit.hasSubHabits = habit.subHabits.length > 0;
       }
+      this.subHabitToDelete = null;
     } catch (error) {
       this.error = 'Failed to delete sub-habit';
       console.error('Error deleting sub-habit:', error);
-    } finally {
-      this.loading = false;
       this.subHabitToDelete = null;
     }
   }
