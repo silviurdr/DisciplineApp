@@ -293,7 +293,7 @@ async loadSubHabitsForHabit(habit: Habit): Promise<void> {
     }
   }
 
- async saveHabit(): Promise<void> {
+async saveHabit(): Promise<void> {
     if (this.habitForm.invalid) return;
 
     this.loading = true;
@@ -317,13 +317,28 @@ async loadSubHabitsForHabit(habit: Habit): Promise<void> {
       if (this.editingHabit) {
         // Update existing habit
         const updateRequest = { ...request, id: this.editingHabit.id, isActive: true, isLocked: false };
-        await this.http.put(`${this.apiUrl}/habits/${this.editingHabit.id}`, updateRequest).toPromise();
+        const updatedHabit = await this.http.put<Habit>(`${this.apiUrl}/habits/${this.editingHabit.id}`, updateRequest).toPromise();
+        
+        // Update local state instead of reloading
+        const index = this.habits.findIndex(h => h.id === this.editingHabit!.id);
+        if (index !== -1 && updatedHabit) {
+          this.habits[index] = { ...updatedHabit, subHabits: this.habits[index].subHabits, hasSubHabits: this.habits[index].hasSubHabits };
+        }
       } else {
         // Create new habit
-        await this.http.post(`${this.apiUrl}/habits`, request).toPromise();
+        const newHabit = await this.http.post<Habit>(`${this.apiUrl}/habits`, request).toPromise();
+        
+        // Add to local state instead of reloading
+        if (newHabit) {
+          const habitWithSubHabits: Habit = {
+            ...newHabit,
+            subHabits: [],
+            hasSubHabits: false
+          };
+          this.habits.push(habitWithSubHabits);
+        }
       }
 
-      await this.loadHabits();
       this.closeForm();
     } catch (error) {
       this.error = this.editingHabit ? 'Failed to update habit' : 'Failed to create habit';
@@ -356,6 +371,8 @@ async loadSubHabitsForHabit(habit: Habit): Promise<void> {
       };
 
       await this.http.put(`${this.apiUrl}/habits/${habit.id}`, updateRequest).toPromise();
+      
+      // Update local state instead of reloading
       habit.isActive = !habit.isActive;
     } catch (error) {
       this.error = 'Failed to update habit status';
@@ -378,7 +395,9 @@ async loadSubHabitsForHabit(habit: Habit): Promise<void> {
     this.loading = true;
     try {
       await this.http.delete(`${this.apiUrl}/habits/${this.habitToDelete.id}`).toPromise();
-      await this.loadHabits();
+      
+      // Remove from local state instead of reloading
+      this.habits = this.habits.filter(h => h.id !== this.habitToDelete!.id);
     } catch (error) {
       this.error = 'Failed to delete habit';
       console.error('Error deleting habit:', error);
@@ -439,7 +458,7 @@ async loadSubHabitsForHabit(habit: Habit): Promise<void> {
     this.showSubHabitForm[habit.id] = true;
   }
 
-  async saveSubHabit(habitId: number): Promise<void> {
+async saveSubHabit(habitId: number): Promise<void> {
     if (this.subHabitForm.invalid) return;
 
     this.loading = true;
@@ -454,7 +473,16 @@ async loadSubHabitsForHabit(habit: Habit): Promise<void> {
           isActive: true
         };
         
-        await this.http.put(`${this.apiUrl}/subhabits/${this.editingSubHabit.subHabit.id}`, updateRequest).toPromise();
+        const updatedSubHabit = await this.http.put<SubHabit>(`${this.apiUrl}/subhabits/${this.editingSubHabit.subHabit.id}`, updateRequest).toPromise();
+        
+        // Update local state
+        const habit = this.habits.find(h => h.id === habitId);
+        if (habit && habit.subHabits && updatedSubHabit) {
+          const subHabitIndex = habit.subHabits.findIndex(sh => sh.id === this.editingSubHabit!.subHabit.id);
+          if (subHabitIndex !== -1) {
+            habit.subHabits[subHabitIndex] = updatedSubHabit;
+          }
+        }
       } else {
         // Create new sub-habit
         const createRequest: CreateSubHabitRequest = {
@@ -463,13 +491,15 @@ async loadSubHabitsForHabit(habit: Habit): Promise<void> {
           description: formValue.description?.trim() || ''
         };
         
-        await this.http.post(`${this.apiUrl}/subhabits`, createRequest).toPromise();
-      }
-
-      // Reload sub-habits for this habit
-      const habit = this.habits.find(h => h.id === habitId);
-      if (habit) {
-        await this.loadSubHabitsForHabit(habit);
+        const newSubHabit = await this.http.post<SubHabit>(`${this.apiUrl}/subhabits`, createRequest).toPromise();
+        
+        // Update local state
+        const habit = this.habits.find(h => h.id === habitId);
+        if (habit && newSubHabit) {
+          if (!habit.subHabits) habit.subHabits = [];
+          habit.subHabits.push(newSubHabit);
+          habit.hasSubHabits = true;
+        }
       }
 
       this.hideAddSubHabitForm(habitId);
@@ -485,15 +515,19 @@ async loadSubHabitsForHabit(habit: Habit): Promise<void> {
     this.subHabitToDelete = { habit, subHabit };
   }
 
-  async deleteSubHabit(): Promise<void> {
+async deleteSubHabit(): Promise<void> {
     if (!this.subHabitToDelete) return;
 
     this.loading = true;
     try {
       await this.http.delete(`${this.apiUrl}/subhabits/${this.subHabitToDelete.subHabit.id}`).toPromise();
       
-      // Reload sub-habits for this habit
-      await this.loadSubHabitsForHabit(this.subHabitToDelete.habit);
+      // Update local state instead of reloading
+      const habit = this.subHabitToDelete.habit;
+      if (habit.subHabits) {
+        habit.subHabits = habit.subHabits.filter(sh => sh.id !== this.subHabitToDelete!.subHabit.id);
+        habit.hasSubHabits = habit.subHabits.length > 0;
+      }
     } catch (error) {
       this.error = 'Failed to delete sub-habit';
       console.error('Error deleting sub-habit:', error);
@@ -503,7 +537,7 @@ async loadSubHabitsForHabit(habit: Habit): Promise<void> {
     }
   }
 
-  async toggleSubHabitActive(habit: Habit, subHabit: SubHabit): Promise<void> {
+ async toggleSubHabitActive(habit: Habit, subHabit: SubHabit): Promise<void> {
     try {
       const updateRequest: UpdateSubHabitRequest = {
         name: subHabit.name,
@@ -513,7 +547,7 @@ async loadSubHabitsForHabit(habit: Habit): Promise<void> {
 
       await this.http.put(`${this.apiUrl}/subhabits/${subHabit.id}`, updateRequest).toPromise();
       
-      // Update local state
+      // Update local state instead of reloading
       subHabit.isActive = !subHabit.isActive;
     } catch (error) {
       this.error = 'Failed to update sub-habit status';
