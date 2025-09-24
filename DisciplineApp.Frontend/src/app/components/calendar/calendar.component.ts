@@ -548,7 +548,7 @@ loadFlexibleTasks(): void {
     }
     
     // Get max deferrals based on frequency
-    const maxDeferrals = this.getMaxDeferralsForFrequency(habit.frequency || habit.reason || '');
+    const maxDeferrals = habit.maxDeferrals !== undefined ? habit.maxDeferrals : this.getMaxDeferralsForFrequency(habit.frequency || '');
     if (maxDeferrals === 0) return null;
     
     // Get current deferral usage
