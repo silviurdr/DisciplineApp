@@ -64,7 +64,8 @@
         [class.other-month]="!day.isCurrentMonth"
         [class.today]="day.isToday"
         [class.future]="day.isFuture"
-        [class.completed]="day.isCompleted && day.isCurrentMonth"
+        [class.completed]="day.isCompleted && day.isCurrentMonth && !day.isCurrentStreak"
+        [class.completed-current-streak]="day.isCompleted && day.isCurrentMonth && day.isCurrentStreak"
         [class.incomplete]="!day.isCompleted && day.isCurrentMonth && !day.isFuture && day.totalHabits > 0 && !day.isToday"
         [class.free-day]="day.totalHabits === 0 && day.isCurrentMonth && !day.isFuture">
         

@@ -932,3 +932,265 @@
     opacity: 0.85; /* Less transparent on hover */
   }
 }
+
+/* ===================================
+   ENHANCED STREAK HIGHLIGHTING SYSTEM
+   =================================== */
+
+/* Default completed day styling - for past days NOT in current streak */
+.calendar-day.completed.past-not-in-streak {
+  background: #1f2f1e; /* Darker green background */
+  border-color: rgba(76, 175, 80, 0.15); /* Much more subtle border */
+  
+  .day-number {
+    color: #3a7a3d; /* Darker green for day number */
+  }
+  
+  .status-icon-weekly .completion-check {
+    color: #3a7a3d; /* Darker green checkmark */
+    opacity: 0.7; /* Slightly transparent for faded effect */
+  }
+}
+
+/* ✅ CURRENT STREAK DAYS - BRIGHT GREEN HIGHLIGHT */
+.calendar-day.completed:not(.past-not-in-streak) {
+  /* Brighter, more vibrant green for current streak days */
+  background: #2d5a2b; /* Brighter green background */
+  border: 2px solid #4caf50; /* Brighter, thicker border */
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.3); /* Subtle green glow */
+  
+  .day-number {
+    color: #66bb6a; /* Brighter green for day number */
+    font-weight: 600; /* Make it stand out more */
+  }
+  
+  .status-icon-weekly .completion-check {
+    color: #66bb6a; /* Brighter green checkmark */
+    opacity: 1; /* Fully opaque */
+    font-size: 1.1rem; /* Slightly larger for emphasis */
+    text-shadow: 0 0 2px rgba(76, 175, 80, 0.5); /* Subtle glow effect */
+  }
+}
+
+/* ✅ HOVER EFFECTS */
+.calendar-day.completed.past-not-in-streak:hover {
+  background: #243025; /* Slightly lighter on hover */
+  border-color: rgba(76, 175, 80, 0.2); /* More visible border on hover */
+  
+  .day-number {
+    color: #4a8a4d; /* Brighter on hover */
+  }
+  
+  .status-icon-weekly .completion-check {
+    color: #4a8a4d; /* Brighter checkmark on hover */
+    opacity: 0.85; /* Less transparent on hover */
+  }
+}
+
+.calendar-day.completed:not(.past-not-in-streak):hover {
+  background: #357a33; /* Even brighter on hover for current streak */
+  border-color: #5cbf60; /* Brighter border on hover */
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.4); /* Stronger glow on hover */
+  transform: translateY(-1px); /* Subtle lift effect */
+  
+  .day-number {
+    color: #7cc87f; /* Even brighter on hover */
+  }
+  
+  .status-icon-weekly .completion-check {
+    color: #7cc87f; /* Even brighter checkmark on hover */
+  }
+}
+
+/* ✅ ALTERNATIVE: Even more dramatic current streak highlighting */
+/* Uncomment this section if you want an even more prominent current streak */
+/*
+.calendar-day.completed:not(.past-not-in-streak) {
+  background: linear-gradient(135deg, #2d5a2b, #357a33); // Gradient background
+  border: 2px solid #5cbf60; // Bright green border
+  box-shadow: 0 2px 12px rgba(76, 175, 80, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1); // Glow + inner highlight
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, #4caf50, #66bb6a, #4caf50);
+    border-radius: 8px;
+    z-index: -1;
+    opacity: 0.3;
+    animation: shimmer 3s infinite;
+  }
+  
+  .day-number {
+    color: #a5d6a7; // Very bright green
+    font-weight: 700; // Bold
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.5; }
+}
+*/
+
+/* ✅ WEEKLY VIEW STYLING (if using weekly calendar component) */
+.weekly-calendar .calendar-day.completed:not(.past-not-in-streak) {
+  background: #2d5a2b;
+  border: 2px solid #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.3);
+  
+  .day-header .day-number {
+    color: #66bb6a;
+    font-weight: 600;
+  }
+  
+  .status-icon {
+    color: #66bb6a;
+  }
+}
+
+.weekly-calendar .calendar-day.completed.past-not-in-streak {
+  background: #1f2f1e;
+  border: 1px solid rgba(76, 175, 80, 0.15);
+  box-shadow: none;
+  
+  .day-header .day-number {
+    color: #3a7a3d;
+  }
+  
+  .status-icon {
+    color: #3a7a3d;
+    opacity: 0.7;
+  }
+}
+
+/* ===================================
+   ENHANCED STREAK HIGHLIGHTING SYSTEM
+   =================================== */
+
+/* ✅ REGULAR COMPLETED DAYS - Past days NOT in current streak */
+.calendar-day.completed {
+  background: #1f2f1e !important; /* Darker green background */
+  border: 1px solid rgba(76, 175, 80, 0.15) !important; /* Much more subtle border */
+  
+  .day-number {
+    color: #3a7a3d !important; /* Darker green for day number */
+  }
+  
+  .status-icon-weekly .completion-check {
+    color: #3a7a3d !important; /* Darker green checkmark */
+    opacity: 0.7; /* Slightly transparent for faded effect */
+  }
+}
+
+/* ✅ CURRENT STREAK DAYS - BRIGHT GREEN HIGHLIGHT */
+.calendar-day.completed-current-streak {
+  /* Brighter, more vibrant green for current streak days */
+  background: #2d5a2b !important; /* Brighter green background */
+  border: 2px solid #4caf50 !important; /* Brighter, thicker border */
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.3) !important; /* Subtle green glow */
+  
+  .day-number {
+    color: #66bb6a !important; /* Brighter green for day number */
+    font-weight: 600 !important; /* Make it stand out more */
+  }
+  
+  .status-icon-weekly .completion-check {
+    color: #66bb6a !important; /* Brighter green checkmark */
+    opacity: 1 !important; /* Fully opaque */
+    font-size: 1.1rem !important; /* Slightly larger for emphasis */
+    text-shadow: 0 0 2px rgba(76, 175, 80, 0.5); /* Subtle glow effect */
+  }
+}
+
+/* ✅ HOVER EFFECTS */
+.calendar-day.completed:hover {
+  background: #243025 !important; /* Slightly lighter on hover */
+  border-color: rgba(76, 175, 80, 0.2) !important; /* More visible border on hover */
+  
+  .day-number {
+    color: #4a8a4d !important; /* Brighter on hover */
+  }
+  
+  .status-icon-weekly .completion-check {
+    color: #4a8a4d !important; /* Brighter checkmark on hover */
+    opacity: 0.85 !important; /* Less transparent on hover */
+  }
+}
+
+.calendar-day.completed-current-streak:hover {
+  background: #357a33 !important; /* Even brighter on hover for current streak */
+  border-color: #5cbf60 !important; /* Brighter border on hover */
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.4) !important; /* Stronger glow on hover */
+  transform: translateY(-1px); /* Subtle lift effect */
+  
+  .day-number {
+    color: #7cc87f !important; /* Even brighter on hover */
+  }
+  
+  .status-icon-weekly .completion-check {
+    color: #7cc87f !important; /* Even brighter checkmark on hover */
+  }
+}
+
+/* ✅ WEEKLY VIEW STYLING (if using weekly calendar component) */
+.weekly-calendar .calendar-day.completed:not(.completed-current-streak) {
+  background: #1f2f1e !important;
+  border: 1px solid rgba(76, 175, 80, 0.15) !important;
+  box-shadow: none !important;
+  
+  .day-header .day-number {
+    color: #3a7a3d !important;
+  }
+  
+  .status-icon {
+    color: #3a7a3d !important;
+    opacity: 0.7;
+  }
+}
+
+.weekly-calendar .calendar-day.completed-current-streak {
+  background: #2d5a2b !important;
+  border: 2px solid #4caf50 !important;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.3) !important;
+  
+  .day-header .day-number {
+    color: #66bb6a !important;
+    font-weight: 600;
+  }
+  
+  .status-icon {
+    color: #66bb6a !important;
+  }
+}
+
+/* ===================================
+   EXISTING STYLES - Keep your current styles and add the above
+   =================================== */
+
+// Keep all your existing monthly-view.scss styles below this point
+// The streak highlighting styles above will override the completion colors
+
+/* Example of how this integrates with your existing styles: */
+.calendar-day {
+  /* Your existing base styles */
+  background: #2a2b3d;
+  border: 1px solid #35364a;
+  border-radius: 8px;
+  padding: 12px 8px;
+  min-height: 90px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  
+  /* The .completed and .completed-current-streak classes above will override these colors */
+}

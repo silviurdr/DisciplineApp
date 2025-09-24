@@ -39,6 +39,7 @@ interface MonthlyDayData {
   isInFirst7Days?: boolean;
   completionRules?: string;
   dataSource?: string;
+  isCurrentStreak?: boolean;
 }
 
 interface ProjectedReward {
@@ -127,6 +128,7 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadingService.show();
     this.initializeMonthlyView();
+    setTimeout(() => this.manuallyMarkCurrentStreak(), 1000);
   }
 
   ngOnDestroy(): void {
@@ -220,6 +222,7 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
         currentStreak: response.monthlyStats.currentStreak || 0,
         totalHabits: response.monthlyStats.totalTasks || 0
       };
+      this.markCurrentStreakDays();
     }
     
     // ✅ DEBUG: Show what we received from API
@@ -317,7 +320,8 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
         isFuture: isFuture,
         projectedReward: undefined,
         flexibilityUsage: undefined,
-        isBeforeStreakStart: currentDate < this.streakStartDate
+        isBeforeStreakStart: currentDate < this.streakStartDate,
+        isCurrentStreak: false
       };
 
       if (apiDay) {
@@ -416,6 +420,8 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
     return false;
   }
 
+  
+
   // If we don't have streak data, assume all past completed days are not in current streak
   if (!this.monthlyStats) {
     return true;
@@ -481,6 +487,90 @@ private findCurrentStreak(): { startDate: Date, endDate: Date } | null {
   };
 }
 
+private markCurrentStreakDays(): void {
+  console.log('🔍 DEBUG: markCurrentStreakDays called');
+  console.log('📅 DEBUG: Total calendar days:', this.calendarDays.length);
+  
+  if (!this.calendarDays.length) {
+    console.log('❌ DEBUG: No calendar days found');
+    return;
+  }
+
+  // Debug: Show all completed days first
+  const completedDays = this.calendarDays.filter(d => d.isCompleted && d.isCurrentMonth);
+  console.log('✅ DEBUG: Completed days found:', completedDays.map(d => ({
+    day: d.dayNumber,
+    date: d.dateString,
+    isCompleted: d.isCompleted
+  })));
+
+  // Find the current active streak
+  const currentStreak = this.findCurrentStreak();
+  console.log('🎯 DEBUG: Current streak found:', currentStreak);
+  
+  if (!currentStreak) {
+    console.log('❌ DEBUG: No current streak found - marking all as false');
+    // No current streak - mark all as not in current streak
+    this.calendarDays.forEach(day => {
+      day.isCurrentStreak = false;
+    });
+    return;
+  }
+
+  // Mark days that fall within the current streak period
+  this.calendarDays.forEach(day => {
+    if (day.isCompleted) {
+      const dayDate = new Date(day.date);
+      const isInCurrentStreak = dayDate >= currentStreak.startDate && dayDate <= currentStreak.endDate;
+      day.isCurrentStreak = isInCurrentStreak;
+      
+      if (isInCurrentStreak) {
+        console.log(`🌟 DEBUG: Day ${day.dayNumber} marked as current streak`);
+      }
+    } else {
+      day.isCurrentStreak = false;
+    }
+  });
+
+  console.log(`🎯 DEBUG: Current streak period: ${currentStreak.startDate.toDateString()} to ${currentStreak.endDate.toDateString()}`);
+  
+  // Debug: Show which days are marked as current streak
+  const streakDays = this.calendarDays.filter(d => d.isCurrentStreak);
+  console.log(`📅 DEBUG: Current streak days marked:`, streakDays.map(d => ({ 
+    day: d.dayNumber, 
+    date: d.dateString,
+    isCurrentStreak: d.isCurrentStreak 
+  })));
+}
+
+private debugCurrentStreak(): void {
+  console.log('🔍 DEBUG: Testing findCurrentStreak method');
+  
+  const completedDays = this.calendarDays
+    .filter(day => day.isCompleted)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  
+  console.log('📊 DEBUG: All completed days (sorted):', completedDays.map(d => ({
+    day: d.dayNumber,
+    date: d.dateString,
+    dayOfWeek: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' })
+  })));
+  
+  const streak = this.findCurrentStreak();
+  console.log('🎯 DEBUG: findCurrentStreak result:', streak);
+}
+private manuallyMarkCurrentStreak(): void {
+  console.log('🧪 MANUAL TEST: Marking Sept 20-23 as current streak');
+  
+  this.calendarDays.forEach(day => {
+    if (day.isCurrentMonth && day.dayNumber >= 20 && day.dayNumber <= 23 && day.isCompleted) {
+      day.isCurrentStreak = true;
+      console.log(`✅ Manually marked day ${day.dayNumber} as current streak`);
+    } else {
+      day.isCurrentStreak = false;
+    }
+  });
+}
 getDayClasses(day: MonthlyDayData): string[] {
   const classes: string[] = ['calendar-day'];
   
@@ -634,6 +724,7 @@ private formatDateString(date: Date): string {
     
     // Recalculate stats after updating with real data
     this.loadMonthlyStats();
+    this.markCurrentStreakDays();
   }
 
   private syncPastDaysWithWeeklyLogic(weekData: WeekData): void {
@@ -701,7 +792,8 @@ private formatDateString(date: Date): string {
         projectedReward: undefined,
         flexibilityUsage: undefined,
         isBeforeStreakStart: currentDate < this.streakStartDate,
-        dataSource: 'initial_empty'
+        dataSource: 'initial_empty',
+        isCurrentStreak: false
       };
 
       // If this is today and we have real data, use it
@@ -723,6 +815,7 @@ private formatDateString(date: Date): string {
 
     this.calendarDays = calendar;
     console.log(`📅 Generated base calendar with ${calendar.length} days (no mock past data)`);
+    this.markCurrentStreakDays();
   }
 
   private generateProjectedTasksForFutureDays(): void {
