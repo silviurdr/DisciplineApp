@@ -1,119 +1,385 @@
-/* ===================================
-   HABIT MANAGEMENT COMPONENT STYLES
-   Updated to Match Weekly/Monthly Calendar Grey/Black Theme
-   =================================== */
+// Enhanced habit-management.component.scss with Sub-Habits styling
 
+/* ===================================
+   CONTAINER & LAYOUT
+   =================================== */
 .habit-management-container {
-  padding: 20px;
+  padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
-  background: #1a1d29;
+  background: #1e1f2e;
   min-height: 100vh;
-  color: #e3f2fd;
+  color: #d1d3db;
+}
+
+/* ===================================
+   LOADING & ERROR STATES
+   =================================== */
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+  background: rgba(42, 43, 61, 0.6);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(139, 143, 163, 0.3);
+  border-top-color: #64b5f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.error-icon {
+  flex-shrink: 0;
+}
+
+.error-message {
+  flex: 1;
+  color: #f44336;
+  font-weight: 500;
+}
+
+.retry-btn {
+  background: rgba(244, 67, 54, 0.2);
+  border: 1px solid rgba(244, 67, 54, 0.4);
+  color: #f44336;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(244, 67, 54, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
 
 /* ===================================
    HEADER SECTION
    =================================== */
-.header-section {
-  background: #2a2b3d;
-  border: 1px solid rgba(139, 143, 163, 0.2);
-  border-radius: 16px;
-  padding: 30px;
-  margin-bottom: 30px;
-}
-
-.header-content {
+.page-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 20px;
+  align-items: flex-end;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.title-section h1 {
-  color: #d1d3db;
+.header-content h1 {
   margin: 0 0 8px 0;
-  font-size: 1.2rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 2rem;
+  font-weight: 600;
+  color: #ffffff;
 }
 
-.title-section .subtitle {
-  color: #6b6f80;
+.header-content p {
   margin: 0;
-  font-size: 0.85rem;
-  opacity: 0.9;
+  color: #8b8fa3;
+  font-size: 0.95rem;
 }
 
 .add-habit-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: transparent;
-  color: #8b8fa3;
-  border: 1px solid rgba(139, 143, 163, 0.3);
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 500;
+  gap: 8px;
+  background: linear-gradient(135deg, #64b5f6, #1976d2);
+  border: none;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
   cursor: pointer;
+  font-weight: 500;
   transition: all 0.2s ease;
-  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
 }
 
-.add-habit-btn:hover {
-  background: rgba(139, 143, 163, 0.1);
-  border-color: rgba(139, 143, 163, 0.5);
+/* ===================================
+   MODAL STYLES
+   =================================== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: #2a2b3d;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #8b8fa3;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #d1d3db;
+  }
+}
+
+.modal-body {
+  padding: 20px 24px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 16px 24px 24px 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ===================================
+   FORM STYLES
+   =================================== */
+.habit-form {
+  padding: 20px 24px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+
+  &.full-width {
+    flex-basis: 100%;
+  }
+}
+
+.form-group label {
+  margin-bottom: 6px;
+  font-weight: 500;
   color: #d1d3db;
+  font-size: 0.9rem;
 }
 
-.add-habit-btn .plus-icon {
-  font-size: 1rem;
+.form-group input,
+.form-group select,
+.form-group textarea {
+  background: rgba(45, 55, 72, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: #d1d3db;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #64b5f6;
+    background: rgba(45, 55, 72, 0.9);
+    box-shadow: 0 0 0 3px rgba(100, 181, 246, 0.1);
+  }
+
+  &.error {
+    border-color: #f44336;
+    box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.1);
+  }
+
+  &::placeholder {
+    color: #6b6f80;
+  }
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.checkbox-group {
+  flex-direction: row !important;
+  align-items: center;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  margin: 0;
+}
+
+.checkbox-label input[type="checkbox"] {
+  display: none;
+}
+
+.checkmark {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkmark {
+  background: #64b5f6;
+  border-color: #64b5f6;
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkmark::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
   font-weight: bold;
 }
 
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 /* ===================================
-   LOADING AND ERROR STATES
+   BUTTON STYLES
    =================================== */
-.loading-state,
-.error-state {
-  text-align: center;
-  padding: 60px 20px;
-  background: #2a2b3d;
-  border-radius: 16px;
-  border: 1px solid rgba(139, 143, 163, 0.2);
-}
-
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(139, 143, 163, 0.3);
-  border-top: 4px solid #8b8fa3;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 16px;
-}
-
-.retry-btn {
-  background: #8b8fa3;
-  color: white;
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
   border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
+  border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  font-size: 0.9rem;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
 }
 
-.retry-btn:hover {
-  background: #6b6f80;
+.btn-primary {
+  background: linear-gradient(135deg, #64b5f6, #1976d2);
+  color: white;
+  box-shadow: 0 2px 4px rgba(25, 118, 210, 0.3);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(25, 118, 210, 0.4);
+  }
+}
+
+.btn-cancel {
+  background: rgba(139, 143, 163, 0.2);
+  color: #8b8fa3;
+  border: 1px solid rgba(139, 143, 163, 0.3);
+
+  &:hover:not(:disabled) {
+    background: rgba(139, 143, 163, 0.3);
+    color: #d1d3db;
+  }
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #f44336, #d32f2f);
+  color: white;
+  box-shadow: 0 2px 4px rgba(244, 67, 54, 0.3);
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(244, 67, 54, 0.4);
+  }
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.85rem;
 }
 
 /* ===================================
-   HABITS CONTENT
+   HABITS CONTAINER
    =================================== */
-.habits-content {
+.habits-container {
   display: flex;
   flex-direction: column;
   gap: 30px;
@@ -123,7 +389,7 @@
    HABIT CATEGORY SECTIONS
    =================================== */
 .habit-category {
-  background:#2a2b3d;
+  background: #2a2b3d;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: 24px;
@@ -161,7 +427,7 @@
    =================================== */
 .habits-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 16px;
 }
 
@@ -196,25 +462,11 @@
 }
 
 /* Category-specific colors */
-.habit-card.daily::before {
-  background: #4caf50;
-}
-
-.habit-card.rolling::before {
-  background: #ff9800;
-}
-
-.habit-card.weekly::before {
-  background: #8b8fa3;
-}
-
-.habit-card.monthly::before {
-  background: #9c27b0;
-}
-
-.habit-card.seasonal::before {
-  background: #00bcd4;
-}
+.habit-card.daily::before { background: #4caf50; }
+.habit-card.rolling::before { background: #ff9800; }
+.habit-card.weekly::before { background: #8b8fa3; }
+.habit-card.monthly::before { background: #9c27b0; }
+.habit-card.seasonal::before { background: #00bcd4; }
 
 /* ===================================
    HABIT CARD CONTENT
@@ -227,6 +479,13 @@
   gap: 12px;
 }
 
+.habit-name-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
 .habit-name {
   font-size: 0.95rem;
   font-weight: 500;
@@ -235,299 +494,334 @@
   flex: 1;
 }
 
+.expand-btn {
+  background: rgba(139, 143, 163, 0.2);
+  border: 1px solid rgba(139, 143, 163, 0.3);
+  color: #8b8fa3;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(139, 143, 163, 0.3);
+    color: #d1d3db;
+  }
+
+  &.expanded {
+    background: rgba(100, 181, 246, 0.2);
+    border-color: rgba(100, 181, 246, 0.4);
+    color: #64b5f6;
+  }
+}
+
+.expand-icon {
+  transition: transform 0.2s ease;
+}
+
+.sub-count {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
 .habit-status {
   display: flex;
   align-items: center;
-  gap: 8px;
 }
 
 .status-badge {
   padding: 4px 8px;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-}
 
-.status-badge.active {
-  background: rgba(76, 175, 80, 0.2);
-  color: #66bb6a;
-  border: 1px solid rgba(76, 175, 80, 0.3);
-}
+  &.active {
+    background: rgba(76, 175, 80, 0.2);
+    color: #4caf50;
+    border: 1px solid rgba(76, 175, 80, 0.4);
+  }
 
-.status-badge.paused {
-  background: rgba(156, 39, 176, 0.2);
-  color: #ba68c8;
-  border: 1px solid rgba(156, 39, 176, 0.3);
+  &.paused {
+    background: rgba(255, 152, 0, 0.2);
+    color: #ff9800;
+    border: 1px solid rgba(255, 152, 0, 0.4);
+  }
 }
 
 .habit-description {
-  color: #6b6f80;
-  font-size: 0.8rem;
+  color: #8b8fa3;
+  font-size: 0.85rem;
   line-height: 1.4;
-  margin-bottom: 16px;
-  opacity: 0.9;
+  margin-bottom: 12px;
 }
 
 .habit-meta {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
   gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
-.frequency-info {
-  color: #6b6f80;
-  font-size: 0.75rem;
-  font-weight: 500;
-  background: rgba(107, 111, 128, 0.1);
-  padding: 4px 8px;
-  border-radius: 6px;
-}
-
+.frequency-info,
+.duration-info,
 .deadline-info {
-  color: #d4a053;
+  background: rgba(139, 143, 163, 0.1);
+  color: #8b8fa3;
+  padding: 4px 8px;
+  border-radius: 8px;
   font-size: 0.75rem;
   font-weight: 500;
-  background: rgba(212, 160, 83, 0.1);
-  padding: 4px 8px;
-  border-radius: 6px;
+  border: 1px solid rgba(139, 143, 163, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.duration-icon {
+  font-size: 0.7rem;
 }
 
 /* ===================================
-   HABIT ACTIONS
+   SUB-HABITS SECTION
+   =================================== */
+.sub-habits-section {
+  margin-top: 16px;
+  padding: 16px;
+  background: rgba(30, 31, 46, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    padding: 0 16px;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+    padding: 16px;
+  }
+}
+
+.sub-habits-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sub-habits-header h4 {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #d1d3db;
+}
+
+.add-sub-habit-btn {
+  background: rgba(100, 181, 246, 0.2);
+  border: 1px solid rgba(100, 181, 246, 0.3);
+  color: #64b5f6;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(100, 181, 246, 0.3);
+    transform: translateY(-1px);
+  }
+}
+
+/* ===================================
+   SUB-HABIT FORM
+   =================================== */
+.sub-habit-form {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: rgba(45, 55, 72, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.form-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-inline .form-group {
+  margin: 0;
+}
+
+.form-inline .form-group input {
+  padding: 8px 10px;
+  font-size: 0.85rem;
+}
+
+.form-actions-inline {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* ===================================
+   SUB-HABITS LIST
+   =================================== */
+.sub-habits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sub-habit-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(100, 181, 246, 0.2);
+  }
+
+  &.inactive {
+    opacity: 0.6;
+    
+    .sub-habit-name {
+      text-decoration: line-through;
+      color: #6b6f80;
+    }
+  }
+}
+
+.sub-habit-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.sub-habit-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #d1d3db;
+  line-height: 1.3;
+  margin-bottom: 2px;
+}
+
+.sub-habit-description {
+  font-size: 0.75rem;
+  color: #8b8fa3;
+  line-height: 1.3;
+}
+
+.sub-habit-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ===================================
+   ACTION BUTTONS
    =================================== */
 .habit-actions {
   display: flex;
-  gap: 8px;
   justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .action-btn {
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #8b8fa3;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.85rem;
-}
-
-.action-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: #d1d3db;
-  transform: translateY(-1px);
-}
-
-.edit-btn:hover {
   background: rgba(139, 143, 163, 0.2);
-  color: #8b8fa3;
-}
-
-.toggle-btn.active {
-  background: rgba(76, 175, 80, 0.2);
-  color: #66bb6a;
-}
-
-.toggle-btn:hover {
-  background: rgba(76, 175, 80, 0.2);
-  color: #66bb6a;
-}
-
-.delete-btn:hover {
-  background: rgba(244, 67, 54, 0.2);
-  color: #ef5350;
-}
-
-/* ===================================
-   EMPTY STATE
-   =================================== */
-.empty-state {
-  text-align: center;
-  padding: 80px 20px;
-  background: #2a2b3d;
-  border-radius: 16px;
-  border: 1px solid rgba(139, 143, 163, 0.2);
-}
-
-.empty-icon {
-  font-size: 4rem;
-  margin-bottom: 20px;
-  opacity: 0.6;
-}
-
-.empty-state h3 {
-  color: #8b8fa3;
-  margin: 0 0 12px 0;
-  font-size: 1.2rem;
-  font-weight: 500;
-}
-
-.empty-state p {
-  color: #6b6f80;
-  margin: 0 0 24px 0;
-  font-size: 0.9rem;
-  opacity: 0.8;
-}
-
-.add-first-habit-btn {
-  background: #8b8fa3;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.add-first-habit-btn:hover {
-  background: #6b6f80;
-  transform: translateY(-1px);
-}
-
-/* ===================================
-   MODAL STYLES
-   =================================== */
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  z-index: 1000;
-}
-
-.habit-form-modal,
-.delete-confirmation-modal {
-  background: #2a2b3d;
-  border: 1px solid rgba(139, 143, 163, 0.2);
-  border-radius: 16px;
-  padding: 30px;
-  max-width: 500px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-}
-
-.modal-header h3 {
-  color: #8b8fa3;
-  margin: 0 0 20px 0;
-  font-size: 1.2rem;
-  font-weight: 500;
-}
-
-.form-group {
-  margin-bottom: 20px;
-}
-
-.form-group label {
-  display: block;
-  color: #6b6f80;
-  font-size: 0.85rem;
-  font-weight: 500;
-  margin-bottom: 6px;
-}
-
-.form-control {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid rgba(107, 111, 128, 0.3);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #8b8fa3;
-  font-size: 0.85rem;
-  transition: border-color 0.2s ease;
-  box-sizing: border-box;
-}
-
-.form-control:focus {
-  outline: none;
-  border-color: #6b6f80;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.form-control::placeholder {
-  color: #5a5e70;
-}
-
-.form-actions,
-.modal-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 24px;
-}
-
-.save-btn,
-.cancel-btn,
-.delete-confirm-btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.save-btn {
-  background: #4caf50;
-  color: white;
-}
-
-.save-btn:hover {
-  background: #45a049;
-  transform: translateY(-1px);
-}
-
-.save-btn:disabled {
-  background: #6b6f80;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.cancel-btn {
-  background: transparent;
-  color: #8b8fa3;
   border: 1px solid rgba(139, 143, 163, 0.3);
-}
-
-.cancel-btn:hover {
-  background: rgba(139, 143, 163, 0.1);
-  color: #d1d3db;
-}
-
-.delete-confirm-btn {
-  background: #f44336;
-  color: white;
-  padding: 10px 20px;
-  font-weight: 600;
+  color: #8b8fa3;
+  padding: 6px 10px;
+  border-radius: 6px;
   cursor: pointer;
+  font-size: 0.75rem;
   transition: all 0.2s ease;
-  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  &:hover {
+    background: rgba(139, 143, 163, 0.3);
+    color: #d1d3db;
+    transform: translateY(-1px);
+  }
 }
 
-.delete-confirm-btn:hover {
-  background: #d32f2f;
-  transform: translateY(-1px);
+.action-btn.edit-btn:hover {
+  background: rgba(100, 181, 246, 0.2);
+  border-color: rgba(100, 181, 246, 0.4);
+  color: #64b5f6;
+}
+
+.action-btn.delete-btn:hover {
+  background: rgba(244, 67, 54, 0.2);
+  border-color: rgba(244, 67, 54, 0.4);
+  color: #f44336;
+}
+
+.action-btn.toggle-btn {
+  &.active {
+    background: rgba(76, 175, 80, 0.2);
+    border-color: rgba(76, 175, 80, 0.4);
+    color: #4caf50;
+  }
+
+  &:not(.active) {
+    background: rgba(255, 152, 0, 0.2);
+    border-color: rgba(255, 152, 0, 0.4);
+    color: #ff9800;
+  }
+}
+
+.action-btn.sub-habits-btn {
+  background: rgba(100, 181, 246, 0.2);
+  border-color: rgba(100, 181, 246, 0.3);
+  color: #64b5f6;
+
+  &:hover {
+    background: rgba(100, 181, 246, 0.3);
+    border-color: rgba(100, 181, 246, 0.5);
+  }
+}
+
+/* ===================================
+   DELETE MODAL SPECIFIC
+   =================================== */
+.delete-modal {
+  max-width: 450px;
+}
+
+.warning-text {
+  color: #ff9800;
+  font-size: 0.85rem;
+  font-style: italic;
+  margin: 8px 0 0 0;
 }
 
 /* ===================================
@@ -535,244 +829,45 @@
    =================================== */
 @media (max-width: 768px) {
   .habit-management-container {
-    padding: 15px;
+    padding: 16px;
   }
 
-  .header-content {
+  .page-header {
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
     gap: 16px;
-  }
-
-  .title-section {
-    text-align: center;
-  }
-
-  .add-habit-btn {
-    align-self: center;
   }
 
   .habits-grid {
     grid-template-columns: 1fr;
   }
 
-  .habit-card {
-    padding: 16px;
-  }
-
-  .habit-header {
+  .form-row {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
   }
 
   .habit-actions {
-    justify-content: center;
-    margin-top: 8px;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
-  .modal-backdrop {
-    padding: 10px;
+  .action-btn {
+    padding: 5px 8px;
+    font-size: 0.7rem;
   }
 
-  .habit-form-modal,
-  .delete-confirmation-modal {
-    max-width: 100%;
+  .modal-content {
+    margin: 10px;
+    max-width: calc(100vw - 20px);
   }
 
-  .form-actions,
-  .modal-actions {
-    flex-direction: column;
-    gap: 8px;
+  .sub-habits-section {
+    padding: 12px;
   }
 
-  .save-btn,
-  .cancel-btn,
-  .delete-confirm-btn {
-    width: 100%;
+  .form-inline {
+    .form-actions-inline {
+      flex-direction: column;
+    }
   }
-}
-
-@media (max-width: 480px) {
-  .habit-management-container {
-    padding: 10px;
-  }
-
-  .title-section h1 {
-    font-size: 1.5rem;
-  }
-
-  .category-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .habit-meta {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-}
-
-/* ===================================
-   ANIMATIONS
-   =================================== */
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* ===================================
-   ACCESSIBILITY IMPROVEMENTS
-   =================================== */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* Focus styles for better accessibility */
-input:focus,
-button:focus,
-textarea:focus,
-select:focus {
-  outline: 2px solid #8b8fa3;
-  outline-offset: 2px;
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  .habit-management-container {
-    background: #000;
-    color: #fff;
-  }
-
-  .habit-card {
-    border-width: 2px;
-  }
-
-  .status-badge,
-  .frequency-info,
-  .deadline-info {
-    border-width: 2px;
-  }
-}
-
-/* ===================================
-   ADD TO HABIT-MANAGEMENT.SCSS
-   =================================== */
-
-/* Duration info in habit cards */
-.duration-info {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.8rem;
-  color: #69C28A;
-  background: rgba(105, 194, 138, 0.1);
-  padding: 3px 8px;
-  border-radius: 12px;
-  border: 1px solid rgba(105, 194, 138, 0.2);
-}
-
-.duration-icon {
-  font-size: 0.75rem;
-  opacity: 0.8;
-}
-
-/* Form hint styling for duration field */
-.form-hint {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-  padding: 8px 12px;
-  background: rgba(100, 181, 246, 0.1);
-  border: 1px solid rgba(100, 181, 246, 0.2);
-  border-radius: 6px;
-  color: #64b5f6;
-  font-size: 0.8rem;
-  line-height: 1.4;
-}
-
-.hint-icon {
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-
-.hint-text {
-  flex: 1;
-}
-
-/* Enhanced habit meta layout */
-.habit-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin: 12px 0;
-}
-
-.frequency-info {
-  display: inline-flex;
-  align-items: center;
-  background: rgba(139, 143, 163, 0.15);
-  color: #8b8fa3;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 500;
-}
-
-.deadline-info {
-  display: inline-flex;
-  align-items: center;
-  background: rgba(255, 152, 0, 0.15);
-  color: #ff9800;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  border: 1px solid rgba(255, 152, 0, 0.2);
-}
-
-/* Form section styling for better organization */
-.form-section {
-  margin-bottom: 24px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 8px;
-  border: 1px solid rgba(139, 143, 163, 0.1);
-}
-
-.form-section h4 {
-  color: #8b8fa3;
-  margin: 0 0 16px 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Input validation styling */
-.form-control.ng-invalid.ng-touched {
-  border-color: #f44336;
-  background: rgba(244, 67, 54, 0.05);
-}
-
-.error-message {
-  color: #f44336;
-  font-size: 0.75rem;
-  margin-top: 4px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.error-message::before {
-  content: "⚠";
-  font-size: 0.8rem;
 }

@@ -1,32 +1,171 @@
+<!-- Enhanced habit-management.component.html with Sub-Habits -->
 <div class="habit-management-container">
-  <!-- Header Section -->
-  <div class="header-section">
-    <div class="header-content">
-      <div class="title-section">
-        <h1>HABIT MANAGEMENT</h1>
-        <p class="subtitle">Configure your daily, weekly, and monthly habits</p>
-      </div>
-      <button class="add-habit-btn" (click)="openAddForm()">
-        <span class="plus-icon">+</span>
-        Add New Habit
-      </button>
-    </div>
-  </div>
-
+  
   <!-- Loading State -->
   <div *ngIf="loading" class="loading-state">
     <div class="loading-spinner"></div>
-    <p>Loading habits...</p>
+    <span>Loading habits...</span>
   </div>
 
   <!-- Error State -->
-  <div *ngIf="error" class="error-state">
-    <p>{{ error }}</p>
-    <button (click)="loadHabits()" class="retry-btn">Retry</button>
+  <div *ngIf="error" class="error-alert">
+    <span class="error-icon">❌</span>
+    <span class="error-message">{{ error }}</span>
+    <button class="retry-btn" (click)="loadHabits()" [disabled]="loading">
+      Retry
+    </button>
   </div>
 
-  <!-- Habits Content -->
-  <div *ngIf="!loading && !error" class="habits-content">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1>Habits Management</h1>
+      <p>Organize your habits and sub-tasks for better discipline tracking</p>
+    </div>
+    <button class="add-habit-btn" (click)="openAddForm()" [disabled]="loading">
+      <span class="btn-icon">➕</span>
+      Add New Habit
+    </button>
+  </div>
+
+  <!-- Add/Edit Form Modal -->
+  <div *ngIf="showAddForm" class="modal-overlay" (click)="closeForm()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editingHabit ? 'Edit Habit' : 'Add New Habit' }}</h2>
+        <button class="close-btn" (click)="closeForm()">✕</button>
+      </div>
+      
+      <form [formGroup]="habitForm" (ngSubmit)="saveHabit()" class="habit-form">
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="name">Habit Name *</label>
+            <input
+              id="name"
+              type="text"
+              formControlName="name"
+              placeholder="Enter habit name..."
+              [class.error]="habitForm.get('name')?.invalid && habitForm.get('name')?.touched">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="description">Description</label>
+            <textarea
+              id="description"
+              formControlName="description"
+              placeholder="Describe this habit..."
+              rows="3">
+            </textarea>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="frequency">Frequency *</label>
+            <select id="frequency" formControlName="frequency">
+              <option value="Daily">Daily</option>
+              <option value="EveryTwoDays">Every 2 Days</option>
+              <option value="Weekly">Weekly</option>
+              <option value="Monthly">Monthly</option>
+              <option value="Seasonal">Seasonal</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="estimatedDuration">Duration (minutes)</label>
+            <input
+              id="estimatedDuration"
+              type="number"
+              formControlName="estimatedDurationMinutes"
+              placeholder="0"
+              min="0">
+          </div>
+        </div>
+
+        <!-- Frequency-specific targets -->
+        <div class="form-row" *ngIf="habitForm.get('frequency')?.value === 'Weekly'">
+          <div class="form-group">
+            <label for="weeklyTarget">Weekly Target</label>
+            <input
+              id="weeklyTarget"
+              type="number"
+              formControlName="weeklyTarget"
+              placeholder="0"
+              min="0"
+              max="7">
+          </div>
+        </div>
+
+        <div class="form-row" *ngIf="habitForm.get('frequency')?.value === 'Monthly'">
+          <div class="form-group">
+            <label for="monthlyTarget">Monthly Target</label>
+            <input
+              id="monthlyTarget"
+              type="number"
+              formControlName="monthlyTarget"
+              placeholder="0"
+              min="0">
+          </div>
+        </div>
+
+        <div class="form-row" *ngIf="habitForm.get('frequency')?.value === 'Seasonal'">
+          <div class="form-group">
+            <label for="seasonalTarget">Seasonal Target</label>
+            <input
+              id="seasonalTarget"
+              type="number"
+              formControlName="seasonalTarget"
+              placeholder="0"
+              min="0">
+          </div>
+        </div>
+
+        <!-- Deadline Configuration -->
+        <div class="form-row">
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="hasDeadline">
+              <span class="checkmark"></span>
+              Has deadline time
+            </label>
+          </div>
+
+          <div class="form-group" *ngIf="habitForm.get('hasDeadline')?.value">
+            <label for="deadlineTime">Deadline Time</label>
+            <input
+              id="deadlineTime"
+              type="time"
+              formControlName="deadlineTime">
+          </div>
+        </div>
+
+        <!-- Optional Settings -->
+        <div class="form-row">
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="isOptional">
+              <span class="checkmark"></span>
+              Optional habit (won't affect streak)
+            </label>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-cancel" (click)="closeForm()">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="habitForm.invalid || loading">
+            {{ editingHabit ? 'Update Habit' : 'Create Habit' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Habits List -->
+  <div class="habits-container" *ngIf="!loading">
     
     <!-- Daily Habits -->
     <div class="habit-category" *ngIf="getDailyHabits().length > 0">
@@ -37,8 +176,21 @@
       
       <div class="habits-grid">
         <div *ngFor="let habit of getDailyHabits()" class="habit-card daily">
+          
+          <!-- Habit Header -->
           <div class="habit-header">
-            <div class="habit-name">{{ habit.name }}</div>
+            <div class="habit-name-section">
+              <div class="habit-name">{{ habit.name }}</div>
+              <button 
+                *ngIf="habit.hasSubHabits" 
+                class="expand-btn"
+                [class.expanded]="isHabitExpanded(habit.id)"
+                (click)="toggleHabitExpansion(habit.id)"
+                title="Toggle sub-habits">
+                <span class="expand-icon">{{ isHabitExpanded(habit.id) ? '▼' : '▶' }}</span>
+                <span class="sub-count">({{ habit.subHabits?.length || 0 }})</span>
+              </button>
+            </div>
             <div class="habit-status">
               <span class="status-badge" [class.active]="habit.isActive" [class.paused]="!habit.isActive">
                 {{ habit.isActive ? 'ACTIVE' : 'PAUSED' }}
@@ -49,15 +201,83 @@
           <div class="habit-description" *ngIf="habit.description">{{ habit.description }}</div>
           
           <div class="habit-meta">
-            <div class="frequency-info">Every day</div>
+            <div class="frequency-info">Daily</div>
             <div class="duration-info" *ngIf="habit.estimatedDurationMinutes">
-            <span class="duration-icon">⏱</span>
-            {{ formatDuration(habit.estimatedDurationMinutes) }}
-          </div>
+              <span class="duration-icon">⏱</span>
+              {{ formatDuration(habit.estimatedDurationMinutes) }}
+            </div>
             <div class="deadline-info" *ngIf="habit.hasDeadline">{{ habit.deadlineTime }}</div>
           </div>
           
+          <!-- Sub-Habits Section (Collapsible) -->
+          <div *ngIf="habit.hasSubHabits && isHabitExpanded(habit.id)" class="sub-habits-section">
+            <div class="sub-habits-header">
+              <h4>Sub-Tasks</h4>
+              <button class="add-sub-habit-btn" (click)="showAddSubHabitForm(habit.id)">
+                <span class="btn-icon">➕</span>
+                Add Sub-Task
+              </button>
+            </div>
+            
+            <!-- Add/Edit Sub-Habit Form -->
+            <div *ngIf="showSubHabitForm[habit.id]" class="sub-habit-form">
+              <form [formGroup]="subHabitForm" (ngSubmit)="saveSubHabit(habit.id)" class="form-inline">
+                <div class="form-group">
+                  <input
+                    type="text"
+                    formControlName="name"
+                    placeholder="Sub-task name..."
+                    [class.error]="subHabitForm.get('name')?.invalid && subHabitForm.get('name')?.touched">
+                </div>
+                <div class="form-group">
+                  <input
+                    type="text"
+                    formControlName="description"
+                    placeholder="Description (optional)...">
+                </div>
+                <div class="form-actions-inline">
+                  <button type="submit" class="btn btn-sm btn-primary" [disabled]="subHabitForm.invalid">
+                    {{ editingSubHabit ? 'Update' : 'Add' }}
+                  </button>
+                  <button type="button" class="btn btn-sm btn-cancel" (click)="hideAddSubHabitForm(habit.id)">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+            
+            <!-- Sub-Habits List -->
+            <div class="sub-habits-list" *ngIf="habit.subHabits && habit.subHabits.length > 0">
+              <div *ngFor="let subHabit of habit.subHabits" class="sub-habit-item" [class.inactive]="!subHabit.isActive">
+                <div class="sub-habit-content">
+                  <div class="sub-habit-name">{{ subHabit.name }}</div>
+                  <div class="sub-habit-description" *ngIf="subHabit.description">{{ subHabit.description }}</div>
+                </div>
+                <div class="sub-habit-actions">
+                  <button class="action-btn edit-btn" (click)="openEditSubHabitForm(habit, subHabit)" title="Edit sub-habit">
+                    ✎
+                  </button>
+                  <button class="action-btn toggle-btn" 
+                          [class.active]="subHabit.isActive"
+                          (click)="toggleSubHabitActive(habit, subHabit)" 
+                          [title]="subHabit.isActive ? 'Deactivate sub-habit' : 'Activate sub-habit'">
+                    {{ subHabit.isActive ? '⏸' : '▶' }}
+                  </button>
+                  <button class="action-btn delete-btn" (click)="confirmDeleteSubHabit(habit, subHabit)" title="Delete sub-habit">
+                    🗑
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <div class="habit-actions">
+            <button class="action-btn sub-habits-btn" 
+                    (click)="showAddSubHabitForm(habit.id)"
+                    title="Add sub-habits">
+              <span class="btn-icon">📋</span>
+              Sub-Tasks
+            </button>
             <button class="action-btn edit-btn" (click)="openEditForm(habit)" title="Edit habit">
               ✎
             </button>
@@ -84,8 +304,21 @@
       
       <div class="habits-grid">
         <div *ngFor="let habit of getRollingHabits()" class="habit-card rolling">
+          
+          <!-- Habit Header -->
           <div class="habit-header">
-            <div class="habit-name">{{ habit.name }}</div>
+            <div class="habit-name-section">
+              <div class="habit-name">{{ habit.name }}</div>
+              <button 
+                *ngIf="habit.hasSubHabits" 
+                class="expand-btn"
+                [class.expanded]="isHabitExpanded(habit.id)"
+                (click)="toggleHabitExpansion(habit.id)"
+                title="Toggle sub-habits">
+                <span class="expand-icon">{{ isHabitExpanded(habit.id) ? '▼' : '▶' }}</span>
+                <span class="sub-count">({{ habit.subHabits?.length || 0 }})</span>
+              </button>
+            </div>
             <div class="habit-status">
               <span class="status-badge" [class.active]="habit.isActive" [class.paused]="!habit.isActive">
                 {{ habit.isActive ? 'ACTIVE' : 'PAUSED' }}
@@ -97,14 +330,82 @@
           
           <div class="habit-meta">
             <div class="frequency-info">Every 2 days</div>
-                        <div class="duration-info" *ngIf="habit.estimatedDurationMinutes">
-            <span class="duration-icon">⏱</span>
-            {{ formatDuration(habit.estimatedDurationMinutes) }}
-          </div>
+            <div class="duration-info" *ngIf="habit.estimatedDurationMinutes">
+              <span class="duration-icon">⏱</span>
+              {{ formatDuration(habit.estimatedDurationMinutes) }}
+            </div>
             <div class="deadline-info" *ngIf="habit.hasDeadline">{{ habit.deadlineTime }}</div>
           </div>
           
+          <!-- Sub-Habits Section (Collapsible) -->
+          <div *ngIf="habit.hasSubHabits && isHabitExpanded(habit.id)" class="sub-habits-section">
+            <div class="sub-habits-header">
+              <h4>Sub-Tasks</h4>
+              <button class="add-sub-habit-btn" (click)="showAddSubHabitForm(habit.id)">
+                <span class="btn-icon">➕</span>
+                Add Sub-Task
+              </button>
+            </div>
+            
+            <!-- Add/Edit Sub-Habit Form -->
+            <div *ngIf="showSubHabitForm[habit.id]" class="sub-habit-form">
+              <form [formGroup]="subHabitForm" (ngSubmit)="saveSubHabit(habit.id)" class="form-inline">
+                <div class="form-group">
+                  <input
+                    type="text"
+                    formControlName="name"
+                    placeholder="Sub-task name..."
+                    [class.error]="subHabitForm.get('name')?.invalid && subHabitForm.get('name')?.touched">
+                </div>
+                <div class="form-group">
+                  <input
+                    type="text"
+                    formControlName="description"
+                    placeholder="Description (optional)...">
+                </div>
+                <div class="form-actions-inline">
+                  <button type="submit" class="btn btn-sm btn-primary" [disabled]="subHabitForm.invalid">
+                    {{ editingSubHabit ? 'Update' : 'Add' }}
+                  </button>
+                  <button type="button" class="btn btn-sm btn-cancel" (click)="hideAddSubHabitForm(habit.id)">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+            
+            <!-- Sub-Habits List -->
+            <div class="sub-habits-list" *ngIf="habit.subHabits && habit.subHabits.length > 0">
+              <div *ngFor="let subHabit of habit.subHabits" class="sub-habit-item" [class.inactive]="!subHabit.isActive">
+                <div class="sub-habit-content">
+                  <div class="sub-habit-name">{{ subHabit.name }}</div>
+                  <div class="sub-habit-description" *ngIf="subHabit.description">{{ subHabit.description }}</div>
+                </div>
+                <div class="sub-habit-actions">
+                  <button class="action-btn edit-btn" (click)="openEditSubHabitForm(habit, subHabit)" title="Edit sub-habit">
+                    ✎
+                  </button>
+                  <button class="action-btn toggle-btn" 
+                          [class.active]="subHabit.isActive"
+                          (click)="toggleSubHabitActive(habit, subHabit)" 
+                          [title]="subHabit.isActive ? 'Deactivate sub-habit' : 'Activate sub-habit'">
+                    {{ subHabit.isActive ? '⏸' : '▶' }}
+                  </button>
+                  <button class="action-btn delete-btn" (click)="confirmDeleteSubHabit(habit, subHabit)" title="Delete sub-habit">
+                    🗑
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <div class="habit-actions">
+            <button class="action-btn sub-habits-btn" 
+                    (click)="showAddSubHabitForm(habit.id)"
+                    title="Add sub-habits">
+              <span class="btn-icon">📋</span>
+              Sub-Tasks
+            </button>
             <button class="action-btn edit-btn" (click)="openEditForm(habit)" title="Edit habit">
               ✎
             </button>
@@ -131,8 +432,21 @@
       
       <div class="habits-grid">
         <div *ngFor="let habit of getWeeklyHabits()" class="habit-card weekly">
+          
+          <!-- Habit Header -->
           <div class="habit-header">
-            <div class="habit-name">{{ habit.name }}</div>
+            <div class="habit-name-section">
+              <div class="habit-name">{{ habit.name }}</div>
+              <button 
+                *ngIf="habit.hasSubHabits" 
+                class="expand-btn"
+                [class.expanded]="isHabitExpanded(habit.id)"
+                (click)="toggleHabitExpansion(habit.id)"
+                title="Toggle sub-habits">
+                <span class="expand-icon">{{ isHabitExpanded(habit.id) ? '▼' : '▶' }}</span>
+                <span class="sub-count">({{ habit.subHabits?.length || 0 }})</span>
+              </button>
+            </div>
             <div class="habit-status">
               <span class="status-badge" [class.active]="habit.isActive" [class.paused]="!habit.isActive">
                 {{ habit.isActive ? 'ACTIVE' : 'PAUSED' }}
@@ -144,26 +458,70 @@
           
           <div class="habit-meta">
             <div class="frequency-info">{{ habit.weeklyTarget }}x per week</div>
-                        <div class="duration-info" *ngIf="habit.estimatedDurationMinutes">
-            <span class="duration-icon">⏱</span>
-            {{ formatDuration(habit.estimatedDurationMinutes) }}
-          </div>
+            <div class="duration-info" *ngIf="habit.estimatedDurationMinutes">
+              <span class="duration-icon">⏱</span>
+              {{ formatDuration(habit.estimatedDurationMinutes) }}
+            </div>
             <div class="deadline-info" *ngIf="habit.hasDeadline">{{ habit.deadlineTime }}</div>
           </div>
           
+          <!-- Sub-Habits Section (same structure) -->
+          <div *ngIf="habit.hasSubHabits && isHabitExpanded(habit.id)" class="sub-habits-section">
+            <div class="sub-habits-header">
+              <h4>Sub-Tasks</h4>
+              <button class="add-sub-habit-btn" (click)="showAddSubHabitForm(habit.id)">
+                <span class="btn-icon">➕</span>
+                Add Sub-Task
+              </button>
+            </div>
+            
+            <div *ngIf="showSubHabitForm[habit.id]" class="sub-habit-form">
+              <form [formGroup]="subHabitForm" (ngSubmit)="saveSubHabit(habit.id)" class="form-inline">
+                <div class="form-group">
+                  <input type="text" formControlName="name" placeholder="Sub-task name..." 
+                         [class.error]="subHabitForm.get('name')?.invalid && subHabitForm.get('name')?.touched">
+                </div>
+                <div class="form-group">
+                  <input type="text" formControlName="description" placeholder="Description (optional)...">
+                </div>
+                <div class="form-actions-inline">
+                  <button type="submit" class="btn btn-sm btn-primary" [disabled]="subHabitForm.invalid">
+                    {{ editingSubHabit ? 'Update' : 'Add' }}
+                  </button>
+                  <button type="button" class="btn btn-sm btn-cancel" (click)="hideAddSubHabitForm(habit.id)">Cancel</button>
+                </div>
+              </form>
+            </div>
+            
+            <div class="sub-habits-list" *ngIf="habit.subHabits && habit.subHabits.length > 0">
+              <div *ngFor="let subHabit of habit.subHabits" class="sub-habit-item" [class.inactive]="!subHabit.isActive">
+                <div class="sub-habit-content">
+                  <div class="sub-habit-name">{{ subHabit.name }}</div>
+                  <div class="sub-habit-description" *ngIf="subHabit.description">{{ subHabit.description }}</div>
+                </div>
+                <div class="sub-habit-actions">
+                  <button class="action-btn edit-btn" (click)="openEditSubHabitForm(habit, subHabit)" title="Edit">✎</button>
+                  <button class="action-btn toggle-btn" [class.active]="subHabit.isActive"
+                          (click)="toggleSubHabitActive(habit, subHabit)" 
+                          [title]="subHabit.isActive ? 'Deactivate' : 'Activate'">
+                    {{ subHabit.isActive ? '⏸' : '▶' }}
+                  </button>
+                  <button class="action-btn delete-btn" (click)="confirmDeleteSubHabit(habit, subHabit)" title="Delete">🗑</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <div class="habit-actions">
-            <button class="action-btn edit-btn" (click)="openEditForm(habit)" title="Edit habit">
-              ✎
+            <button class="action-btn sub-habits-btn" (click)="showAddSubHabitForm(habit.id)" title="Add sub-habits">
+              <span class="btn-icon">📋</span> Sub-Tasks
             </button>
-            <button class="action-btn toggle-btn" 
-                    [class.active]="habit.isActive"
-                    (click)="toggleHabitActive(habit)" 
-                    [title]="habit.isActive ? 'Pause habit' : 'Activate habit'">
+            <button class="action-btn edit-btn" (click)="openEditForm(habit)" title="Edit habit">✎</button>
+            <button class="action-btn toggle-btn" [class.active]="habit.isActive"
+                    (click)="toggleHabitActive(habit)" [title]="habit.isActive ? 'Pause habit' : 'Activate habit'">
               {{ habit.isActive ? '⏸' : '▶' }}
             </button>
-            <button class="action-btn delete-btn" (click)="confirmDeleteHabit(habit)" title="Delete habit">
-              🗑
-            </button>
+            <button class="action-btn delete-btn" (click)="confirmDeleteHabit(habit)" title="Delete habit">🗑</button>
           </div>
         </div>
       </div>
@@ -179,7 +537,14 @@
       <div class="habits-grid">
         <div *ngFor="let habit of getMonthlyHabits()" class="habit-card monthly">
           <div class="habit-header">
-            <div class="habit-name">{{ habit.name }}</div>
+            <div class="habit-name-section">
+              <div class="habit-name">{{ habit.name }}</div>
+              <button *ngIf="habit.hasSubHabits" class="expand-btn" [class.expanded]="isHabitExpanded(habit.id)"
+                      (click)="toggleHabitExpansion(habit.id)" title="Toggle sub-habits">
+                <span class="expand-icon">{{ isHabitExpanded(habit.id) ? '▼' : '▶' }}</span>
+                <span class="sub-count">({{ habit.subHabits?.length || 0 }})</span>
+              </button>
+            </div>
             <div class="habit-status">
               <span class="status-badge" [class.active]="habit.isActive" [class.paused]="!habit.isActive">
                 {{ habit.isActive ? 'ACTIVE' : 'PAUSED' }}
@@ -188,29 +553,67 @@
           </div>
           
           <div class="habit-description" *ngIf="habit.description">{{ habit.description }}</div>
-          
           <div class="habit-meta">
             <div class="frequency-info">{{ habit.monthlyTarget }}x per month</div>
-                        <div class="duration-info" *ngIf="habit.estimatedDurationMinutes">
-            <span class="duration-icon">⏱</span>
-            {{ formatDuration(habit.estimatedDurationMinutes) }}
-          </div>
+            <div class="duration-info" *ngIf="habit.estimatedDurationMinutes">
+              <span class="duration-icon">⏱</span> {{ formatDuration(habit.estimatedDurationMinutes) }}
+            </div>
             <div class="deadline-info" *ngIf="habit.hasDeadline">{{ habit.deadlineTime }}</div>
           </div>
           
+          <!-- Sub-Habits Section (same pattern) -->
+          <div *ngIf="habit.hasSubHabits && isHabitExpanded(habit.id)" class="sub-habits-section">
+            <div class="sub-habits-header">
+              <h4>Sub-Tasks</h4>
+              <button class="add-sub-habit-btn" (click)="showAddSubHabitForm(habit.id)">
+                <span class="btn-icon">➕</span> Add Sub-Task
+              </button>
+            </div>
+            <div *ngIf="showSubHabitForm[habit.id]" class="sub-habit-form">
+              <form [formGroup]="subHabitForm" (ngSubmit)="saveSubHabit(habit.id)" class="form-inline">
+                <div class="form-group">
+                  <input type="text" formControlName="name" placeholder="Sub-task name..." 
+                         [class.error]="subHabitForm.get('name')?.invalid && subHabitForm.get('name')?.touched">
+                </div>
+                <div class="form-group">
+                  <input type="text" formControlName="description" placeholder="Description (optional)...">
+                </div>
+                <div class="form-actions-inline">
+                  <button type="submit" class="btn btn-sm btn-primary" [disabled]="subHabitForm.invalid">
+                    {{ editingSubHabit ? 'Update' : 'Add' }}
+                  </button>
+                  <button type="button" class="btn btn-sm btn-cancel" (click)="hideAddSubHabitForm(habit.id)">Cancel</button>
+                </div>
+              </form>
+            </div>
+            <div class="sub-habits-list" *ngIf="habit.subHabits && habit.subHabits.length > 0">
+              <div *ngFor="let subHabit of habit.subHabits" class="sub-habit-item" [class.inactive]="!subHabit.isActive">
+                <div class="sub-habit-content">
+                  <div class="sub-habit-name">{{ subHabit.name }}</div>
+                  <div class="sub-habit-description" *ngIf="subHabit.description">{{ subHabit.description }}</div>
+                </div>
+                <div class="sub-habit-actions">
+                  <button class="action-btn edit-btn" (click)="openEditSubHabitForm(habit, subHabit)" title="Edit">✎</button>
+                  <button class="action-btn toggle-btn" [class.active]="subHabit.isActive"
+                          (click)="toggleSubHabitActive(habit, subHabit)" [title]="subHabit.isActive ? 'Deactivate' : 'Activate'">
+                    {{ subHabit.isActive ? '⏸' : '▶' }}
+                  </button>
+                  <button class="action-btn delete-btn" (click)="confirmDeleteSubHabit(habit, subHabit)" title="Delete">🗑</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <div class="habit-actions">
-            <button class="action-btn edit-btn" (click)="openEditForm(habit)" title="Edit habit">
-              ✎
+            <button class="action-btn sub-habits-btn" (click)="showAddSubHabitForm(habit.id)" title="Add sub-habits">
+              <span class="btn-icon">📋</span> Sub-Tasks
             </button>
-            <button class="action-btn toggle-btn" 
-                    [class.active]="habit.isActive"
-                    (click)="toggleHabitActive(habit)" 
-                    [title]="habit.isActive ? 'Pause habit' : 'Activate habit'">
+            <button class="action-btn edit-btn" (click)="openEditForm(habit)" title="Edit habit">✎</button>
+            <button class="action-btn toggle-btn" [class.active]="habit.isActive"
+                    (click)="toggleHabitActive(habit)" [title]="habit.isActive ? 'Pause habit' : 'Activate habit'">
               {{ habit.isActive ? '⏸' : '▶' }}
             </button>
-            <button class="action-btn delete-btn" (click)="confirmDeleteHabit(habit)" title="Delete habit">
-              🗑
-            </button>
+            <button class="action-btn delete-btn" (click)="confirmDeleteHabit(habit)" title="Delete habit">🗑</button>
           </div>
         </div>
       </div>
@@ -226,7 +629,14 @@
       <div class="habits-grid">
         <div *ngFor="let habit of getSeasonalHabits()" class="habit-card seasonal">
           <div class="habit-header">
-            <div class="habit-name">{{ habit.name }}</div>
+            <div class="habit-name-section">
+              <div class="habit-name">{{ habit.name }}</div>
+              <button *ngIf="habit.hasSubHabits" class="expand-btn" [class.expanded]="isHabitExpanded(habit.id)"
+                      (click)="toggleHabitExpansion(habit.id)" title="Toggle sub-habits">
+                <span class="expand-icon">{{ isHabitExpanded(habit.id) ? '▼' : '▶' }}</span>
+                <span class="sub-count">({{ habit.subHabits?.length || 0 }})</span>
+              </button>
+            </div>
             <div class="habit-status">
               <span class="status-badge" [class.active]="habit.isActive" [class.paused]="!habit.isActive">
                 {{ habit.isActive ? 'ACTIVE' : 'PAUSED' }}
@@ -235,203 +645,108 @@
           </div>
           
           <div class="habit-description" *ngIf="habit.description">{{ habit.description }}</div>
-          
           <div class="habit-meta">
             <div class="frequency-info">{{ habit.seasonalTarget }}x per season</div>
-                        <div class="duration-info" *ngIf="habit.estimatedDurationMinutes">
-            <span class="duration-icon">⏱</span>
-            {{ formatDuration(habit.estimatedDurationMinutes) }}
-          </div>
+            <div class="duration-info" *ngIf="habit.estimatedDurationMinutes">
+              <span class="duration-icon">⏱</span> {{ formatDuration(habit.estimatedDurationMinutes) }}
+            </div>
             <div class="deadline-info" *ngIf="habit.hasDeadline">{{ habit.deadlineTime }}</div>
           </div>
           
-          <div class="habit-actions">
-            <button class="action-btn edit-btn" (click)="openEditForm(habit)" title="Edit habit">
-              ✎
-            </button>
-            <button class="action-btn toggle-btn" 
-                    [class.active]="habit.isActive"
-                    (click)="toggleHabitActive(habit)" 
-                    [title]="habit.isActive ? 'Pause habit' : 'Activate habit'">
-              {{ habit.isActive ? '⏸' : '▶' }}
-            </button>
-            <button class="action-btn delete-btn" (click)="confirmDeleteHabit(habit)" title="Delete habit">
-              🗑
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Empty State -->
-    <div *ngIf="habits.length === 0" class="empty-state">
-      <div class="empty-icon">📋</div>
-      <h3>No habits configured yet</h3>
-      <p>Start by adding your first habit to begin tracking your discipline journey.</p>
-      <button class="add-first-habit-btn" (click)="openAddForm()">
-        <span class="plus-icon">+</span>
-        Add Your First Habit
-      </button>
-    </div>
-  </div>
-
-  <!-- Add/Edit Habit Modal -->
-  <div *ngIf="showAddForm || editingHabit" class="modal-backdrop" (click)="cancelForm()">
-    <div class="habit-form-modal" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3>{{ editingHabit ? 'Edit Habit' : 'Add New Habit' }}</h3>
-        <button class="close-btn" (click)="cancelForm()">×</button>
-      </div>
-      
-      <form [formGroup]="habitForm" (ngSubmit)="saveHabit()" class="habit-form">
-        <div class="form-content">
-          <!-- Basic Information -->
-          <div class="form-section">
-            <h4>Basic Information</h4>
-            
-            <div class="form-group">
-              <label for="name">Habit Name *</label>
-              <input type="text" 
-                     id="name" 
-                     formControlName="name" 
-                     placeholder="e.g., Morning Exercise">
-              <div class="error-message" *ngIf="habitForm.get('name')?.invalid && habitForm.get('name')?.touched">
-                Habit name is required
+          <!-- Sub-Habits Section (same pattern) -->
+          <div *ngIf="habit.hasSubHabits && isHabitExpanded(habit.id)" class="sub-habits-section">
+            <div class="sub-habits-header">
+              <h4>Sub-Tasks</h4>
+              <button class="add-sub-habit-btn" (click)="showAddSubHabitForm(habit.id)">
+                <span class="btn-icon">➕</span> Add Sub-Task
+              </button>
+            </div>
+            <div *ngIf="showSubHabitForm[habit.id]" class="sub-habit-form">
+              <form [formGroup]="subHabitForm" (ngSubmit)="saveSubHabit(habit.id)" class="form-inline">
+                <div class="form-group">
+                  <input type="text" formControlName="name" placeholder="Sub-task name..." 
+                         [class.error]="subHabitForm.get('name')?.invalid && subHabitForm.get('name')?.touched">
+                </div>
+                <div class="form-group">
+                  <input type="text" formControlName="description" placeholder="Description (optional)...">
+                </div>
+                <div class="form-actions-inline">
+                  <button type="submit" class="btn btn-sm btn-primary" [disabled]="subHabitForm.invalid">
+                    {{ editingSubHabit ? 'Update' : 'Add' }}
+                  </button>
+                  <button type="button" class="btn btn-sm btn-cancel" (click)="hideAddSubHabitForm(habit.id)">Cancel</button>
+                </div>
+              </form>
+            </div>
+            <div class="sub-habits-list" *ngIf="habit.subHabits && habit.subHabits.length > 0">
+              <div *ngFor="let subHabit of habit.subHabits" class="sub-habit-item" [class.inactive]="!subHabit.isActive">
+                <div class="sub-habit-content">
+                  <div class="sub-habit-name">{{ subHabit.name }}</div>
+                  <div class="sub-habit-description" *ngIf="subHabit.description">{{ subHabit.description }}</div>
+                </div>
+                <div class="sub-habit-actions">
+                  <button class="action-btn edit-btn" (click)="openEditSubHabitForm(habit, subHabit)" title="Edit">✎</button>
+                  <button class="action-btn toggle-btn" [class.active]="subHabit.isActive"
+                          (click)="toggleSubHabitActive(habit, subHabit)" [title]="subHabit.isActive ? 'Deactivate' : 'Activate'">
+                    {{ subHabit.isActive ? '⏸' : '▶' }}
+                  </button>
+                  <button class="action-btn delete-btn" (click)="confirmDeleteSubHabit(habit, subHabit)" title="Delete">🗑</button>
+                </div>
               </div>
             </div>
-            
-            <div class="form-group">
-              <label for="description">Description</label>
-              <textarea id="description" 
-                        formControlName="description" 
-                        placeholder="Optional description of the habit"
-                        rows="3"></textarea>
-            </div>
-
-                      <div class="form-group">
-            <label for="estimatedDurationMinutes">Estimated Duration (minutes)</label>
-            <input type="number" 
-                  id="estimatedDurationMinutes" 
-                  formControlName="estimatedDurationMinutes" 
-                  min="1" 
-                  max="600"
-                  placeholder="e.g., 30">
-            <div class="form-hint">
-              <span class="hint-icon">💡</span>
-              <span class="hint-text">How many minutes does this habit typically take?</span>
-            </div>
           </div>
-          </div>
-
-          <!-- Frequency Configuration -->
-          <div class="form-section">
-            <h4>Frequency</h4>
-            
-            <div class="form-group">
-              <label for="frequency">How often? *</label>
-              <select id="frequency" formControlName="frequency" (change)="onFrequencyChange()">
-                <option value="Daily">Daily</option>
-                <option value="EveryTwoDays">Every 2 Days (Rolling)</option>
-                <option value="Weekly">Weekly</option>
-                <option value="Monthly">Monthly</option>
-                <option value="Seasonal">Seasonal</option>
-              </select>
-            </div>
-
-            <!-- Weekly Target -->
-            <div class="form-group" *ngIf="habitForm.get('frequency')?.value === 'Weekly'">
-              <label for="weeklyTarget">Times per week</label>
-              <input type="number" 
-                     id="weeklyTarget" 
-                     formControlName="weeklyTarget" 
-                     min="1" 
-                     max="7"
-                     placeholder="e.g., 3">
-            </div>
-
-            <!-- Monthly Target -->
-            <div class="form-group" *ngIf="habitForm.get('frequency')?.value === 'Monthly'">
-              <label for="monthlyTarget">Times per month</label>
-              <input type="number" 
-                     id="monthlyTarget" 
-                     formControlName="monthlyTarget" 
-                     min="1" 
-                     max="31"
-                     placeholder="e.g., 2">
-            </div>
-
-            <!-- Seasonal Target -->
-            <div class="form-group" *ngIf="habitForm.get('frequency')?.value === 'Seasonal'">
-              <label for="seasonalTarget">Times per season</label>
-              <input type="number" 
-                     id="seasonalTarget" 
-                     formControlName="seasonalTarget" 
-                     min="1" 
-                     max="20"
-                     placeholder="e.g., 3">
-            </div>
-          </div>
-
-          <!-- Deadline Configuration -->
-          <div class="form-section">
-            <h4>Deadline (Optional)</h4>
-            
-            <div class="form-group">
-              <label class="checkbox-label">
-                <input type="checkbox" formControlName="hasDeadline">
-                Set a daily deadline for this habit
-              </label>
-            </div>
-
-            <div class="form-group" *ngIf="habitForm.get('hasDeadline')?.value">
-              <label for="deadlineTime">Deadline time</label>
-              <input type="time" 
-                     id="deadlineTime" 
-                     formControlName="deadlineTime"
-                     placeholder="e.g., 18:00">
-            </div>
+          
+          <div class="habit-actions">
+            <button class="action-btn sub-habits-btn" (click)="showAddSubHabitForm(habit.id)" title="Add sub-habits">
+              <span class="btn-icon">📋</span> Sub-Tasks
+            </button>
+            <button class="action-btn edit-btn" (click)="openEditForm(habit)" title="Edit habit">✎</button>
+            <button class="action-btn toggle-btn" [class.active]="habit.isActive"
+                    (click)="toggleHabitActive(habit)" [title]="habit.isActive ? 'Pause habit' : 'Activate habit'">
+              {{ habit.isActive ? '⏸' : '▶' }}
+            </button>
+            <button class="action-btn delete-btn" (click)="confirmDeleteHabit(habit)" title="Delete habit">🗑</button>
           </div>
         </div>
-
-                <div class="form-group">
-          <label class="checkbox-container">
-            <input type="checkbox" formControlName="isOptional">
-            <span class="checkmark"></span>
-            Mark as Optional Task
-          </label>
-          <div class="field-hint">Optional tasks don't affect day completion status</div>
-</div>
-
-        <!-- Form Actions -->
-        <div class="form-actions">
-          <button type="button" class="cancel-btn" (click)="cancelForm()">
-            Cancel
-          </button>
-          <button type="submit" class="save-btn" [disabled]="habitForm.invalid">
-            {{ editingHabit ? 'Update Habit' : 'Create Habit' }}
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
+
   </div>
 
-  <!-- Delete Confirmation Modal -->
-  <div *ngIf="habitToDelete" class="modal-backdrop" (click)="cancelDelete()">
-    <div class="delete-confirmation-modal" (click)="$event.stopPropagation()">
+  <!-- Delete Confirmation Modals -->
+  
+  <!-- Delete Habit Confirmation -->
+  <div *ngIf="habitToDelete" class="modal-overlay" (click)="cancelDelete()">
+    <div class="modal-content delete-modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h3>Delete Habit</h3>
-        <button class="close-btn" (click)="cancelDelete()">×</button>
+        <h2>Delete Habit</h2>
       </div>
-      
-      <div class="modal-content">
-        <p>Are you sure you want to delete the habit <strong>"{{ habitToDelete.name }}"</strong>?</p>
-        <p class="warning-text">This action cannot be undone.</p>
+      <div class="modal-body">
+        <p>Are you sure you want to delete the habit "<strong>{{ habitToDelete.name }}</strong>"?</p>
+        <p class="warning-text">This action cannot be undone and will also delete all associated sub-habits and completion history.</p>
       </div>
-      
       <div class="modal-actions">
-        <button class="cancel-btn" (click)="cancelDelete()">Cancel</button>
-        <button class="delete-confirm-btn" (click)="deleteHabit()">Delete Habit</button>
+        <button class="btn btn-cancel" (click)="cancelDelete()">Cancel</button>
+        <button class="btn btn-danger" (click)="deleteHabit()" [disabled]="loading">Delete Habit</button>
       </div>
     </div>
   </div>
+
+  <!-- Delete Sub-Habit Confirmation -->
+  <div *ngIf="subHabitToDelete" class="modal-overlay" (click)="cancelDelete()">
+    <div class="modal-content delete-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Delete Sub-Habit</h2>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete the sub-habit "<strong>{{ subHabitToDelete.subHabit.name }}</strong>"?</p>
+        <p class="warning-text">This action cannot be undone and will delete all completion history for this sub-habit.</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-cancel" (click)="cancelDelete()">Cancel</button>
+        <button class="btn btn-danger" (click)="deleteSubHabit()" [disabled]="loading">Delete Sub-Habit</button>
+      </div>
+    </div>
+  </div>
+
 </div>

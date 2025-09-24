@@ -20,6 +20,10 @@ interface Habit {
   createdAt: string;
   isOptional?: boolean;
   estimatedDurationMinutes?: number;
+    // Sub-habits related
+  subHabits?: SubHabit[];
+  hasSubHabits?: boolean;
+  isExpanded?: boolean;
 }
 
 interface CreateHabitRequest {
@@ -49,6 +53,41 @@ interface UpdateHabitRequest {
   estimatedDurationMinutes?: number;
 }
 
+interface SubHabit {
+  id: number;
+  parentHabitId: number;
+  name: string;
+  description: string;
+  orderIndex: number;
+  isActive: boolean;
+  createdAt: string;
+}
+
+interface CreateHabitRequest {
+  name: string;
+  description: string;
+  frequency: string;
+  weeklyTarget?: number;
+  monthlyTarget?: number;
+  seasonalTarget?: number;
+  hasDeadline?: boolean;
+  deadlineTime?: string;
+  isOptional?: boolean;
+  estimatedDurationMinutes?: number;
+}
+
+interface CreateSubHabitRequest {
+  parentHabitId: number;
+  name: string;
+  description?: string;
+}
+
+interface UpdateSubHabitRequest {
+  name: string;
+  description?: string;
+  isActive: boolean;
+}
+
 enum HabitFrequency {
   Daily = 0,
   EveryTwoDays = 1,
@@ -75,13 +114,21 @@ export class HabitManagementComponent implements OnInit {
   editingHabit: Habit | null = null;
   habitForm: FormGroup;
   
-  // Delete Confirmation
+   // Sub-Habits Properties
+  showSubHabitForm: { [habitId: number]: boolean } = {};
+  editingSubHabit: { habit: Habit, subHabit: SubHabit } | null = null;
+  subHabitForm: FormGroup;
+  expandedHabits: Set<number> = new Set();
+
+    // Delete Confirmation
   habitToDelete: Habit | null = null;
+  subHabitToDelete: { habit: Habit, subHabit: SubHabit } | null = null;
   
   private apiUrl = 'https://localhost:7025/api';
 
   constructor(private fb: FormBuilder, private http: HttpClient) {
     this.habitForm = this.createHabitForm();
+    this.subHabitForm = this.createSubHabitForm();
   }
 
   ngOnInit(): void {
@@ -107,62 +154,62 @@ export class HabitManagementComponent implements OnInit {
     });
   }
 
-  openAddForm(): void {
-    this.showAddForm = true;
-    this.editingHabit = null;
-    this.habitForm.reset({
-      name: '',
-      description: '',
-      frequency: 'Daily',
-      weeklyTarget: 1,
-      monthlyTarget: 1,
-      seasonalTarget: 1,
-      hasDeadline: false,
-      deadlineTime: '',
-      isOptional: this.habitForm.get('isOptional')?.value || false,
-      estimatedDurationMinutes: 30
+  private createSubHabitForm(): FormGroup {
+    return this.fb.group({
+      name: ['', [Validators.required, Validators.minLength(2)]],
+      description: ['']
     });
   }
 
-  formatDuration(minutes: number): string {
-  if (minutes < 60) {
-    return `${minutes}min`;
+   openAddForm(): void {
+    this.showAddForm = true;
+    this.editingHabit = null;
+    this.habitForm.reset();
+    this.habitForm.patchValue({
+      frequency: 'Daily',
+      weeklyTarget: 0,
+      monthlyTarget: 0,
+      seasonalTarget: 0,
+      hasDeadline: false,
+      isOptional: false,
+      estimatedDurationMinutes: 0
+    });
   }
-  
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  
-  if (remainingMinutes === 0) {
-    return `${hours}h`;
+
+ formatDuration(minutes?: number): string {
+    if (!minutes) return '';
+    
+    if (minutes < 60) {
+      return `${minutes}m`;
+    } else {
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+    }
   }
-  
-  return `${hours}h ${remainingMinutes}min`;
-}
 
   openEditForm(habit: Habit): void {
-    this.editingHabit = habit;
     this.showAddForm = true;
-    
-    const frequencyString = this.getFrequencyString(habit.frequency);
-    
+    this.editingHabit = habit;
     this.habitForm.patchValue({
       name: habit.name,
       description: habit.description,
-      frequency: frequencyString,
-      weeklyTarget: habit.weeklyTarget || 1,
-      monthlyTarget: habit.monthlyTarget || 1,
-      seasonalTarget: habit.seasonalTarget || 1,
+      frequency: this.getFrequencyName(habit.frequency),
+      weeklyTarget: habit.weeklyTarget,
+      monthlyTarget: habit.monthlyTarget,
+      seasonalTarget: habit.seasonalTarget,
       hasDeadline: habit.hasDeadline,
       deadlineTime: habit.deadlineTime || '',
-      isOptional: habit.isOptional || false,
-      estimatedDurationMinutes: habit.estimatedDurationMinutes || 30
+      isOptional: habit.isOptional,
+      estimatedDurationMinutes: habit.estimatedDurationMinutes || 0
     });
   }
 
-  cancelForm(): void {
+  closeForm(): void {
     this.showAddForm = false;
     this.editingHabit = null;
     this.habitForm.reset();
+    this.error = null;
   }
 
   onFrequencyChange(): void {
@@ -176,89 +223,91 @@ export class HabitManagementComponent implements OnInit {
     });
   }
 
+    private getFrequencyName(frequency: number): string {
+    switch (frequency) {
+      case HabitFrequency.Daily: return 'Daily';
+      case HabitFrequency.EveryTwoDays: return 'EveryTwoDays';
+      case HabitFrequency.Weekly: return 'Weekly';
+      case HabitFrequency.Monthly: return 'Monthly';
+      case HabitFrequency.Seasonal: return 'Seasonal';
+      default: return 'Daily';
+    }
+  }
+
   // ===================================
   // DATA LOADING AND SAVING
   // ===================================
 
-  loadHabits(): void {
+async loadHabits(): Promise<void> {
     this.loading = true;
     this.error = null;
 
-    this.http.get<Habit[]>(`${this.apiUrl}/habits`).subscribe({
-      next: (habits) => {
-        this.habits = habits;
-        this.loading = false;
-        console.log('Habits loaded:', habits);
-      },
-      error: (error) => {
-        console.error('Error loading habits:', error);
-        this.error = 'Failed to load habits. Please try again.';
-        this.loading = false;
+    try {
+      const response = await this.http.get<Habit[]>(`${this.apiUrl}/habits`).toPromise();
+      this.habits = response || [];
+      
+      // Load sub-habits for each habit
+      for (const habit of this.habits) {
+        await this.loadSubHabitsForHabit(habit);
       }
-    });
+      
+    } catch (error) {
+      this.error = 'Failed to load habits';
+      console.error('Error loading habits:', error);
+    } finally {
+      this.loading = false;
+    }
   }
 
-  saveHabit(): void {
-    if (this.habitForm.invalid) {
-      this.habitForm.markAllAsTouched();
-      return;
+   async loadSubHabitsForHabit(habit: Habit): Promise<void> {
+    try {
+      const subHabits = await this.http.get<SubHabit[]>(`${this.apiUrl}/subhabits/habit/${habit.id}`).toPromise();
+      habit.subHabits = subHabits || [];
+      habit.hasSubHabits = habit.subHabits.length > 0;
+    } catch (error) {
+      console.error(`Error loading sub-habits for habit ${habit.id}:`, error);
+      habit.subHabits = [];
+      habit.hasSubHabits = false;
     }
+  }
 
-    const formValue = this.habitForm.value;
-    
-    if (this.editingHabit) {
-      // Update existing habit
-      const updateRequest: UpdateHabitRequest = {
+ async saveHabit(): Promise<void> {
+    if (this.habitForm.invalid) return;
+
+    this.loading = true;
+    this.error = null;
+
+    try {
+      const formValue = this.habitForm.value;
+      const request: CreateHabitRequest = {
         name: formValue.name.trim(),
         description: formValue.description?.trim() || '',
         frequency: formValue.frequency,
-        weeklyTarget: formValue.weeklyTarget,
-        monthlyTarget: formValue.monthlyTarget,
-        seasonalTarget: formValue.seasonalTarget,
-        isActive: this.editingHabit.isActive,
+        weeklyTarget: formValue.weeklyTarget || undefined,
+        monthlyTarget: formValue.monthlyTarget || undefined,
+        seasonalTarget: formValue.seasonalTarget || undefined,
         hasDeadline: formValue.hasDeadline,
         deadlineTime: formValue.hasDeadline ? formValue.deadlineTime : undefined,
-        isOptional: formValue.isOptional || false,
-        estimatedDurationMinutes: formValue.estimatedDurationMinutes
+        isOptional: formValue.isOptional,
+        estimatedDurationMinutes: formValue.estimatedDurationMinutes || undefined
       };
 
-      this.http.put(`${this.apiUrl}/habits/${this.editingHabit.id}`, updateRequest).subscribe({
-        next: () => {
-          console.log('Habit updated successfully');
-          this.loadHabits();
-          this.cancelForm();
-        },
-        error: (error) => {
-          console.error('Error updating habit:', error);
-          this.error = 'Failed to update habit. Please try again.';
-        }
-      });
-    } else {
-      // Create new habit
-      const createRequest: CreateHabitRequest = {
-        name: formValue.name.trim(),
-        description: formValue.description?.trim() || '',
-        frequency: formValue.frequency,
-        weeklyTarget: formValue.weeklyTarget,
-        monthlyTarget: formValue.monthlyTarget,
-        seasonalTarget: formValue.seasonalTarget,
-        hasDeadline: formValue.hasDeadline,
-        deadlineTime: formValue.hasDeadline ? formValue.deadlineTime : undefined,
-        isOptional: formValue.isOptional || false,
-        estimatedDurationMinutes: formValue.estimatedDurationMinutes
-      };
+      if (this.editingHabit) {
+        // Update existing habit
+        const updateRequest = { ...request, id: this.editingHabit.id, isActive: true, isLocked: false };
+        await this.http.put(`${this.apiUrl}/habits/${this.editingHabit.id}`, updateRequest).toPromise();
+      } else {
+        // Create new habit
+        await this.http.post(`${this.apiUrl}/habits`, request).toPromise();
+      }
 
-      this.http.post(`${this.apiUrl}/habits`, createRequest).subscribe({
-        next: () => {
-          console.log('Habit created successfully');
-          this.loadHabits();
-          this.cancelForm();
-        },
-        error: (error) => {
-          console.error('Error creating habit:', error);
-          this.error = 'Failed to create habit. Please try again.';
-        }
-      });
+      await this.loadHabits();
+      this.closeForm();
+    } catch (error) {
+      this.error = this.editingHabit ? 'Failed to update habit' : 'Failed to create habit';
+      console.error('Error saving habit:', error);
+    } finally {
+      this.loading = false;
     }
   }
 
@@ -266,54 +315,175 @@ export class HabitManagementComponent implements OnInit {
   // HABIT ACTIONS
   // ===================================
 
-  toggleHabitActive(habit: Habit): void {
-    const updateRequest: UpdateHabitRequest = {
-      name: habit.name,
-      description: habit.description,
-      frequency: this.getFrequencyString(habit.frequency),
-      weeklyTarget: habit.weeklyTarget,
-      monthlyTarget: habit.monthlyTarget,
-      seasonalTarget: habit.seasonalTarget,
-      isActive: !habit.isActive,
-      hasDeadline: habit.hasDeadline,
-      deadlineTime: habit.deadlineTime
-    };
+  async toggleHabitActive(habit: Habit): Promise<void> {
+    try {
+      const updateRequest = {
+        id: habit.id,
+        name: habit.name,
+        description: habit.description,
+        frequency: this.getFrequencyName(habit.frequency),
+        weeklyTarget: habit.weeklyTarget,
+        monthlyTarget: habit.monthlyTarget,
+        seasonalTarget: habit.seasonalTarget,
+        hasDeadline: habit.hasDeadline,
+        deadlineTime: habit.deadlineTime,
+        isActive: !habit.isActive,
+        isLocked: habit.isLocked,
+        isOptional: habit.isOptional,
+        estimatedDurationMinutes: habit.estimatedDurationMinutes
+      };
 
-    this.http.put(`${this.apiUrl}/habits/${habit.id}`, updateRequest).subscribe({
-      next: () => {
-        console.log(`Habit ${habit.isActive ? 'paused' : 'activated'} successfully`);
-        this.loadHabits();
-      },
-      error: (error) => {
-        console.error('Error toggling habit:', error);
-        this.error = 'Failed to update habit status. Please try again.';
-      }
-    });
+      await this.http.put(`${this.apiUrl}/habits/${habit.id}`, updateRequest).toPromise();
+      habit.isActive = !habit.isActive;
+    } catch (error) {
+      this.error = 'Failed to update habit status';
+      console.error('Error toggling habit active status:', error);
+    }
   }
 
-  confirmDeleteHabit(habit: Habit): void {
+ confirmDeleteHabit(habit: Habit): void {
     this.habitToDelete = habit;
   }
 
   cancelDelete(): void {
     this.habitToDelete = null;
+    this.subHabitToDelete = null;
   }
 
-  deleteHabit(): void {
+ async deleteHabit(): Promise<void> {
     if (!this.habitToDelete) return;
 
-    this.http.delete(`${this.apiUrl}/habits/${this.habitToDelete.id}`).subscribe({
-      next: () => {
-        console.log('Habit deleted successfully');
-        this.loadHabits();
-        this.cancelDelete();
-      },
-      error: (error) => {
-        console.error('Error deleting habit:', error);
-        this.error = 'Failed to delete habit. Please try again.';
-        this.cancelDelete();
-      }
+    this.loading = true;
+    try {
+      await this.http.delete(`${this.apiUrl}/habits/${this.habitToDelete.id}`).toPromise();
+      await this.loadHabits();
+    } catch (error) {
+      this.error = 'Failed to delete habit';
+      console.error('Error deleting habit:', error);
+    } finally {
+      this.loading = false;
+      this.habitToDelete = null;
+    }
+  }
+
+  // ===================================
+  // SUB-HABITS MANAGEMENT
+  // ===================================
+
+  toggleHabitExpansion(habitId: number): void {
+    if (this.expandedHabits.has(habitId)) {
+      this.expandedHabits.delete(habitId);
+    } else {
+      this.expandedHabits.add(habitId);
+    }
+  }
+
+  isHabitExpanded(habitId: number): boolean {
+    return this.expandedHabits.has(habitId);
+  }
+
+  showAddSubHabitForm(habitId: number): void {
+    this.showSubHabitForm[habitId] = true;
+    this.editingSubHabit = null;
+    this.subHabitForm.reset();
+  }
+
+  hideAddSubHabitForm(habitId: number): void {
+    this.showSubHabitForm[habitId] = false;
+    this.editingSubHabit = null;
+    this.subHabitForm.reset();
+  }
+
+  openEditSubHabitForm(habit: Habit, subHabit: SubHabit): void {
+    this.editingSubHabit = { habit, subHabit };
+    this.subHabitForm.patchValue({
+      name: subHabit.name,
+      description: subHabit.description
     });
+    // Hide the add form and show edit mode
+    this.showSubHabitForm[habit.id] = true;
+  }
+
+  async saveSubHabit(habitId: number): Promise<void> {
+    if (this.subHabitForm.invalid) return;
+
+    this.loading = true;
+    try {
+      const formValue = this.subHabitForm.value;
+
+      if (this.editingSubHabit) {
+        // Update existing sub-habit
+        const updateRequest: UpdateSubHabitRequest = {
+          name: formValue.name.trim(),
+          description: formValue.description?.trim() || '',
+          isActive: true
+        };
+        
+        await this.http.put(`${this.apiUrl}/subhabits/${this.editingSubHabit.subHabit.id}`, updateRequest).toPromise();
+      } else {
+        // Create new sub-habit
+        const createRequest: CreateSubHabitRequest = {
+          parentHabitId: habitId,
+          name: formValue.name.trim(),
+          description: formValue.description?.trim() || ''
+        };
+        
+        await this.http.post(`${this.apiUrl}/subhabits`, createRequest).toPromise();
+      }
+
+      // Reload sub-habits for this habit
+      const habit = this.habits.find(h => h.id === habitId);
+      if (habit) {
+        await this.loadSubHabitsForHabit(habit);
+      }
+
+      this.hideAddSubHabitForm(habitId);
+    } catch (error) {
+      this.error = this.editingSubHabit ? 'Failed to update sub-habit' : 'Failed to create sub-habit';
+      console.error('Error saving sub-habit:', error);
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  confirmDeleteSubHabit(habit: Habit, subHabit: SubHabit): void {
+    this.subHabitToDelete = { habit, subHabit };
+  }
+
+  async deleteSubHabit(): Promise<void> {
+    if (!this.subHabitToDelete) return;
+
+    this.loading = true;
+    try {
+      await this.http.delete(`${this.apiUrl}/subhabits/${this.subHabitToDelete.subHabit.id}`).toPromise();
+      
+      // Reload sub-habits for this habit
+      await this.loadSubHabitsForHabit(this.subHabitToDelete.habit);
+    } catch (error) {
+      this.error = 'Failed to delete sub-habit';
+      console.error('Error deleting sub-habit:', error);
+    } finally {
+      this.loading = false;
+      this.subHabitToDelete = null;
+    }
+  }
+
+  async toggleSubHabitActive(habit: Habit, subHabit: SubHabit): Promise<void> {
+    try {
+      const updateRequest: UpdateSubHabitRequest = {
+        name: subHabit.name,
+        description: subHabit.description,
+        isActive: !subHabit.isActive
+      };
+
+      await this.http.put(`${this.apiUrl}/subhabits/${subHabit.id}`, updateRequest).toPromise();
+      
+      // Update local state
+      subHabit.isActive = !subHabit.isActive;
+    } catch (error) {
+      this.error = 'Failed to update sub-habit status';
+      console.error('Error toggling sub-habit active status:', error);
+    }
   }
 
   // ===================================
