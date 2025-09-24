@@ -278,12 +278,19 @@ async loadSubHabitsForHabit(habit: Habit): Promise<void> {
       this.expandedHabits.add(habitId);
     }
     
-    // Give the DOM a moment to update before showing the form
-    setTimeout(() => {
-      this.showSubHabitForm[habitId] = true;
-      this.editingSubHabit = null;
-      this.subHabitForm.reset();
-    }, 100);
+    // Toggle the form instead of just showing it
+    if (this.showSubHabitForm[habitId]) {
+      // Form is open, close it
+      this.hideAddSubHabitForm(habitId);
+      this.expandedHabits.delete(habitId);
+    } else {
+      // Form is closed, open it
+      setTimeout(() => {
+        this.showSubHabitForm[habitId] = true;
+        this.editingSubHabit = null;    
+        this.subHabitForm.reset();
+      }, 100);
+    }
   }
 
  async saveHabit(): Promise<void> {
@@ -397,11 +404,24 @@ async loadSubHabitsForHabit(habit: Habit): Promise<void> {
     return this.expandedHabits.has(habitId);
   }
 
-  showAddSubHabitForm(habitId: number): void {
-    this.showSubHabitForm[habitId] = true;
-    this.editingSubHabit = null;
-    this.subHabitForm.reset();
+ showAddSubHabitForm(habitId: number): void {
+    // First, make sure the habit is expanded to show the sub-habits section
+    if (!this.expandedHabits.has(habitId)) {
+      this.expandedHabits.add(habitId);
+    }
+    
+    // Toggle the form instead of just showing it
+    if (this.showSubHabitForm[habitId]) {
+      // Form is open, close it
+      this.hideAddSubHabitForm(habitId);
+    } else {
+      // Form is closed, open it
+      this.showSubHabitForm[habitId] = true;
+      this.editingSubHabit = null;
+      this.subHabitForm.reset();
+    }
   }
+  
 
   hideAddSubHabitForm(habitId: number): void {
     this.showSubHabitForm[habitId] = false;
