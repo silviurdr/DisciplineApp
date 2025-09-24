@@ -51,10 +51,8 @@
           <span class="habit-percentage">({{ habit.percentage }}%)</span>
         </div>
       </div>
-    </div>
-    <!-- ✅ NEW: Weekly Time Stats Card -->
-  <div class="time-stats-card">
-    <div class="time-header">
+            <div class="time-stats-card">
+    <div class="time-content">
       <span class="time-icon">⏱️</span>
       <div class="time-info">
         <div class="time-title">Weekly Time</div>
@@ -65,8 +63,10 @@
         </div>
       </div>
     </div>
-    <div class="time-percentage">{{ getTimeCompletionPercentage() }}%</div>
+    <div class="time-percentage">({{ getTimeCompletionPercentage() }}%)</div>
   </div>
+    </div>
+    
   </div>
 
   <!-- Weekly Calendar -->
