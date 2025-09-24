@@ -31,6 +31,9 @@ public class HabitsController : ControllerBase
                 h.Frequency,
                 h.IsActive,
                 h.IsOptional,
+                h.WeeklyTarget,
+                h.MonthlyTarget,
+                h.SeasonalTarget,
                 h.EstimatedDurationMinutes// ✅ ENSURE THIS IS INCLUDED
             })
             .ToListAsync();
