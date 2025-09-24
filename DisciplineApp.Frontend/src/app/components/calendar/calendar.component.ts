@@ -892,6 +892,80 @@ toggleAdHocTask(habit: ScheduledHabit): void {
   });
 }
 
+getWeekTotalHours(): number {
+  if (!this.currentWeekDays) return 0;
+  
+  return this.currentWeekDays.reduce((total, day) => {
+    const dayMinutes = day.allHabits?.reduce((dayTotal, habit) => {
+      // Now uses the real estimatedDurationMinutes from the API
+      return dayTotal + (habit.estimatedDurationMinutes || 30);
+    }, 0) || 0;
+    return total + dayMinutes;
+  }, 0) / 60; // Convert minutes to hours
+}
+
+// Calculate completed hours for the week
+getWeekCompletedHours(): number {
+  if (!this.currentWeekDays) return 0;
+  
+  return this.currentWeekDays.reduce((total, day) => {
+    const dayMinutes = day.allHabits?.reduce((dayTotal, habit) => {
+      if (habit.isCompleted) {
+        // Now uses the real estimatedDurationMinutes from the API
+        return dayTotal + (habit.estimatedDurationMinutes || 30);
+      }
+      return dayTotal;
+    }, 0) || 0;
+    return total + dayMinutes;
+  }, 0) / 60; // Convert minutes to hours
+}
+
+// Calculate today's total hours
+getTodayTotalHours(): number {
+  if (!this.todayData?.allHabits) return 0;
+  
+  return this.todayData.allHabits.reduce((total, habit) => {
+    // Now uses the real estimatedDurationMinutes from the API
+    return total + (habit.estimatedDurationMinutes || 30);
+  }, 0) / 60; // Convert minutes to hours
+}
+
+// Calculate today's completed hours  
+getTodayCompletedHours(): number {
+  if (!this.todayData?.allHabits) return 0;
+  
+  return this.todayData.allHabits.reduce((total, habit) => {
+    if (habit.isCompleted) {
+      // Now uses the real estimatedDurationMinutes from the API
+      return total + (habit.estimatedDurationMinutes || 30);
+    }
+    return total;
+  }, 0) / 60; // Convert minutes to hours
+}
+
+// Format hours for display (e.g., "2.5h" or "45m")
+formatHours(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = Math.round(totalMinutes % 60);
+  
+  if (hours > 0) {
+    if (minutes > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${hours}h`;
+  }
+  return `${minutes}m`;
+}
+
+// Get time completion percentage
+getTimeCompletionPercentage(): number {
+  const total = this.getWeekTotalHours();
+  const completed = this.getWeekCompletedHours();
+  
+  if (total === 0) return 0;
+  return Math.round((completed / total) * 100);
+}
+
 shouldDisableActions(habit: ScheduledHabit): boolean {
   // Ad-hoc tasks should be disabled when completed
   if (habit.isAdHoc && habit.isCompleted) {

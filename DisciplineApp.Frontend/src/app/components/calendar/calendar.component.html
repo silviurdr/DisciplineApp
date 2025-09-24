@@ -52,6 +52,21 @@
         </div>
       </div>
     </div>
+    <!-- ✅ NEW: Weekly Time Stats Card -->
+  <div class="time-stats-card">
+    <div class="time-header">
+      <span class="time-icon">⏱️</span>
+      <div class="time-info">
+        <div class="time-title">Weekly Time</div>
+        <div class="time-progress">
+          <span class="completed-time">{{ formatHours(getWeekCompletedHours() * 60) }}</span>
+          <span class="time-separator">/</span>
+          <span class="total-time">{{ formatHours(getWeekTotalHours() * 60) }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="time-percentage">{{ getTimeCompletionPercentage() }}%</div>
+  </div>
   </div>
 
   <!-- Weekly Calendar -->
@@ -112,6 +127,8 @@
         <h2 class="schedule-title">
           <!-- ✅ UPDATED: Show both required and total task counts -->
           Tasks ({{ getRequiredTasksCount(todayData) }} required, {{ getTotalTasksCount(todayData) }} total)
+                  <span class="time-info">• {{ formatHours(getTodayCompletedHours() * 60) }}/{{ formatHours(getTodayTotalHours() * 60) }}</span>
+
           <span class="today-label">Today</span>
         </h2>
       </div>

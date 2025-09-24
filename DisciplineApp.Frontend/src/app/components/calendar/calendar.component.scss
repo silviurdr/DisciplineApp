@@ -2751,3 +2751,188 @@ button:focus-visible {
   border-color: rgba(76, 175, 80, 0.2);
   color: #4caf50;
 }
+
+/* ===================================
+   TIME STATS ENHANCEMENTS - Add to calendar.component.scss
+   =================================== */
+
+/* Enhanced schedule header with time info */
+.smart-schedule .schedule-header .schedule-title .time-info {
+  color: #69C28A;
+  font-weight: 500;
+  font-size: 0.85rem;
+  margin: 0 8px;
+}
+
+/* ===================================
+   WEEKLY TIME STATS CARD
+   =================================== */
+
+.weekly-overview {
+  display: grid;
+  grid-template-columns: auto 1fr; /* Time card + habits */
+  gap: 16px;
+  margin-bottom: 20px;
+  align-items: start;
+}
+
+.time-stats-card {
+  background: #2a2b3d;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #4a4d66;
+  min-width: 200px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.time-stats-card .time-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.time-stats-card .time-icon {
+  font-size: 1.25rem;
+  opacity: 0.8;
+}
+
+.time-stats-card .time-info .time-title {
+  color: #8b8fa3;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.time-stats-card .time-info .time-progress {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 1.1rem;
+}
+
+.time-stats-card .time-info .time-progress .completed-time {
+  color: #69C28A;
+  font-weight: 600;
+}
+
+.time-stats-card .time-info .time-progress .time-separator {
+  color: #6b6f80;
+}
+
+.time-stats-card .time-info .time-progress .total-time {
+  color: #d1d3db;
+  font-weight: 500;
+}
+
+.time-stats-card .time-percentage {
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #69C28A;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #4a4d66;
+}
+
+/* ===================================
+   HABIT SUMMARY ADJUSTMENTS
+   =================================== */
+
+.habit-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  flex: 1; /* Take remaining space */
+}
+
+.habit-progress {
+  background: #2a2b3d;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #4a4d66;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.habit-progress:hover {
+  border-color: #6b6f80;
+  transform: translateY(-1px);
+}
+
+.habit-progress .habit-name {
+  font-size: 0.875rem;
+  color: #d1d3db;
+  font-weight: 500;
+}
+
+.habit-progress .habit-stats {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+
+.habit-progress .habit-count {
+  color: #8b8fa3;
+  font-weight: 500;
+}
+
+.habit-progress .habit-percentage {
+  color: #6b6f80;
+  opacity: 0.8;
+}
+
+/* Status-based colors for habit progress */
+.habit-progress.status-completed {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.habit-progress.status-completed .habit-name {
+  color: #4ade80;
+}
+
+.habit-progress.status-in-progress {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.habit-progress.status-in-progress .habit-name {
+  color: #fbbf24;
+}
+
+.habit-progress.status-unachievable {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.habit-progress.status-unachievable .habit-name {
+  color: #f87171;
+}
+
+.habit-progress.status-not-started {
+  border-color: #6b7280;
+  background: rgba(107, 114, 128, 0.05);
+}
+
+/* ===================================
+   RESPONSIVE ADJUSTMENTS
+   =================================== */
+
+@media (max-width: 768px) {
+  .weekly-overview {
+    grid-template-columns: 1fr; /* Stack on mobile */
+    gap: 12px;
+  }
+  
+  .time-stats-card {
+    min-width: auto;
+  }
+  
+  .habit-summary {
+    grid-template-columns: 1fr; /* Single column on mobile */
+  }
+}

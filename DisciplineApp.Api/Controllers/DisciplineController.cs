@@ -278,7 +278,8 @@ public class DisciplineController : ControllerBase
                 isAdHoc = false,
                 adHocId = (int?)null,
                 isOverdue = isOverdue,
-                timeRemaining = timeRemaining // ✅ NOW CALCULATED!
+                timeRemaining = timeRemaining, // ✅ NOW CALCULATED!,
+                estimatedDurationMinutes = habit?.EstimatedDurationMinutes ?? 30
             });
         }
 
@@ -411,7 +412,9 @@ public class DisciplineController : ControllerBase
                 isAdHoc = true,
                 adHocId = adHocTask.Id,
                 isOverdue = isOverdue,
-                timeRemaining = timeRemaining // ✅ NOW WITH MINUTES FOR TODAY!
+                timeRemaining = timeRemaining, // ✅ NOW WITH MINUTES FOR TODAY!
+                estimatedDurationMinutes = 30
+
             });
         }
 

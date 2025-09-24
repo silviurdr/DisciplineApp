@@ -75,6 +75,7 @@ export interface ScheduledHabit {
   reason?: string;
   priority?: string;
   isMustDo?: boolean;
+  estimatedDurationMinutes?: number;
   
   // Flexible task properties
   frequency?: string;
