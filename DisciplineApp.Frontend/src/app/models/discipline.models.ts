@@ -321,6 +321,7 @@ export interface Habit {
   isActive: boolean;
   maxDeferrals: number;
   createdAt: string;
+  estimatedDurationMinutes?: number;
 }
 
 export enum HabitFrequency {
@@ -341,6 +342,7 @@ export interface CreateHabitRequest {
   hasDeadline: boolean;
   deadlineTime?: string;
   maxDeferrals?: number;
+  estimatedDurationMinutes?: number;
 }
 
 export interface UpdateHabitRequest {
@@ -356,6 +358,7 @@ export interface UpdateHabitRequest {
   isActive: boolean;
   isLocked: boolean;
   maxDeferrals?: number;
+  estimatedDurationMinutes?: number;
 }
 
 // ===================================

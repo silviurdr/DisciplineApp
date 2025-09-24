@@ -19,6 +19,7 @@ interface Habit {
   deadlineTime?: string;
   createdAt: string;
   isOptional?: boolean;
+  estimatedDurationMinutes?: number;
 }
 
 interface CreateHabitRequest {
@@ -31,6 +32,7 @@ interface CreateHabitRequest {
   hasDeadline?: boolean;
   deadlineTime?: string;
   isOptional?: boolean;
+  estimatedDurationMinutes?: number;
 }
 
 interface UpdateHabitRequest {
@@ -44,6 +46,7 @@ interface UpdateHabitRequest {
   hasDeadline?: boolean;
   deadlineTime?: string;
   isOptional?: boolean;
+  estimatedDurationMinutes?: number;
 }
 
 enum HabitFrequency {
@@ -99,7 +102,8 @@ export class HabitManagementComponent implements OnInit {
       seasonalTarget: [1],
       hasDeadline: [false],
       deadlineTime: [''],
-      isOptional: [false]
+      isOptional: [false],
+      estimatedDurationMinutes: [30, [Validators.min(1), Validators.max(600)]]
     });
   }
 
@@ -115,9 +119,25 @@ export class HabitManagementComponent implements OnInit {
       seasonalTarget: 1,
       hasDeadline: false,
       deadlineTime: '',
-      isOptional: this.habitForm.get('isOptional')?.value || false
+      isOptional: this.habitForm.get('isOptional')?.value || false,
+      estimatedDurationMinutes: 30
     });
   }
+
+  formatDuration(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes}min`;
+  }
+  
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  
+  if (remainingMinutes === 0) {
+    return `${hours}h`;
+  }
+  
+  return `${hours}h ${remainingMinutes}min`;
+}
 
   openEditForm(habit: Habit): void {
     this.editingHabit = habit;
@@ -134,7 +154,8 @@ export class HabitManagementComponent implements OnInit {
       seasonalTarget: habit.seasonalTarget || 1,
       hasDeadline: habit.hasDeadline,
       deadlineTime: habit.deadlineTime || '',
-      isOptional: habit.isOptional || false
+      isOptional: habit.isOptional || false,
+      estimatedDurationMinutes: habit.estimatedDurationMinutes || 30
     });
   }
 
@@ -197,7 +218,8 @@ export class HabitManagementComponent implements OnInit {
         isActive: this.editingHabit.isActive,
         hasDeadline: formValue.hasDeadline,
         deadlineTime: formValue.hasDeadline ? formValue.deadlineTime : undefined,
-        isOptional: formValue.isOptional || false
+        isOptional: formValue.isOptional || false,
+        estimatedDurationMinutes: formValue.estimatedDurationMinutes
       };
 
       this.http.put(`${this.apiUrl}/habits/${this.editingHabit.id}`, updateRequest).subscribe({
@@ -222,7 +244,8 @@ export class HabitManagementComponent implements OnInit {
         seasonalTarget: formValue.seasonalTarget,
         hasDeadline: formValue.hasDeadline,
         deadlineTime: formValue.hasDeadline ? formValue.deadlineTime : undefined,
-        isOptional: formValue.isOptional || false
+        isOptional: formValue.isOptional || false,
+        estimatedDurationMinutes: formValue.estimatedDurationMinutes
       };
 
       this.http.post(`${this.apiUrl}/habits`, createRequest).subscribe({

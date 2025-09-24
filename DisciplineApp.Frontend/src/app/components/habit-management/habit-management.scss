@@ -660,3 +660,119 @@ select:focus {
     border-width: 2px;
   }
 }
+
+/* ===================================
+   ADD TO HABIT-MANAGEMENT.SCSS
+   =================================== */
+
+/* Duration info in habit cards */
+.duration-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: #69C28A;
+  background: rgba(105, 194, 138, 0.1);
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(105, 194, 138, 0.2);
+}
+
+.duration-icon {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+/* Form hint styling for duration field */
+.form-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: rgba(100, 181, 246, 0.1);
+  border: 1px solid rgba(100, 181, 246, 0.2);
+  border-radius: 6px;
+  color: #64b5f6;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.hint-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.hint-text {
+  flex: 1;
+}
+
+/* Enhanced habit meta layout */
+.habit-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 12px 0;
+}
+
+.frequency-info {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(139, 143, 163, 0.15);
+  color: #8b8fa3;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.deadline-info {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 152, 0, 0.15);
+  color: #ff9800;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid rgba(255, 152, 0, 0.2);
+}
+
+/* Form section styling for better organization */
+.form-section {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px solid rgba(139, 143, 163, 0.1);
+}
+
+.form-section h4 {
+  color: #8b8fa3;
+  margin: 0 0 16px 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Input validation styling */
+.form-control.ng-invalid.ng-touched {
+  border-color: #f44336;
+  background: rgba(244, 67, 54, 0.05);
+}
+
+.error-message {
+  color: #f44336;
+  font-size: 0.75rem;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.error-message::before {
+  content: "⚠";
+  font-size: 0.8rem;
+}

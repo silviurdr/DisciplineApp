@@ -30,7 +30,8 @@ public class HabitsController : ControllerBase
                 h.Description,
                 h.Frequency,
                 h.IsActive,
-                h.IsOptional // ✅ ENSURE THIS IS INCLUDED
+                h.IsOptional,
+                h.EstimatedDurationMinutes// ✅ ENSURE THIS IS INCLUDED
             })
             .ToListAsync();
     }
@@ -74,7 +75,8 @@ public class HabitsController : ControllerBase
                 ? TimeOnly.Parse(request.DeadlineTime)
                 : default,
             CreatedAt = DateTime.UtcNow,
-            IsOptional = request.IsOptional
+            IsOptional = request.IsOptional,
+            EstimatedDurationMinutes = request.EstimatedDurationMinutes ?? 30
         };
 
         _context.Habits.Add(habit);
@@ -106,6 +108,7 @@ public class HabitsController : ControllerBase
         habit.MonthlyTarget = request.MonthlyTarget ?? 0;
         habit.SeasonalTarget = request.SeasonalTarget ?? 0;
         habit.IsActive = request.IsActive;
+        habit.EstimatedDurationMinutes = request.EstimatedDurationMinutes ?? (habit.EstimatedDurationMinutes != 0 ? habit.EstimatedDurationMinutes : 30);
         habit.HasDeadline = request.HasDeadline ?? false;
         habit.DeadlineTime = request.HasDeadline == true && !string.IsNullOrEmpty(request.DeadlineTime)
             ? TimeOnly.Parse(request.DeadlineTime)
@@ -233,6 +236,7 @@ public class CreateHabitRequest
     public bool? HasDeadline { get; set; }
     public string? DeadlineTime { get; set; }
     public bool IsOptional { get; set; } = false;
+    public int? EstimatedDurationMinutes { get; set; }
 }
 
 public class UpdateHabitRequest
@@ -247,4 +251,5 @@ public class UpdateHabitRequest
     public bool? HasDeadline { get; set; }
     public string? DeadlineTime { get; set; }
     public bool IsOptional { get; set; } = false;
+    public int? EstimatedDurationMinutes { get; set; }
 }
