@@ -139,6 +139,9 @@ export class CalendarComponent implements OnInit {
   deadlineDate = '';
   habitsWithSubHabits: HabitWithSubHabits[] = [];
   expandedHabits: Set<number> = new Set(); // Track which habits are expanded
+  newTaskEstimatedDuration: number | null = null;
+  editTaskEstimatedDuration: number | null = null;
+  estimatedDurations: number | null = null;
 
   constructor(
     private disciplineService: DisciplineService,
@@ -1053,7 +1056,8 @@ addAdHocTask(): void {
     date: new Date().toISOString().split('T')[0],
     deadlineDate: this.hasDeadline && this.deadlineDate ? 
       this.deadlineDate : undefined,  
-    deadlineTime: "23:59"
+    deadlineTime: "23:59",
+    durationMinutes: this.newTaskEstimatedDuration || 30 // Use provided duration or default to 30
   }).subscribe({
     next: (response) => {
       console.log('Ad-hoc task added successfully:', response);
@@ -1186,11 +1190,13 @@ saveEditedTask(): void {
   // OPTIMISTIC UPDATE: Update the UI immediately
   this.editingTask.name = this.editTaskName.trim();
   this.editingTask.description = this.editTaskDescription.trim();
+  this.editingTask.estimatedDurationMinutes = this.editTaskEstimatedDuration !== null ? this.editTaskEstimatedDuration : undefined;
 
   this.disciplineService.editAdHocTask({
     adHocId: this.editingTask.adHocId!,
     name: this.editTaskName.trim(),
-    description: this.editTaskDescription.trim()
+    description: this.editTaskDescription.trim(),
+    durationMinutes: this.editingTask.estimatedDurationMinutes
   }).subscribe({
     next: (response) => {
       console.log('✅ Ad-hoc task edited successfully:', response);
@@ -1600,6 +1606,8 @@ editAdHocTask(task: ScheduledHabit): void {
   this.editTaskDescription = task.description || '';
   this.showEditTaskDialog = true;
   this.errorMessage = '';
+  this.editTaskEstimatedDuration = task.estimatedDurationMinutes || null; // ✅ ADD THIS LINE
+
 }
 
 // Alternative version with more detailed information

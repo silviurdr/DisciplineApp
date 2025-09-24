@@ -236,6 +236,7 @@ namespace DisciplineApp.Api.Models
         public DateTime CreatedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
         public string Notes { get; set; }
+        public int? EstimatedDurationMinutes { get; set; }
     }
 
     public class DailyStats

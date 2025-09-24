@@ -306,6 +306,7 @@ getMonthlyStats(year: number, month: number): Observable<any> {
     date: string
     deadlineDate?: string
     deadlineTime?: string 
+    durationMinutes?: number
   }): Observable<any> {
     return this.http.post(`${this.baseUrl}/add-adhoc-task`, request)
       .pipe(
@@ -319,12 +320,14 @@ getMonthlyStats(year: number, month: number): Observable<any> {
 editAdHocTask(request: { 
   adHocId: number; 
   name: string; 
-  description: string 
+  description: string; 
+  durationMinutes?: number
 }): Observable<any> {
   // ✅ FIX: Include the taskId in the URL path
   return this.http.put(`${this.baseUrl}/edit-adhoc-task/${request.adHocId}`, {
     name: request.name,
-    description: request.description
+    description: request.description,
+    durationMinutes: request.durationMinutes
   })
     .pipe(
       catchError(this.handleError)

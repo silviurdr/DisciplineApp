@@ -413,7 +413,7 @@ public class DisciplineController : ControllerBase
                 adHocId = adHocTask.Id,
                 isOverdue = isOverdue,
                 timeRemaining = timeRemaining, // ✅ NOW WITH MINUTES FOR TODAY!
-                estimatedDurationMinutes = 30
+                estimatedDurationMinutes = adHocTask.EstimatedDurationMinutes ?? 30
 
             });
         }
@@ -858,7 +858,8 @@ public class DisciplineController : ControllerBase
                 // ✅ NEW: If no deadline provided, automatically set it to today
                 DeadlineDate = request.DeadlineDate ?? DateTime.Today,
                 CreatedAt = DateTime.UtcNow,
-                Notes = "Test"
+                Notes = "Test",
+                EstimatedDurationMinutes = request.EstimatedDurationMinutes ?? 30,
             };
 
             _context.AdHocTasks.Add(task);
@@ -878,7 +879,8 @@ public class DisciplineController : ControllerBase
                 isCompleted = task.IsCompleted,
                 isAdHoc = true,
                 deadlineDate = task.DeadlineDate?.ToString("yyyy-MM-dd"),
-                createdAt = task.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                createdAt = task.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                estimatedDurationMinutes = task.EstimatedDurationMinutes ?? 30
             };
 
             // Also return updated day status including the new ad-hoc task
@@ -969,6 +971,7 @@ public class DisciplineController : ControllerBase
             // Update the task details
             task.Name = request.Name.Trim();
             task.Description = request.Description?.Trim() ?? "";
+            task.EstimatedDurationMinutes = request.EstimatedDurationMinutes ?? task.EstimatedDurationMinutes;
 
             await _context.SaveChangesAsync();
 
@@ -1001,6 +1004,7 @@ public class DisciplineController : ControllerBase
     {
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
+        public int? EstimatedDurationMinutes { get; set; }
     }
 
     [HttpPost("complete-adhoc-task")]
@@ -1706,6 +1710,7 @@ public class AddAdHocTaskRequest
     public DateTime Date { get; set; }
     public DateTime? DeadlineDate { get; set; } // FIX: Add this property to match usage
     public bool HasDeadline { get; set; }
+    public int? EstimatedDurationMinutes { get; set; }
 }
 
 public class CompleteAdHocTaskRequest

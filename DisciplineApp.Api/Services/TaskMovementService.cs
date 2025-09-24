@@ -23,7 +23,7 @@ namespace DisciplineApp.Api.Services
 
             // Find incomplete ad-hoc tasks from yesterday that have deadlines
             var tasksToMove = await _context.AdHocTasks
-                .Where(t => t.Date.Date == yesterday &&
+                .Where(t => t.Date.Date < today &&
                            !t.IsCompleted &&
                            t.DeadlineDate.HasValue &&
                            t.DeadlineDate.Value.Date >= today) // Only move if deadline hasn't passed completely
