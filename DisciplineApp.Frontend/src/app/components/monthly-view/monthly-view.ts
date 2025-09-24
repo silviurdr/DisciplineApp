@@ -255,6 +255,7 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
     
     console.log(`✅ Calendar generated with ${this.calendarDays.length} days using DailyStats`);
     console.log(`🏆 Current streak: ${this.monthlyStats?.currentStreak}, Projected rewards: ${this.projectedRewards.length}`);
+    this.markCurrentStreakDays();
   }
 
   private buildCalendarGridFromDailyStats(apiDays: any[]): void {
@@ -680,6 +681,7 @@ private formatDateString(date: Date): string {
         totalHabits
       };
       resolve();
+      this.markCurrentStreakDays();
     });
   }
 
