@@ -36,38 +36,57 @@
     </div>
   </div>
 
+
   <!-- Weekly Habit Summary -->
-  <div class="weekly-overview" *ngIf="calculateWeeklyHabitProgress().length > 0">
-    <div class="habit-summary">
-      <div *ngFor="let habit of calculateWeeklyHabitProgress()"
-          class="habit-progress"
-          [class.status-unachievable]="!habit.isAchievable && habit.percentage < 100"
-          [class.status-completed]="habit.percentage === 100"
-          [class.status-in-progress]="habit.isAchievable && habit.percentage > 0 && habit.percentage < 100"
-          [class.status-not-started]="habit.isAchievable && habit.percentage === 0">
+<div class="weekly-overview" *ngIf="calculateWeeklyHabitProgress().length > 0">
+  <div class="habit-summary">
+    <!-- Habit Progress Cards with Advanced Complete buttons -->
+    <div *ngFor="let habit of calculateWeeklyHabitProgress()"
+        class="habit-progress"
+        [class.status-unachievable]="!habit.isAchievable && habit.percentage < 100"
+        [class.status-completed]="habit.percentage === 100"
+        [class.status-in-progress]="habit.isAchievable && habit.percentage > 0 && habit.percentage < 100"
+        [class.status-not-started]="habit.isAchievable && habit.percentage === 0">
+      
+      <!-- Habit Info Section -->
+      <div class="habit-info">
         <span class="habit-name">{{ habit.habitName }}</span>
         <div class="habit-stats">
           <span class="habit-count">{{ habit.completed }}/{{ habit.total }}</span>
           <span class="habit-percentage">({{ habit.percentage }}%)</span>
         </div>
       </div>
-            <div class="time-stats-card">
-    <div class="time-content">
-      <span class="time-icon">⏱️</span>
-      <div class="time-info">
-        <div class="time-title">Weekly Time</div>
-        <div class="time-progress">
-          <span class="completed-time">{{ formatHours(getWeekCompletedHours() * 60) }}</span>
-          <span class="time-separator">/</span>
-          <span class="total-time">{{ formatHours(getWeekTotalHours() * 60) }}</span>
-        </div>
+
+      <!-- Advanced Complete Button Section -->
+      <div class="habit-actions" *ngIf="canShowAdvancedComplete(habit)">
+   <button *ngIf="canShowAdvancedComplete(habit)" 
+              class="advance-complete-btn"
+              [disabled]="isAdvancedCompleting === getHabitIdFromNameForTemplate(habit.habitName)"
+              (click)="advancedCompleteTask(habit)"
+              [title]="'Complete ' + habit.habitName + ' now'">
+        <span *ngIf="isAdvancedCompleting !== getHabitIdFromNameForTemplate(habit.habitName)">✓</span>
+        <span *ngIf="isAdvancedCompleting === getHabitIdFromNameForTemplate(habit.habitName)" class="loading">⋯</span>
+      </button>
       </div>
     </div>
-    <div class="time-percentage">({{ getTimeCompletionPercentage() }}%)</div>
-  </div>
+
+    <!-- Time Stats Card (preserve existing structure) -->
+    <div class="time-stats-card">
+      <div class="time-content">
+        <span class="time-icon">⏱️</span>
+        <div class="time-info">
+          <div class="time-title">Weekly Time</div>
+          <div class="time-progress">
+            <span class="completed-time">{{ formatHours(getWeekCompletedHours() * 60) }}</span>
+            <span class="time-separator">/</span>
+            <span class="total-time">{{ formatHours(getWeekTotalHours() * 60) }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="time-percentage">({{ getTimeCompletionPercentage() }}%)</div>
     </div>
-    
   </div>
+</div>
 
   <!-- Weekly Calendar -->
   <div class="weekly-calendar" *ngIf="currentWeekDays && currentWeekDays.length > 0">
@@ -465,17 +484,17 @@
             class="form-textarea"></textarea>
         </div>
 
-              <div class="form-group">
-        <label for="editTaskDuration">Estimated Duration (minutes)</label>
-        <input 
-          type="number" 
-          id="editTaskDuration"
-          [(ngModel)]="editTaskEstimatedDuration" 
-          placeholder="Enter estimated duration..."
-          min="0"
-          max="480"
-          class="form-input">
-      </div>
+            <div class="form-group">
+      <label for="editTaskDuration">Estimated Duration (minutes)</label>
+      <input 
+        type="number" 
+        id="editTaskDuration"
+        [(ngModel)]="editTaskEstimatedDuration" 
+        placeholder="Enter estimated duration..."
+        min="0"
+        max="480"
+        class="form-input">
+    </div>
         
         <div class="error-message" *ngIf="errorMessage">
           {{ errorMessage }}

@@ -142,6 +142,9 @@ export class CalendarComponent implements OnInit {
   newTaskEstimatedDuration: number | null = null;
   editTaskEstimatedDuration: number | null = null;
   estimatedDurations: number | null = null;
+  isAdvancedCompleting: number | null = null;
+  successMessage: string | null = null;
+  errorMessageBox: string | null = null;
 
   constructor(
     private disciplineService: DisciplineService,
@@ -893,6 +896,162 @@ toggleAdHocTask(habit: ScheduledHabit): void {
       this.errorMessage = 'Failed to update task. Please try again.';
     }
   });
+}
+
+// Method to check if Advanced Complete button should show
+canShowAdvancedComplete(habitProgress: any): boolean {
+  // Rule 1: Must have remaining tasks this week
+  if (habitProgress.completed >= habitProgress.total) {
+    return false;
+  }
+
+  // Rule 2: Cannot be a daily task (like Phone Lock Box)
+  if (this.isDailyTask(habitProgress.habitName)) {
+    return false;
+  }
+
+  // Rule 3: Cannot be already scheduled for today
+  if (this.isTaskScheduledToday(habitProgress.habitName)) {
+    return false;
+  }
+
+  return true;
+}
+
+// Helper method to identify daily tasks
+private isDailyTask(habitName: string): boolean {
+  const dailyTasks = ['Phone Lock Box']; // Add other daily tasks as needed
+  return dailyTasks.includes(habitName);
+}
+
+// Helper method to check if task is scheduled for today
+private isTaskScheduledToday(habitName: string): boolean {
+  if (!this.todayData || !this.todayData.allHabits) {
+    return false;
+  }
+
+  return this.todayData.allHabits.some(habit => 
+    habit.name === habitName && !habit.isAdHoc
+  );
+}
+
+// Method to handle advanced completion
+advancedCompleteTask(habitProgress: any): void {
+  // Get habitId from habitName
+  const habitId = this.getHabitIdFromName(habitProgress.habitName);
+  
+  if (!habitId) {
+    console.error('Could not find habitId for:', habitProgress.habitName);
+    this.errorMessage = 'Could not complete task. Please try again.';
+    return;
+  }
+
+  // Show confirmation dialog
+  const confirmMessage = `Complete "${habitProgress.habitName}" now? This will count toward your weekly goal.`;
+  
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+
+  // Disable button and show loading state
+  this.isAdvancedCompleting = habitId;
+
+  this.disciplineService.advancedCompleteHabit(habitId).subscribe({
+    next: (response) => {
+      console.log('✅ Advanced completion successful:', response);
+      
+      // Play success sound
+      this.soundService.playTaskCompleted();
+      
+      // Show success message
+      this.successMessage = response.message;
+      
+      // Reload the week data to update all counters and stats
+      this.loadCurrentWeekData();
+      
+      // Clear loading state
+      this.isAdvancedCompleting = null;
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        this.successMessage = null;
+      }, 3000);
+    },
+    error: (error) => {
+      console.error('❌ Advanced completion failed:', error);
+      
+      let errorMsg = 'Failed to complete task. Please try again.';
+      
+      if (error.error && typeof error.error === 'string') {
+        errorMsg = error.error;
+      } else if (error.error && error.error.message) {
+        errorMsg = error.error.message;
+      }
+      
+      this.errorMessage = errorMsg;
+      this.isAdvancedCompleting = null;
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => {
+        this.errorMessage = '';
+      }, 5000);
+    }
+  });
+}
+
+// Helper method to get habitId from habit name
+getHabitIdFromName(habitName: string): number | null {
+  // First try to find it in today's data
+  if (this.todayData && this.todayData.allHabits) {
+    const habit = this.todayData.allHabits.find(h => h.name === habitName);
+    if (habit && habit.habitId) {
+      return habit.habitId;
+    }
+  }
+
+  // Then try to find it in the week's data
+  if (this.currentWeekDays) {
+    for (const day of this.currentWeekDays) {
+      if (day.allHabits) {
+        const habit = day.allHabits.find(h => h.name === habitName);
+        if (habit && habit.habitId) {
+          return habit.habitId;
+        }
+      }
+    }
+  }
+
+  // Fallback to stored mapping (for reliability)
+  const habitMapping: { [key: string]: number } = {
+    'Phone Lock Box': 1,
+    'Clean Eating': 2,
+    'Brushing Teeth': 3,
+    'Clean Dishes': 4,
+    'Clean Balcony': 5,
+    'Regular Recyling': 6,
+    'Gym Workout': 7,
+    'Clean Windows': 8,
+    'Vacuum/Sweep Floors': 9,
+    'RetuRO Recycling': 10,
+    'Tidy Up The Wardrobe': 11,
+    'Plants Watering': 12,
+    'Clean Bathroom': 13
+  };
+
+  const habitId = habitMapping[habitName];
+  
+  if (!habitId) {
+    console.warn('Could not find habitId for habit:', habitName);
+    console.log('Available habits in today data:', 
+      this.todayData?.allHabits?.map(h => ({ name: h.name, id: h.habitId }))
+    );
+  }
+
+  return habitId || null;
+}
+
+getHabitIdFromNameForTemplate(habitName: string): number | null {
+  return this.getHabitIdFromName(habitName);
 }
 
 getWeekTotalHours(): number {

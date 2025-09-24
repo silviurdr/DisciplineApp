@@ -239,6 +239,7 @@ namespace DisciplineApp.Api.Models
         public int? EstimatedDurationMinutes { get; set; }
     }
 
+
     public class DailyStats
     {
         public int Id { get; set; }

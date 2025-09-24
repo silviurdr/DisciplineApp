@@ -5,13 +5,15 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, tap } from 'rxjs/operators';
 import { 
   WeekData, 
   DayData, 
   WeeklyProgress, 
   HabitWithFlexibility,
-  StreakInfo
+  StreakInfo,
+  AdvancedCompleteResponse, // <-- Add this import if it exists in your models
+  AdvancedCompleteRequest
 } from '../models/discipline.models';
 
 import { of } from 'rxjs';
@@ -435,6 +437,28 @@ getCurrentDayData(): Observable<DayData> {
       return todayData;
     }),
     catchError(this.handleError)
+  );
+}
+
+advancedCompleteHabit(habitId: number): Observable<AdvancedCompleteResponse> {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  
+  const request: AdvancedCompleteRequest = {
+    habitId: habitId,
+    completionDate: today
+  };
+
+  console.log('🚀 Advanced complete request:', request);
+
+  return this.http.post<AdvancedCompleteResponse>(
+    `${this.baseUrl}/advanced-complete`, 
+    request
+  ).pipe(
+    tap(response => console.log('✅ Advanced complete response:', response)),
+    catchError(error => {
+      console.error('❌ Advanced complete error:', error);
+      return throwError(() => error);
+    })
   );
 }
 

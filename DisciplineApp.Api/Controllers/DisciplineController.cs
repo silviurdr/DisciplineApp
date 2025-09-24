@@ -1033,6 +1033,110 @@ public class DisciplineController : ControllerBase
         }
     }
 
+    [HttpPost("advanced-complete")]
+    public async Task<IActionResult> AdvancedCompleteHabit([FromBody] AdvancedCompleteRequest request)
+    {
+        try
+        {
+            Console.WriteLine($"🚀 Advanced Complete Request: HabitId={request.HabitId}, Date={request.CompletionDate:yyyy-MM-dd}");
+
+            // 1. Get the habit details
+            var habit = await _context.Habits.FindAsync(request.HabitId);
+            if (habit == null)
+            {
+                return NotFound($"Habit with ID {request.HabitId} not found");
+            }
+
+            // 2. Prevent advanced completion for daily tasks
+            if (habit.Frequency == HabitFrequency.Daily)
+            {
+                return BadRequest("Daily tasks cannot be completed in advance. They must be done each day.");
+            }
+
+            // 3. Check if this habit is already in today's schedule
+            var today = request.CompletionDate.Date;
+            var weekStart = GetWeekStart(today);
+            var todaySchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+            var todayData = todaySchedule.DailySchedules.FirstOrDefault(d => d.Date.Date == today);
+
+            if (todayData?.ScheduledHabits?.Any(h => h.HabitId == request.HabitId) == true)
+            {
+                return BadRequest("This task is already scheduled for today. Complete it normally instead.");
+            }
+
+            // 4. Find the next scheduled occurrence of this habit
+            var nextScheduledDate = await FindNextScheduledOccurrence(request.HabitId, today);
+            if (nextScheduledDate == null)
+            {
+                return BadRequest("No future occurrences found for this habit this week, or weekly target already met.");
+            }
+
+            Console.WriteLine($"📅 Next scheduled occurrence found: {nextScheduledDate:yyyy-MM-dd}");
+
+            // 5. Check if already completed today (prevent double completion)
+            var existingCompletion = await _context.HabitCompletions
+                .FirstOrDefaultAsync(c => c.HabitId == request.HabitId && c.Date.Date == today);
+
+            if (existingCompletion?.IsCompleted == true)
+            {
+                return BadRequest("This habit has already been completed today.");
+            }
+
+            // 6. Create or update the completion record with today's date
+            if (existingCompletion != null)
+            {
+                existingCompletion.IsCompleted = true;
+                existingCompletion.CompletedAt = DateTime.Now;
+            }
+            else
+            {
+                var newCompletion = new HabitCompletion
+                {
+                    HabitId = request.HabitId,
+                    Date = today,
+                    IsCompleted = true,
+                    CompletedAt = DateTime.Now
+                };
+                _context.HabitCompletions.Add(newCompletion);
+            }
+
+            await _context.SaveChangesAsync();
+
+            Console.WriteLine($"✅ Advanced completion successful: {habit.Name} completed on {today:yyyy-MM-dd}");
+
+            // 7. Return updated week data
+            var updatedWeekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+
+            return Ok(new AdvancedCompleteResponse
+            {
+                Success = true,
+                Message = $"{habit.Name} completed successfully!",
+                CompletedDate = today,
+                OriginalScheduledDate = nextScheduledDate.Value,
+                UpdatedWeekSchedule = updatedWeekSchedule
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error in AdvancedCompleteHabit: {ex.Message}");
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
+    }
+
+    private async Task<DateTime?> FindNextScheduledOccurrence(int habitId, DateTime fromDate)
+    {
+        var weekStart = GetWeekStart(fromDate);
+        var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+
+        // Find the next day (today or later) that has this habit scheduled
+        var nextOccurrence = weekSchedule.DailySchedules
+            .Where(d => d.Date.Date >= fromDate.Date)
+            .SelectMany(d => d.ScheduledHabits.Select(h => new { Date = d.Date, Habit = h }))
+            .FirstOrDefault(item => item.Habit.HabitId == habitId);
+
+        return nextOccurrence?.Date;
+    }
+
     [HttpGet("day/{date}/flexible-tasks")]
     public async Task<ActionResult<List<HabitWithFlexibility>>> GetFlexibleTasksForDay(DateTime date)
     {
@@ -1745,6 +1849,21 @@ public class CalculateStatsRequest
 {
     public DateTime StartDate { get; set; }
     public DateTime EndDate { get; set; }
+}
+
+public class AdvancedCompleteRequest
+{
+    public int HabitId { get; set; }
+    public DateTime CompletionDate { get; set; }
+}
+
+public class AdvancedCompleteResponse
+{
+    public bool Success { get; set; }
+    public string Message { get; set; }
+    public DateTime CompletedDate { get; set; }
+    public DateTime OriginalScheduledDate { get; set; }
+    public WeekSchedule UpdatedWeekSchedule { get; set; }
 }
 
 

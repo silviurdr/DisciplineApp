@@ -501,6 +501,20 @@ export interface FlexibilityDisplayInfo {
   remainingDeferrals: number;
 }
 
+export interface AdvancedCompleteRequest {
+  habitId: number;
+  completionDate: string; // YYYY-MM-DD format
+}
+
+// Advanced completion response interface  
+export interface AdvancedCompleteResponse {
+  success: boolean;
+  message: string;
+  completedDate: string;
+  originalScheduledDate: string;
+  updatedWeekSchedule: any; // WeekSchedule object
+}
+
 // ===================================
 // BULK OPERATIONS MODELS
 // ===================================

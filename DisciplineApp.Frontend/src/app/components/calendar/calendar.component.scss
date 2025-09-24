@@ -3305,3 +3305,503 @@ button:focus-visible {
     gap: 8px;
   }
 }
+
+/* Add to calendar.component.scss */
+
+/* ===================================
+   ADVANCED COMPLETE BUTTON STYLES
+   =================================== */
+
+.habit-progress {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+}
+
+.habit-info {
+  flex: 1;
+}
+
+.habit-actions {
+  margin-left: 12px;
+}
+
+
+/* Loading spinner for button */
+.loading-spinner-small {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid #ffffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* ===================================
+   SUCCESS/ERROR MESSAGES
+   =================================== */
+
+.message-container {
+  margin: 16px 0;
+}
+
+.success-message, .error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  animation: slideInDown 0.3s ease;
+}
+
+.success-message {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.error-message {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===================================
+   RESPONSIVE ADJUSTMENTS
+   =================================== */
+
+@media (max-width: 768px) {
+
+  .habit-actions {
+    margin-left: 8px;
+  }
+}
+
+/* Add to calendar.component.scss - Enhanced styles for existing structure */
+
+/* ===================================
+   ENHANCED HABIT PROGRESS CARDS WITH ACTIONS
+   =================================== */
+
+.weekly-overview .habit-summary .habit-progress {
+  display: flex;
+  justify-content: space-between; /* Space between info and actions */
+  align-items: center;
+  gap: 12px; /* Space between content and button */
+  padding: 12px 16px;
+  background: #1f2028;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  border: 1px solid #35364a;
+  transition: all 0.2s ease;
+}
+
+.weekly-overview .habit-summary .habit-progress:hover {
+  transform: translateY(-2px);
+  border-color: #4a4d66;
+}
+
+/* Habit Info Section (left side) */
+.weekly-overview .habit-summary .habit-progress .habit-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  flex: 1; /* Take available space */
+}
+
+.weekly-overview .habit-summary .habit-progress .habit-name {
+  font-weight: 600;
+  color: #d1d3db;
+}
+
+.weekly-overview .habit-summary .habit-progress .habit-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+
+.weekly-overview .habit-summary .habit-progress .habit-count {
+  font-weight: 600;
+  color: #d1d3db;
+}
+
+.weekly-overview .habit-summary .habit-progress .habit-percentage {
+  color: #8b8fa3;
+}
+
+/* Habit Actions Section (right side) */
+.weekly-overview .habit-summary .habit-progress .habit-actions {
+  flex-shrink: 0; /* Don't shrink the button */
+}
+
+/* ===================================
+   ADVANCED COMPLETE BUTTON STYLES
+   =================================== */
+
+/* Loading spinner for button */
+.loading-spinner-small {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid #ffffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ===================================
+   SUCCESS/ERROR MESSAGES
+   =================================== */
+
+.message-container {
+  margin: 16px 0;
+}
+
+.success-message, .error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  animation: slideInDown 0.3s ease;
+}
+
+.success-message {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.error-message {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===================================
+   RESPONSIVE ADJUSTMENTS
+   =================================== */
+
+@media (max-width: 768px) {
+  .weekly-overview .habit-summary .habit-progress {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+}
+
+/* Ensure existing status colors still work */
+.weekly-overview .habit-summary .habit-progress.status-completed {
+  border-left: 3px solid #69C28A;
+}
+
+.weekly-overview .habit-summary .habit-progress.status-in-progress {
+  border-left: 3px solid #f59e0b;
+}
+
+.weekly-overview .habit-summary .habit-progress.status-not-started {
+  border-left: 3px solid #35364a;
+}
+
+.weekly-overview .habit-summary .habit-progress.status-unachievable {
+  border-left: 3px solid #ef4444;
+}/* Add to calendar.component.scss */
+
+/* ===================================
+   ADVANCED COMPLETE BUTTON STYLES
+   =================================== */
+
+.habit-progress {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+}
+
+.habit-info {
+  flex: 1;
+}
+
+.habit-actions {
+  margin-left: 12px;
+}
+
+
+/* Loading spinner for button */
+.loading-spinner-small {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid #ffffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* ===================================
+   SUCCESS/ERROR MESSAGES
+   =================================== */
+
+.message-container {
+  margin: 16px 0;
+}
+
+.success-message, .error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  animation: slideInDown 0.3s ease;
+}
+
+.success-message {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.error-message {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===================================
+   RESPONSIVE ADJUSTMENTS
+   =================================== */
+
+@media (max-width: 768px) {
+
+
+  .habit-actions {
+    margin-left: 8px;
+  }
+}
+
+/* Additional CSS for floating messages (if you choose Option 4) */
+
+.floating-message-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: 90%;
+  max-width: 500px;
+  pointer-events: none; /* Don't block interactions */
+}
+
+.success-message.floating,
+.error-message.floating {
+  pointer-events: auto; /* Re-enable interactions for the message */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.success-message.floating {
+  background: rgba(34, 197, 94, 0.9);
+  color: #ffffff;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.error-message.floating {
+  background: rgba(239, 68, 68, 0.9);
+  color: #ffffff;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Enhanced animation for floating messages */
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.floating-message-container {
+  animation: slideInFromTop 0.4s ease;
+}
+
+/* Contextual messages styling (if you choose Option 5) */
+.message-container.weekly-context {
+  grid-column: 1 / -1; /* Span full width of the grid */
+  margin-bottom: 12px;
+}
+
+
+.advanced-complete-btn.dot-style {
+  padding: 4px;
+  min-width: 20px;
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.advanced-complete-btn.dot-style .dot {
+  opacity: 0.4;
+}
+
+.advanced-complete-btn.dot-style:hover:not(:disabled) .dot {
+  opacity: 1;
+  color: #22c55e;
+}
+
+
+.advanced-complete-btn.border-style {
+  background: transparent;
+  color: #35364a;
+  border: 1px solid #35364a;
+  border-radius: 2px;
+  font-size: 0.6rem;
+  padding: 1px 4px;
+}
+
+.advanced-complete-btn.border-style:hover:not(:disabled) {
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+/* ===================================
+   RESPONSIVE ADJUSTMENTS FOR SUBTLE BUTTONS
+   =================================== */
+
+@media (max-width: 768px) {
+  .advanced-complete-btn.icon-only {
+    min-width: 24px;
+    padding: 6px;
+  }
+  
+  .advanced-complete-btn.dot-style {
+    min-width: 24px;
+    padding: 6px;
+  }
+  
+  .advanced-complete-btn.text-only,
+  .advanced-complete-btn.barely-there {
+    font-size: 0.6rem;
+  }
+}
+
+
+/* ===================================
+   MINIMAL ADVANCED COMPLETE BUTTON - Complete Styles
+   =================================== */
+
+/* Enhanced habit progress layout */
+.weekly-overview .habit-summary .habit-progress {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #1f2028;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  border: 1px solid #35364a;
+  transition: all 0.2s ease;
+}
+
+.weekly-overview .habit-summary .habit-progress .habit-info {
+  flex: 1;
+}
+
+/* Minimal Complete Button */
+.advance-complete-btn {
+  background: transparent;
+  border: 1px solid #77cc96;
+  color: #77cc96;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  opacity: 0.4;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.advance-complete-btn:hover:not(:disabled) {
+  opacity: 1;
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.advance-complete-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.advance-complete-btn .loading {
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .advance-complete-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 0.8rem;
+  }
+}
