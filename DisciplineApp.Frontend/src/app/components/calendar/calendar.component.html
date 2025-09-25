@@ -257,6 +257,12 @@
                 Optional
               </span>
 
+                          <span *ngIf="getTaskDuration(habit)" 
+                  class="task-duration"
+                  [class.completed-duration]="habit.isCompleted">
+              {{ getTaskDuration(habit) }}
+            </span>
+
               <!-- Show frequency chip -->
               <span *ngIf="habit.frequency" 
                     class="task-frequency">

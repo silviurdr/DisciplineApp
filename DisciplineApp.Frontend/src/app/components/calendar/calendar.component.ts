@@ -1046,6 +1046,70 @@ getHabitIdFromNameForTemplate(habitName: string): number | null {
   return this.getHabitIdFromName(habitName);
 }
 
+getTaskDuration(habit: any): string | null {
+  // Check if task has estimated duration
+  const durationMinutes = habit.estimatedDurationMinutes || habit.durationMinutes;
+  
+  if (!durationMinutes || durationMinutes === 0) {
+    return null; // Don't show duration chip if no duration
+  }
+  
+  // Format duration based on length
+  if (durationMinutes < 60) {
+    return `${durationMinutes}m`; // "30m", "45m"
+  } else if (durationMinutes < 1440) { // Less than 24 hours
+    const hours = Math.floor(durationMinutes / 60);
+    const minutes = durationMinutes % 60;
+    
+    if (minutes === 0) {
+      return `${hours}h`; // "2h", "3h"
+    } else {
+      return `${hours}h ${minutes}m`; // "2h 30m"
+    }
+  } else {
+    // More than 24 hours - show days
+    const days = Math.floor(durationMinutes / 1440);
+    const remainingHours = Math.floor((durationMinutes % 1440) / 60);
+    
+    if (remainingHours === 0) {
+      return `${days}d`; // "2d"
+    } else {
+      return `${days}d ${remainingHours}h`; // "2d 5h"
+    }
+  }
+}
+
+// Enhanced method to get total time for completed tasks today
+getTodayCompletedTime(): string {
+  if (!this.todayData?.allHabits) return '0m';
+  
+  const totalMinutes = this.todayData.allHabits.reduce((total, habit) => {
+    if (habit.isCompleted) {
+      const duration = habit.estimatedDurationMinutes || habit.estimatedDurationMinutes || 30;
+      return total + duration;
+    }
+    return total;
+  }, 0);
+  
+  return this.formatDuration(totalMinutes);
+}
+
+// Helper method to format duration consistently
+private formatDuration(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes}m`;
+  } else {
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    
+    if (remainingMinutes === 0) {
+      return `${hours}h`;
+    } else {
+      return `${hours}h ${remainingMinutes}m`;
+    }
+  }
+}
+
 getWeekTotalHours(): number {
   if (!this.currentWeekDays) return 0;
   
