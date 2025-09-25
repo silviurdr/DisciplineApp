@@ -542,7 +542,7 @@
   padding: 2px 8px;
   background: #35364a;
   border: 1px solid #4a4d66;
-  border-radius: 12px; /* This creates the pill shape */
+  border-radius: 3px; /* This creates the pill shape */
   white-space: nowrap; /* Prevents text from wrapping */
 }
 
@@ -1193,7 +1193,7 @@ button:focus-visible {
   font-weight: 500;
   font-size: 0.7rem;
   padding: 3px 8px;
-  border-radius: 12px; /* Pill-like shape */
+  border-radius: 3px; /* Pill-like shape */
   text-transform: uppercase;
   letter-spacing: 0.5px;
   display: inline-flex;
@@ -3835,4 +3835,256 @@ button:focus-visible {
     font-size: 0.6rem;
     padding: 1px 4px;
   }
+}
+
+
+/* ===================================
+   UNIFIED CHIP DESIGN SYSTEM
+   Replace all existing chip styles with this system
+   =================================== */
+
+/* Base chip styles - shared by all chips */
+.task-meta > * {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 3px; /* Minimal rounded corners for consistency */
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  transition: all 0.2s ease;
+}
+
+.task-meta > *:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ===================================
+   PRIORITY CHIPS - Hierarchical importance
+   =================================== */
+
+/* Critical/Must Do - Pink, highest priority */
+.task-must-do {
+  background: rgba(220, 38, 127, 0.15) !important;
+  color: #ec4899 !important;
+  border-color: rgba(220, 38, 127, 0.3) !important;
+  text-transform: uppercase !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* Required - Blue, high priority */
+.task-priority.required {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+  text-transform: uppercase !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* Optional - Gray, lower priority */
+.task-priority.optional {
+  background: rgba(107, 114, 128, 0.15) !important;
+  color: #9ca3af !important;
+  border-color: rgba(107, 114, 128, 0.3) !important;
+  text-transform: capitalize !important;
+  font-weight: 500 !important;
+}
+
+/* ===================================
+   STATUS CHIPS - Current state
+   =================================== */
+
+/* Overdue - Red, attention-grabbing */
+.task-overdue {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  text-transform: uppercase !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  animation: pulse-attention 2s infinite !important;
+}
+
+/* Deferred - Purple, informational */
+.task-deferred {
+  background: rgba(168, 85, 247, 0.15) !important;
+  color: #a855f7 !important;
+  border-color: rgba(168, 85, 247, 0.3) !important;
+  text-transform: capitalize !important;
+  font-weight: 500 !important;
+}
+
+/* ===================================
+   TIME & DURATION CHIPS - Consistent numerical styling
+   =================================== */
+
+/* Normal time chips - Orange */
+.task-deadline {
+  background: rgba(249, 115, 22, 0.15) !important;
+  color: #fb923c !important;
+  border-color: rgba(249, 115, 22, 0.3) !important;
+  font-family: 'SF Mono', Consolas, monospace !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* Override existing urgency levels with consistent colors */
+.task-deadline.critical {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  animation: pulse-urgent 2s infinite !important;
+}
+
+.task-deadline.urgent {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  animation: pulse-urgent 2s infinite !important;
+}
+
+.task-deadline.moderate {
+  background: rgba(249, 115, 22, 0.15) !important;
+  color: #fb923c !important;
+  border-color: rgba(249, 115, 22, 0.3) !important;
+}
+
+.task-deadline.normal {
+  background: rgba(249, 115, 22, 0.15) !important;
+  color: #fb923c !important;
+  border-color: rgba(249, 115, 22, 0.3) !important;
+}
+
+/* ===================================
+   FREQUENCY CHIPS - Subtle, informational
+   =================================== */
+
+.task-frequency {
+  background: rgba(71, 85, 105, 0.15) !important;
+  color: #94a3b8 !important;
+  border-color: rgba(71, 85, 105, 0.3) !important;
+  text-transform: capitalize !important;
+  font-size: 0.7rem !important;
+  font-weight: 400 !important;
+  padding: 3px 8px !important;
+  border-width: 1.5px !important; /* Medium border for frequency chips */
+}
+
+/* Also target any frequency chips that might have different class names */
+.task-meta *:is([class*="daily"], [class*="Daily"], [class*="weekly"], [class*="Weekly"], [class*="monthly"], [class*="Monthly"]) {
+  background: rgba(71, 85, 105, 0.15) !important;
+  color: #94a3b8 !important;
+  border-color: rgba(71, 85, 105, 0.3) !important;
+  text-transform: capitalize !important;
+  font-size: 0.7rem !important;
+  font-weight: 400 !important;
+  padding: 3px 8px !important;
+  border-width: 1.5px !important;
+}
+
+/* ===================================
+   ANIMATIONS - Only for urgent states
+   =================================== */
+
+@keyframes pulse-attention {
+  0%, 100% { 
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% { 
+    opacity: 0.8;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+  }
+}
+
+@keyframes pulse-urgent {
+  0%, 100% { 
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.9;
+    transform: scale(1.02);
+  }
+}
+
+/* ===================================
+   REMOVE/REPLACE OLD INCONSISTENT STYLES
+   Replace these existing selectors with the unified system above
+   =================================== */
+
+/* Remove the old pulse-red animation - replaced with pulse-attention */
+@keyframes pulse-red {
+  /* DELETE THIS ENTIRE ANIMATION */
+}
+
+/* Remove or update these old styles - they're now handled by the unified system */
+/*
+.task-content .task-priority { // DELETE - now handled by unified system }
+.task-content .task-priority.urgent { // DELETE - inconsistent }
+.task-content .task-priority.critical { // DELETE - inconsistent }
+.task-content .task-time { // DELETE - now handled by .task-deadline }
+.task-content .task-time.time-critical { // DELETE - now handled by .task-deadline }
+.deadline-indicator { // DELETE - inconsistent with new system }
+*/
+
+/* ===================================
+   HOVER EFFECTS - Consistent across all chips
+   =================================== */
+
+.task-must-do:hover,
+.task-priority:hover,
+.task-overdue:hover,
+.task-deferred:hover,
+.task-deadline:hover,
+.task-frequency:hover {
+  transform: translateY(-1px) !important;
+  transition: all 0.2s ease !important;
+}
+
+.task-must-do:hover {
+  background: rgba(220, 38, 127, 0.25) !important;
+  border-color: rgba(220, 38, 127, 0.5) !important;
+}
+
+.task-priority.required:hover {
+  background: rgba(59, 130, 246, 0.25) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+.task-priority.optional:hover {
+  background: rgba(107, 114, 128, 0.25) !important;
+  border-color: rgba(107, 114, 128, 0.5) !important;
+}
+
+.task-overdue:hover {
+  background: rgba(239, 68, 68, 0.25) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+}
+
+.task-deferred:hover {
+  background: rgba(168, 85, 247, 0.25) !important;
+  border-color: rgba(168, 85, 247, 0.5) !important;
+}
+
+.task-deadline:hover {
+  background: rgba(249, 115, 22, 0.25) !important;
+  border-color: rgba(249, 115, 22, 0.5) !important;
+}
+
+.task-frequency:hover {
+  background: rgba(71, 85, 105, 0.25) !important;
+  border-color: rgba(71, 85, 105, 0.5) !important;
+}
+
+/* Also include frequency chips in the hover pattern */
+.task-meta *:is([class*="daily"], [class*="Daily"], [class*="weekly"], [class*="Weekly"], [class*="monthly"], [class*="Monthly"]):hover {
+  background: rgba(71, 85, 105, 0.25) !important;
+  border-color: rgba(71, 85, 105, 0.5) !important;
 }
