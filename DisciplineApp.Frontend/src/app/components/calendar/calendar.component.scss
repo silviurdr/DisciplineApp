@@ -2606,7 +2606,7 @@ button:focus-visible {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  max-width: 60%; /* Prevent meta from taking too much space */
+  max-width: 100%; /* Prevent meta from taking too much space */
 }
 
 .quick-complete-btn {
