@@ -76,7 +76,8 @@ getCurrentWeek(): Observable<WeekData> {
               dayOfWeek: dayDate.toLocaleDateString('en-US', { weekday: 'short' }),
               isToday: isToday,
               isFuture: isFuture,
-              isPast: isPast
+              isPast: isPast,
+              hasAdvancedCompletion: apiDay.hasAdvancedCompletion || false
             });
           });
         } else {
@@ -136,7 +137,8 @@ getCurrentWeek(): Observable<WeekData> {
                 dayOfWeek: currentDate.toLocaleDateString('en-US', { weekday: 'short' }),
                 isToday: false,
                 isFuture: isFuture,
-                isPast: !isFuture && !isToday
+                isPast: !isFuture && !isToday,
+                hasAdvancedCompletion: false
               });
             }
           }

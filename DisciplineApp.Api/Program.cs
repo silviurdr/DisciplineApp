@@ -48,6 +48,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors("AllowAngular");
 app.UseAuthorization();
+app.UseMiddleware<FirstDailyRunMiddleware>();
 app.MapControllers();
 
 // Initialize database and seed habits

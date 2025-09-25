@@ -167,9 +167,8 @@ export class CalendarComponent implements OnInit {
 private async initializeComponent(): Promise<void> {
   try {
     // Convert your existing methods to promises and run in parallel
-    this.loadCurrentWeekDataWithAdvanced();
-    await Promise.all([
-      this.loadCurrentWeekDataAsPromise(),
+   await Promise.all([
+      this.loadCurrentWeekDataAsPromise(), // ✅ Your original working method
       this.loadFlexibleTasksAsPromise()
     ]);
   } finally {
@@ -835,58 +834,6 @@ getWeekProgressPercentage(): number {
   return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 }
 
-loadCurrentWeekDataWithAdvanced(): void {
-  this.loading = true;
-  this.error = null;
-
-  console.log('🔍 Loading current week data with advanced completions...');
-
-  // Use the new endpoint that includes advanced completions
-  this.disciplineService.getWeekStatsWithAdvanced().subscribe({
-    next: (response) => {
-      console.log('✅ Week data with advanced completions received:', response);
-      
-      // Process the enhanced week data
-      this.processEnhancedWeekData(response);
-      
-      this.loading = false;
-    },
-    error: (error) => {
-      console.error('❌ Error loading week data with advanced completions:', error);
-      
-      // Fallback to regular week data
-      console.log('⚠️ Falling back to regular week data...');
-      this.loadCurrentWeekData();
-    }
-  });
-}
-
-private processEnhancedWeekData(response: any): void {
-  // Map the enhanced day statuses to your existing data structure
-  this.currentWeekDays = response.days.map((dayStatus: any) => ({
-    date: dayStatus.date,
-    isCompleted: dayStatus.isCompleted,
-    isPartiallyCompleted: dayStatus.isPartiallyCompleted,
-    totalHabits: dayStatus.totalHabits,
-    completedHabits: dayStatus.completedHabits,
-    requiredHabitsCount: dayStatus.requiredHabitsCount,
-    completedRequiredCount: dayStatus.completedRequiredCount,
-    hasAdvancedCompletions: dayStatus.hasAdvancedCompletions || false,
-    advancedCompletions: dayStatus.advancedCompletions || [],
-    // Add other properties as needed
-  }));
-
-  // Update today's data if it exists
-  const todayString = new Date().toISOString().split('T')[0];
-  const todayData = response.days.find((d: any) => d.date === todayString);
-  if (todayData) {
-    // Update your todayData property with enhanced data
-    console.log('📊 Today has advanced completions:', todayData.hasAdvancedCompletions);
-  }
-
-  console.log('✅ Enhanced week data processed successfully');
-}
-
 toggleTask(habit: any): void {
     // Prevent toggling locked tasks
     if (habit.isLocked) {
@@ -991,7 +938,6 @@ private isTaskScheduledToday(habitName: string): boolean {
 
 // Method to handle advanced completion
 advancedCompleteTask(habitProgress: any): void {
-  // Get habitId from habitName
   const habitId = this.getHabitIdFromName(habitProgress.habitName);
   
   if (!habitId) {
@@ -1000,14 +946,12 @@ advancedCompleteTask(habitProgress: any): void {
     return;
   }
 
-  // Show confirmation dialog
   const confirmMessage = `Complete "${habitProgress.habitName}" now? This will count toward your weekly goal.`;
   
   if (!confirm(confirmMessage)) {
     return;
   }
 
-  // Disable button and show loading state
   this.isAdvancedCompleting = habitId;
 
   this.disciplineService.advancedCompleteHabit(habitId).subscribe({
@@ -1017,11 +961,13 @@ advancedCompleteTask(habitProgress: any): void {
       // Play success sound
       this.soundService.playTaskCompleted();
       
-      // Show success message
+      // Show success message  
       this.successMessage = response.message;
       
-      // Reload the week data to update all counters and stats
-      this.loadCurrentWeekData();
+      // ✅ SIMPLE FIX: Just reload the current week data normally
+      this.loadCurrentWeekDataAsPromise().then(() => {
+        console.log('📊 Week data reloaded after advanced completion');
+      });
       
       // Clear loading state
       this.isAdvancedCompleting = null;
@@ -1034,18 +980,10 @@ advancedCompleteTask(habitProgress: any): void {
     error: (error) => {
       console.error('❌ Advanced completion failed:', error);
       
-      let errorMsg = 'Failed to complete task. Please try again.';
-      
-      if (error.error && typeof error.error === 'string') {
-        errorMsg = error.error;
-      } else if (error.error && error.error.message) {
-        errorMsg = error.error.message;
-      }
-      
+      const errorMsg = error.error?.message || error.error || 'Failed to complete task. Please try again.';
       this.errorMessage = errorMsg;
       this.isAdvancedCompleting = null;
       
-      // Clear error message after 5 seconds
       setTimeout(() => {
         this.errorMessage = '';
       }, 5000);

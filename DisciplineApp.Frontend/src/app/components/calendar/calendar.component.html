@@ -64,7 +64,7 @@
               [disabled]="isAdvancedCompleting === getHabitIdFromNameForTemplate(habit.habitName)"
               (click)="advancedCompleteTask(habit)"
               [title]="'Complete ' + habit.habitName + ' now'">
-        <span *ngIf="isAdvancedCompleting !== getHabitIdFromNameForTemplate(habit.habitName)">✓</span>
+        <span *ngIf="isAdvancedCompleting !== getHabitIdFromNameForTemplate(habit.habitName)">⏭️</span>
         <span *ngIf="isAdvancedCompleting === getHabitIdFromNameForTemplate(habit.habitName)" class="loading">⋯</span>
       </button>
       </div>

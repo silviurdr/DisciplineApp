@@ -159,6 +159,7 @@ export interface DayData {
   isToday: boolean;
   isFuture: boolean;
   isPast: boolean;
+  hasAdvancedCompletion: boolean;
 }
 
 export interface WeekData {

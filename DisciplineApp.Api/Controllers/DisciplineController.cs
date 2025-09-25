@@ -1202,7 +1202,8 @@ public class DisciplineController : ControllerBase
                         totalHabits = totalHabits,
                         completedHabits = newCompletedTotal,
                         hasAdvancedCompletions = true,
-                        advancedCompletions = advancedForThisDay.Select(ac => new {
+                        advancedCompletions = advancedForThisDay.Select(ac => new
+                        {
                             habitName = ac.Habit.Name,
                             completedAt = ac.CompletedAt,
                             originalDate = ac.Date
@@ -1227,6 +1228,7 @@ public class DisciplineController : ControllerBase
             Console.WriteLine($"❌ Error in GetWeekStatsWithAdvancedCompletions: {ex.Message}");
             return StatusCode(500, $"Error: {ex.Message}");
         }
+    }
 
     private async Task<DateTime?> FindNextScheduledOccurrence(int habitId, DateTime fromDate)
     {
