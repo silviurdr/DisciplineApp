@@ -1903,7 +1903,7 @@ button:focus-visible {
 }
 
 .sub-habits-indicator {
-  font-size: 0.85rem;
+  font-size: 11.2px;
   color: #8b8fa3;
   font-weight: 500;
   padding: 2px 6px;
@@ -4088,3 +4088,424 @@ button:focus-visible {
   background: rgba(71, 85, 105, 0.25) !important;
   border-color: rgba(71, 85, 105, 0.5) !important;
 }
+
+
+/* ===================================
+   UNIFIED CHIP DESIGN SYSTEM
+   Replace existing chip styles with this consistent system
+   =================================== */
+
+/* Base chip styles - shared by all chips */
+.task-meta > * {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 3px; /* Keep your preferred border-radius */
+  font-size: 0.7rem;
+  font-weight: 500;
+  border: 1px solid;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  transition: all 0.2s ease;
+}
+
+.task-meta > *:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ===================================
+   PRIORITY CHIPS - Hierarchical importance
+   =================================== */
+
+/* Critical/Must Do - Pink, highest priority */
+.task-must-do {
+  background: rgba(220, 38, 127, 0.15) !important;
+  color: #ec4899 !important;
+  border-color: rgba(220, 38, 127, 0.3) !important;
+  font-weight: 600 !important;
+}
+
+/* Required - Blue, high priority */
+.task-priority.required {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+  font-weight: 600 !important;
+}
+
+/* Optional - Green, lower priority */
+.task-priority.optional {
+  background: rgba(34, 197, 94, 0.15) !important;
+  color: #4ade80 !important;
+  border-color: rgba(34, 197, 94, 0.3) !important;
+  font-weight: 500 !important;
+}
+
+/* ===================================
+   STATUS CHIPS - Current state
+   =================================== */
+
+/* Overdue - Red, attention-grabbing */
+.task-overdue {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  font-weight: 600 !important;
+  animation: pulse-attention 2s infinite !important;
+}
+
+/* Deferred - Purple, informational */
+.task-deferred {
+  background: rgba(168, 85, 247, 0.15) !important;
+  color: #a855f7 !important;
+  border-color: rgba(168, 85, 247, 0.3) !important;
+  font-weight: 500 !important;
+  text-transform: capitalize !important;
+}
+
+/* ===================================
+   TIME & DURATION CHIPS - Consistent numerical styling
+   =================================== */
+
+/* Duration chips - Blue with monospace font for consistency */
+.task-duration {
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+  font-family: 'SF Mono', Consolas, 'Courier New', monospace !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+/* Completed task duration - Green */
+.task-duration.completed-duration {
+  background: rgba(34, 197, 94, 0.1) !important;
+  color: #22c55e !important;
+  border-color: rgba(34, 197, 94, 0.2) !important;
+}
+
+/* Time remaining chips - Orange */
+.task-deadline {
+  background: rgba(249, 115, 22, 0.15) !important;
+  color: #fb923c !important;
+  border-color: rgba(249, 115, 22, 0.3) !important;
+  font-family: 'SF Mono', Consolas, 'Courier New', monospace !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+/* Critical time remaining - Red with animation */
+.task-deadline.critical {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  animation: pulse-urgent 2s infinite !important;
+}
+
+.task-deadline.urgent {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  animation: pulse-urgent 2s infinite !important;
+}
+
+.task-deadline.moderate {
+  background: rgba(249, 115, 22, 0.15) !important;
+  color: #fb923c !important;
+  border-color: rgba(249, 115, 22, 0.3) !important;
+}
+
+.task-deadline.normal {
+  background: rgba(249, 115, 22, 0.15) !important;
+  color: #fb923c !important;
+  border-color: rgba(249, 115, 22, 0.3) !important;
+}
+
+/* ===================================
+   FREQUENCY CHIPS - Subtle, informational
+   =================================== */
+
+.task-frequency {
+  background: rgba(71, 85, 105, 0.15) !important;
+  color: #94a3b8 !important;
+  border-color: rgba(71, 85, 105, 0.3) !important;
+  text-transform: capitalize !important;
+  font-weight: 400 !important;
+}
+
+/* Also target any frequency chips that might have different class names */
+.task-meta *:is([class*="daily"], [class*="Daily"], [class*="weekly"], [class*="Weekly"], [class*="monthly"], [class*="Monthly"]) {
+  background: rgba(71, 85, 105, 0.15) !important;
+  color: #94a3b8 !important;
+  border-color: rgba(71, 85, 105, 0.3) !important;
+  text-transform: capitalize !important;
+  font-weight: 400 !important;
+}
+
+/* ===================================
+   ANIMATIONS - Consistent across all chips
+   =================================== */
+
+@keyframes pulse-attention {
+  0%, 100% { 
+    opacity: 1; 
+    box-shadow: 0 0 0 0 rgba(220, 38, 127, 0.4);
+  }
+  50% { 
+    opacity: 0.8;
+    box-shadow: 0 0 0 4px rgba(220, 38, 127, 0.1);
+  }
+}
+
+@keyframes pulse-urgent {
+  0%, 100% { 
+    opacity: 1; 
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% { 
+    opacity: 0.8;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+  }
+}
+
+/* ===================================
+   UNIFIED CHIP DESIGN SYSTEM
+   Replace existing chip styles with this consistent system
+   =================================== */
+
+/* Base chip styles - shared by ALL chips across components */
+.task-meta > *,
+.habit-meta > *,
+.frequency-info,
+.duration-info,
+.deadline-info,
+.status-badge,
+.sub-habit-meta > * {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 3px; /* Keep your preferred border-radius */
+  font-size: 0.7rem;
+  font-weight: 500;
+  border: 1px solid;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  transition: all 0.2s ease;
+}
+
+/* Hover effects for all chips */
+.task-meta > *:hover,
+.habit-meta > *:hover,
+.frequency-info:hover,
+.duration-info:hover,
+.deadline-info:hover,
+.status-badge:hover,
+.sub-habit-meta > *:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ===================================
+   PRIORITY CHIPS - Hierarchical importance
+   =================================== */
+
+/* Critical/Must Do - Pink, highest priority */
+.task-must-do {
+  background: rgba(220, 38, 127, 0.15) !important;
+  color: #ec4899 !important;
+  border-color: rgba(220, 38, 127, 0.3) !important;
+  font-weight: 600 !important;
+}
+
+/* Required - Blue, high priority */
+.task-priority.required {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+  font-weight: 600 !important;
+}
+
+/* Optional - Green, lower priority */
+.task-priority.optional {
+  background: rgba(34, 197, 94, 0.15) !important;
+  color: #4ade80 !important;
+  border-color: rgba(34, 197, 94, 0.3) !important;
+  font-weight: 500 !important;
+}
+
+/* ===================================
+   STATUS CHIPS - Current state
+   =================================== */
+
+/* Overdue - Red, attention-grabbing */
+.task-overdue {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  font-weight: 600 !important;
+  animation: pulse-attention 2s infinite !important;
+}
+
+/* Deferred - Purple, informational */
+.task-deferred {
+  background: rgba(168, 85, 247, 0.15) !important;
+  color: #a855f7 !important;
+  border-color: rgba(168, 85, 247, 0.3) !important;
+  font-weight: 500 !important;
+  text-transform: capitalize !important;
+}
+
+/* ===================================
+   TIME & DURATION CHIPS - Consistent numerical styling
+   =================================== */
+
+/* Duration chips - Blue with monospace font for consistency */
+.task-duration {
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+  font-family: 'SF Mono', Consolas, 'Courier New', monospace !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+/* Completed task duration - Green */
+.task-duration.completed-duration {
+  background: rgba(34, 197, 94, 0.1) !important;
+  color: #22c55e !important;
+  border-color: rgba(34, 197, 94, 0.2) !important;
+}
+
+/* Time remaining chips - Orange */
+.task-deadline {
+  background: rgba(249, 115, 22, 0.15) !important;
+  color: #fb923c !important;
+  border-color: rgba(249, 115, 22, 0.3) !important;
+  font-family: 'SF Mono', Consolas, 'Courier New', monospace !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+}
+
+/* Critical time remaining - Red with animation */
+.task-deadline.critical {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  animation: pulse-urgent 2s infinite !important;
+}
+
+.task-deadline.urgent {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+  animation: pulse-urgent 2s infinite !important;
+}
+
+.task-deadline.moderate {
+  background: rgba(249, 115, 22, 0.15) !important;
+  color: #fb923c !important;
+  border-color: rgba(249, 115, 22, 0.3) !important;
+}
+
+.task-deadline.normal {
+  background: rgba(249, 115, 22, 0.15) !important;
+  color: #fb923c !important;
+  border-color: rgba(249, 115, 22, 0.3) !important;
+}
+
+/* ===================================
+   FREQUENCY CHIPS - Subtle, informational
+   =================================== */
+
+.task-frequency,
+.frequency-info,
+.task-meta *:is([class*="daily"], [class*="Daily"], [class*="weekly"], [class*="Weekly"], [class*="monthly"], [class*="Monthly"]) {
+  background: rgba(71, 85, 105, 0.15) !important;
+  color: #94a3b8 !important;
+  border-color: rgba(71, 85, 105, 0.3) !important;
+  text-transform: capitalize !important;
+  font-weight: 400 !important;
+}
+
+/* ===================================
+   SUB-HABIT CHIP CARDS - Match main chip styling
+   =================================== */
+
+/* Keep expand button with original styling - don't override */
+/* .expand-btn - keeping original styles from habit-management.scss */
+
+/* Add sub-habit button styling */
+.add-sub-habit-btn {
+  background: rgba(100, 181, 246, 0.15) !important;
+  border: 1px solid rgba(100, 181, 246, 0.3) !important;
+  color: #64b5f6 !important;
+  padding: 3px 8px !important;
+  border-radius: 3px !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem !important;
+  font-weight: 500 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+  transition: all 0.2s ease;
+}
+
+.add-sub-habit-btn:hover {
+  background: rgba(100, 181, 246, 0.25) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Habit count badge in category headers */
+.habit-count {
+  background: rgba(71, 85, 105, 0.15) !important;
+  color: #94a3b8 !important;
+  padding: 3px 8px !important;
+  border-radius: 3px !important;
+  font-size: 0.7rem !important;
+  font-weight: 500 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+  border: 1px solid rgba(71, 85, 105, 0.3) !important;
+}
+
+/* ===================================
+   ANIMATIONS - Consistent across all chips
+   =================================== */
+
+@keyframes pulse-attention {
+  0%, 100% { 
+    opacity: 1; 
+    box-shadow: 0 0 0 0 rgba(220, 38, 127, 0.4);
+  }
+  50% { 
+    opacity: 0.8;
+    box-shadow: 0 0 0 4px rgba(220, 38, 127, 0.1);
+  }
+}
+
+@keyframes pulse-urgent {
+  0%, 100% { 
+    opacity: 1; 
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% { 
+    opacity: 0.8;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+  }
+}
+
+
