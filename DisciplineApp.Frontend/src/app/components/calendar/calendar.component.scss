@@ -4048,10 +4048,6 @@ button:focus-visible {
   transition: all 0.2s ease !important;
 }
 
-.task-must-do:hover {
-  background: rgba(220, 38, 127, 0.25) !important;
-  border-color: rgba(220, 38, 127, 0.5) !important;
-}
 
 .task-priority.required:hover {
   background: rgba(59, 130, 246, 0.25) !important;
@@ -4556,10 +4552,6 @@ button:focus-visible {
   font-weight: 500 !important; /* Reduced from 600 to 500 */
 }
 
-.task-must-do:hover {
-  background: #5a646e !important;
-  border-color: #8795a1 !important;
-}
 
 /* Required - Dark gray (high priority) */
 .task-priority.required {
@@ -4580,11 +4572,6 @@ button:focus-visible {
   color: #4a5568 !important;
   border-color: #cbd5e0 !important;
   font-weight: 500 !important;
-}
-
-.task-priority.optional:hover {
-  background: #edf2f7 !important;
-  border-color: #a0aec0 !important;
 }
 
 /* ===================================
@@ -4635,11 +4622,6 @@ button:focus-visible {
   opacity: 0.8 !important; /* Added subtle opacity for less prominence */
 }
 
-.task-duration:hover {
-  background: #e2e8f0 !important;
-  border-color: #cbd5e0 !important;
-  opacity: 1 !important; /* Full opacity on hover */
-}
 
 /* Completed task duration - Subtle medium gray */
 .task-duration.completed-duration {
@@ -4649,11 +4631,6 @@ button:focus-visible {
   opacity: 0.7 !important; /* More subtle for completed tasks */
 }
 
-.task-duration.completed-duration:hover {
-  background: #8795a1 !important;
-  border-color: #9ca6b2 !important;
-  opacity: 1 !important;
-}
 
 /* ===================================
    KEEP UNCHANGED - PRESERVE ORIGINAL COLORS
@@ -4871,4 +4848,115 @@ button:focus-visible {
   background: #f7fafc !important;
   color: #4a5568 !important;
   border: 1px solid #cbd5e0 !important;
+}
+
+/* ===================================
+   DAILY/WEEKLY FREQUENCY - Keep gray but make distinct from priority chips
+   =================================== */
+.task-meta [class*="frequency"],
+.task-meta .daily-chip,
+.task-meta .weekly-chip {
+  background: rgba(75, 85, 99, 0.25) !important; /* slightly different gray tone */
+  color: #6b7280 !important; /* same as other grays but different background */
+  border-color: rgba(75, 85, 99, 0.45) !important; /* matching border */
+  font-weight: 600 !important;
+}/* ===================================
+   SUBTLE READABILITY IMPROVEMENTS
+   Keep exact same colors, just adjust opacity/brightness
+   =================================== */
+
+/* ===================================
+   MUST DO 
+   =================================== */
+.task-must-do {
+  background: #D1C9C9 !important; /* slightly less opaque white */
+  color: #1f2937 !important; /* dark gray instead of pure black */
+  border: 1px solid rgba(255, 255, 255, 0.7) !important; /* thinner border */
+  font-weight: 600 !important; /* reduce from 700 to 600 */
+  box-shadow: none !important; /* remove the glow */
+  text-transform: uppercase !important; /* keep uppercase */
+  letter-spacing: 0.3px !important; /* reduce letter spacing */
+}
+
+/* ===================================
+   DEFERRED - Keep gray but differentiate from optional
+   =================================== */
+.task-deferred {
+  background: rgba(107, 114, 128, 0.3) !important; /* darker gray background */
+  color: #6b7280 !important; /* darker gray text for better contrast */
+  border-color: rgba(107, 114, 128, 0.6) !important; /* strong border */
+  font-weight: 600 !important; /* bolder text for readability */
+}
+
+/* ===================================
+   OPTIONAL - Lighter gray to differentiate from Deferred
+   =================================== */
+.task-priority.optional {
+  background: rgba(156, 163, 175, 0.25) !important; /* lighter gray background */
+  color: #6b7280 !important; /* same text color but lighter background */
+  border-color: rgba(156, 163, 175, 0.5) !important; /* lighter border */
+  font-weight: 600 !important; /* bolder text */
+}
+
+/* ===================================
+   TIME REMAINING - Blue for >1 day (different from duration blue)
+   =================================== */
+.task-deadline {
+  background: rgba(30, 64, 175, 0.2) !important; /* deeper/darker blue */
+  color: #1e40af !important; /* much darker blue than duration */
+  border-color: rgba(30, 64, 175, 0.4) !important; /* matching darker border */
+  font-weight: 600 !important; /* bolder text */
+  font-family: 'SF Mono', Consolas, 'Courier New', monospace !important;
+}
+
+/* ===================================
+   DURATION - Keep lighter blue to differentiate
+   =================================== */
+.task-duration {
+  background: rgba(75, 85, 99, 0.35) !important; /* darker background - up from 0.25 */
+  color: #F0EBEB !important; /* darker text - down from #6b7280 */
+  border-color: rgba(75, 85, 99, 0.6) !important; /* darker border - up from 0.45 */
+  font-weight: 600 !important;
+}/* 
+
+/* ===================================
+   GENERAL TEXT IMPROVEMENTS - NO HOVER EFFECTS
+   =================================== */
+.task-meta > * {
+  /* Slightly bolder text across all chips */
+  font-weight: 600 !important;
+  /* Very subtle text shadow for better definition against background */
+  text-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.1);
+  /* Remove all transitions and effects */
+  transition: none !important;
+  transform: none !important;
+}
+
+/* ===================================
+   REMOVE ALL HOVER EFFECTS
+   =================================== */
+.task-meta > *:hover {
+  /* No effects on hover */
+  filter: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ===================================
+   SPECIFIC FIXES FOR YOUR CURRENT CHIPS
+   =================================== */
+
+/* The "Daily", "Weekly" frequency text chips */
+.task-meta .frequency-daily,
+.task-meta .frequency-weekly {
+  background: rgba(107, 114, 128, 0.25) !important;
+  color: #9ca3af !important;
+  border-color: rgba(107, 114, 128, 0.45) !important;
+}
+
+/* The duration numbers like "15m", "5m", "30m" */
+.task-meta .duration-chip {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #60a5fa !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
 }
