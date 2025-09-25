@@ -4509,3 +4509,366 @@ button:focus-visible {
 }
 
 
+/* ===================================
+   MINIMALISTIC CHIP DESIGN SYSTEM - BLACK, WHITE, GRAY ONLY
+   Replace ONLY specific chip styles with this monochrome system
+   SPECIFICALLY EXCLUDES: time remaining, frequency chips, subhabit chips, expand arrows, weekly stats
+   =================================== */
+
+/* Base chip styles - applied ONLY to specific task chips, NOT time/frequency/stats */
+.task-must-do,
+.task-priority,
+.task-overdue,
+.task-deferred,
+.task-duration {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  border: 1px solid;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  transition: all 0.2s ease;
+}
+
+.task-must-do:hover,
+.task-priority:hover,
+.task-overdue:hover,
+.task-deferred:hover,
+.task-duration:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* ===================================
+   PRIORITY CHIPS - Different grays for hierarchy
+   =================================== */
+
+/* Critical/Must Do - More subtle dark gray instead of black */
+.task-must-do {
+  background: #4a5568 !important;
+  color: #e2e8f0 !important;
+  border-color: #718096 !important;
+  font-weight: 500 !important; /* Reduced from 600 to 500 */
+}
+
+.task-must-do:hover {
+  background: #5a646e !important;
+  border-color: #8795a1 !important;
+}
+
+/* Required - Dark gray (high priority) */
+.task-priority.required {
+  background: #2d3748 !important;
+  color: #e2e8f0 !important;
+  border-color: #4a5568 !important;
+  font-weight: 600 !important;
+}
+
+.task-priority.required:hover {
+  background: #3e4757 !important;
+  border-color: #5a646e !important;
+}
+
+/* Optional - Light gray (lower priority) */
+.task-priority.optional {
+  background: #B8C3D1 !important;
+  color: #4a5568 !important;
+  border-color: #cbd5e0 !important;
+  font-weight: 500 !important;
+}
+
+.task-priority.optional:hover {
+  background: #edf2f7 !important;
+  border-color: #a0aec0 !important;
+}
+
+/* ===================================
+   STATUS CHIPS - Different intensities of gray
+   =================================== */
+
+/* Overdue - Black with white text (maximum contrast for attention) */
+.task-overdue {
+  background: #000000 !important;
+  color: #ffffff !important;
+  border-color: #333333 !important;
+  font-weight: 600 !important;
+  animation: none !important; /* Remove colored animation */
+}
+
+.task-overdue:hover {
+  background: #1a1a1a !important;
+  border-color: #555555 !important;
+}
+
+/* Deferred - Medium gray */
+.task-deferred {
+  background: #4a5568 !important;
+  color: #e2e8f0 !important;
+  border-color: #718096 !important;
+  font-weight: 500 !important;
+  text-transform: capitalize !important;
+}
+
+.task-deferred:hover {
+  background: #5a646e !important;
+  border-color: #8795a1 !important;
+}
+
+/* ===================================
+   DURATION CHIPS - Monospace with subtle grays
+   =================================== */
+
+/* Duration chips - More subtle, lighter background */
+.task-duration {
+  background: #edf2f7 !important; /* Even lighter gray */
+  color: #4a5568 !important; /* Softer text color */
+  border-color: #d1dae5 !important; /* Softer border */
+  font-family: 'SF Mono', Consolas, 'Courier New', monospace !important;
+  font-weight: 400 !important; /* Reduced from 500 to 400 */
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  opacity: 0.8 !important; /* Added subtle opacity for less prominence */
+}
+
+.task-duration:hover {
+  background: #e2e8f0 !important;
+  border-color: #cbd5e0 !important;
+  opacity: 1 !important; /* Full opacity on hover */
+}
+
+/* Completed task duration - Subtle medium gray */
+.task-duration.completed-duration {
+  background: #718096 !important; /* Lighter than before */
+  color: #f7fafc !important;
+  border-color: #8795a1 !important;
+  opacity: 0.7 !important; /* More subtle for completed tasks */
+}
+
+.task-duration.completed-duration:hover {
+  background: #8795a1 !important;
+  border-color: #9ca6b2 !important;
+  opacity: 1 !important;
+}
+
+/* ===================================
+   KEEP UNCHANGED - PRESERVE ORIGINAL COLORS
+   =================================== */
+
+/* DO NOT MODIFY - Keep original expand button styling */
+.expand-btn {
+  /* Original styles preserved */
+}
+
+/* DO NOT MODIFY - Keep original sub-habit chip styling */
+.add-sub-habit-btn {
+  /* Original styles preserved */
+}
+
+/* DO NOT MODIFY - Keep original sub-habit meta styling */
+.sub-habit-meta > * {
+  /* Original styles preserved - not affected by minimalistic theme */
+}
+
+/* ===================================
+   TIME REMAINING CHIPS - URGENCY-BASED COLOR SYSTEM
+   Blue for >1 day, Orange for 6-24h, Red for <6h
+   =================================== */
+
+/* Base time remaining chip style */
+.task-deadline {
+  font-family: 'SF Mono', Consolas, 'Courier New', monospace !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  padding: 3px 8px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid;
+  transition: all 0.2s ease;
+}
+
+.task-deadline:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* NORMAL - More than 1 day (BLUE - comfortable) */
+.task-deadline.normal {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #3b82f6 !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+}
+
+.task-deadline.normal:hover {
+  background: rgba(59, 130, 246, 0.25) !important;
+  border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+/* MODERATE - Less than 1 day but more than 2 hours (ORANGE - warning) */
+.task-deadline.moderate {
+  background: rgba(249, 115, 22, 0.15) !important;
+  color: #f97316 !important;
+  border-color: rgba(249, 115, 22, 0.3) !important;
+}
+
+.task-deadline.moderate:hover {
+  background: rgba(249, 115, 22, 0.25) !important;
+  border-color: rgba(249, 115, 22, 0.5) !important;
+}
+
+/* URGENT - Less than 2 hours but more than 30 minutes (RED - urgent attention) */
+.task-deadline.urgent {
+  background: rgba(239, 68, 68, 0.2) !important;
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  font-weight: 600 !important;
+}
+
+.task-deadline.urgent:hover {
+  background: rgba(239, 68, 68, 0.3) !important;
+  border-color: rgba(239, 68, 68, 0.6) !important;
+}
+
+/* CRITICAL - Less than 30 minutes (DARK RED with animation) */
+.task-deadline.critical {
+  background: rgba(185, 28, 28, 0.25) !important;
+  color: #b91c1c !important;
+  border-color: rgba(185, 28, 28, 0.5) !important;
+  font-weight: 700 !important;
+  animation: pulse-time-critical 1.5s infinite !important;
+}
+
+.task-deadline.critical:hover {
+  background: rgba(185, 28, 28, 0.35) !important;
+  border-color: rgba(185, 28, 28, 0.7) !important;
+}
+
+/* Default fallback - if no urgency class (orange) */
+.task-deadline:not(.normal):not(.moderate):not(.urgent):not(.critical) {
+  background: rgba(249, 115, 22, 0.15) !important;
+  color: #f97316 !important;
+  border-color: rgba(249, 115, 22, 0.3) !important;
+}
+
+.task-deadline:not(.normal):not(.moderate):not(.urgent):not(.critical):hover {
+  background: rgba(249, 115, 22, 0.25) !important;
+  border-color: rgba(249, 115, 22, 0.5) !important;
+}
+
+/* Animation for critical time remaining */
+@keyframes pulse-time-critical {
+  0%, 100% { 
+    opacity: 1; 
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% { 
+    opacity: 0.8;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+  }
+}
+
+/* ===================================
+   FREQUENCY CHIPS - KEEP ORIGINAL COLORS UNCHANGED
+   DO NOT MODIFY - These keep their original styling
+   =================================== */
+
+.task-frequency,
+.frequency-info,
+.task-meta *:is([class*="daily"], [class*="Daily"], [class*="weekly"], [class*="Weekly"], [class*="monthly"], [class*="Monthly"]) {
+  /* Original styles preserved - not modified by minimalistic theme */
+}
+
+.task-frequency:hover,
+.frequency-info:hover,
+.task-meta *:is([class*="daily"], [class*="Daily"], [class*="weekly"], [class*="Weekly"], [class*="monthly"], [class*="Monthly"]):hover {
+  /* Original hover styles preserved */
+}
+
+/* ===================================
+   HABIT COUNT BADGES - KEEP ORIGINAL COLORS UNCHANGED
+   DO NOT MODIFY - The .habit-count class keeps its original styling
+   =================================== */
+
+.habit-count {
+  /* Original styles preserved - not modified by minimalistic theme */
+  /* This preserves the weekly stats chips like "0/4", "2/7", etc. */
+}
+
+/* ===================================
+   KEEP WEEKLY PROGRESS CHIPS UNCHANGED
+   DO NOT MODIFY - These keep their original colors (0/4, 2/7, etc.)
+   =================================== */
+
+/* Exclude weekly stats and progress chips from minimalistic styling */
+*[class*="progress"],
+*[class*="weekly-stat"],
+*[class*="habit-progress"],
+*[class*="completion"],
+.habit-card *:contains("/"),
+.weekly-stats *,
+.progress-chip,
+.stat-chip {
+  /* Original styles preserved - not modified by minimalistic theme */
+}
+
+/* ===================================
+   REMOVE ALL COLOR ANIMATIONS
+   =================================== */
+
+/* Remove colored pulse animations */
+@keyframes pulse-attention {
+  0%, 100% { 
+    opacity: 1; 
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.2);
+  }
+  50% { 
+    opacity: 0.8;
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1);
+  }
+}
+
+@keyframes pulse-urgent {
+  0%, 100% { 
+    opacity: 1; 
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.2);
+  }
+  50% { 
+    opacity: 0.8;
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* ===================================
+   UNIFIED CHIP DESIGN SYSTEM - MINIMALISTIC
+   Apply to specific chip types only, exclude all preserved elements
+   =================================== */
+
+/* Apply minimalistic style ONLY to specific chip types */
+.task-must-do,
+.task-priority,
+.task-overdue,
+.task-deferred,
+.task-duration {
+  /* Minimalistic styles applied above */
+}
+
+/* Status badge minimalistic variants for habit management component */
+.status-badge.active:not([class*="progress"]):not([class*="weekly"]) {
+  background: #2d3748 !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #4a5568 !important;
+}
+
+.status-badge.paused:not([class*="progress"]):not([class*="weekly"]) {
+  background: #f7fafc !important;
+  color: #4a5568 !important;
+  border: 1px solid #cbd5e0 !important;
+}
