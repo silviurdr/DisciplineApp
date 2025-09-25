@@ -162,6 +162,20 @@ getCurrentWeek(): Observable<WeekData> {
       catchError(this.handleError)
     );
 }
+
+getWeekStatsWithAdvanced(): Observable<any> {
+  console.log('🚀 Calling week stats with advanced completions');
+  
+  return this.http.get<any>(`${this.baseUrl}/week-stats-with-advanced`)
+    .pipe(
+      tap(response => console.log('✅ Week stats with advanced response:', response)),
+      catchError(error => {
+        console.error('❌ Week stats with advanced error:', error);
+        return throwError(() => error);
+      })
+    );
+}
+
 getWeeklyProgress(): Observable<WeeklyProgress> {
   const today = new Date();
   const year = today.getFullYear();

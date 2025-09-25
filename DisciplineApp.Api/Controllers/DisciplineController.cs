@@ -11,16 +11,16 @@ namespace DisciplineApp.Api.Controllers;
 public class DisciplineController : ControllerBase
 {
     private readonly DisciplineDbContext _context;
-    private readonly WeeklyScheduleService _scheduleService;
+    private readonly WeeklyScheduleService _weeklyScheduleService;
     private readonly FlexibleTaskService _flexibleTaskService;
     private readonly IDailyStatsService _dailyStatsService;
     private static DateTime? _streakStartDate = DateTime.Now;
     private static bool _streakStartCalculated = false;
 
-    public DisciplineController(DisciplineDbContext context, WeeklyScheduleService scheduleService, FlexibleTaskService flexibleTaskService, IDailyStatsService dailyStatsService)
+    public DisciplineController(DisciplineDbContext context, WeeklyScheduleService weeeklyScheduleService, FlexibleTaskService flexibleTaskService, IDailyStatsService dailyStatsService)
     {
         _context = context;
-        _scheduleService = scheduleService;
+        _weeklyScheduleService = weeeklyScheduleService;
         _flexibleTaskService = flexibleTaskService;
         _dailyStatsService = dailyStatsService;
     }
@@ -42,7 +42,7 @@ public class DisciplineController : ControllerBase
             Console.WriteLine($"🔍 GetWeekData: Loading week starting {weekStart:yyyy-MM-dd}");
 
             // Generate the smart schedule for this week (includes deferral logic)
-            var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+            var weekSchedule = await _weeklyScheduleService.GenerateWeekSchedule(weekStart);
 
             // ✅ NEW: Ensure today's stats are calculated
             var today = DateTime.Today;
@@ -823,7 +823,7 @@ public class DisciplineController : ControllerBase
 
             // Return updated day data using current calculation method
             var weekStart = GetWeekStart(request.Date);
-            var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+            var weekSchedule = await _weeklyScheduleService.GenerateWeekSchedule(weekStart);
             var completions = await _context.HabitCompletions
                 .Where(h => h.Date.Date == request.Date.Date)
                 .ToListAsync();
@@ -885,7 +885,7 @@ public class DisciplineController : ControllerBase
 
             // Also return updated day status including the new ad-hoc task
             var weekStart = GetWeekStart(request.Date);
-            var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+            var weekSchedule = await _weeklyScheduleService.GenerateWeekSchedule(weekStart);
             var completions = await _context.HabitCompletions
                 .Where(h => h.Date.Date == request.Date.Date)
                 .ToListAsync();
@@ -977,7 +977,7 @@ public class DisciplineController : ControllerBase
 
             // Return updated day status
             var weekStart = GetWeekStart(task.Date);
-            var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+            var weekSchedule = await _weeklyScheduleService.GenerateWeekSchedule(weekStart);
             var completions = await _context.HabitCompletions
                 .Where(h => h.Date.Date == task.Date.Date)
                 .ToListAsync();
@@ -1053,67 +1053,58 @@ public class DisciplineController : ControllerBase
                 return BadRequest("Daily tasks cannot be completed in advance. They must be done each day.");
             }
 
-            // 3. Check if this habit is already in today's schedule
             var today = request.CompletionDate.Date;
-            var weekStart = GetWeekStart(today);
-            var todaySchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
-            var todayData = todaySchedule.DailySchedules.FirstOrDefault(d => d.Date.Date == today);
 
-            if (todayData?.ScheduledHabits?.Any(h => h.HabitId == request.HabitId) == true)
-            {
-                return BadRequest("This task is already scheduled for today. Complete it normally instead.");
-            }
-
-            // 4. Find the next scheduled occurrence of this habit
-            var nextScheduledDate = await FindNextScheduledOccurrence(request.HabitId, today);
+            // 3. Find the NEXT scheduled date for this habit (after today)
+            var nextScheduledDate = await FindNextScheduledDate(request.HabitId, today);
             if (nextScheduledDate == null)
             {
-                return BadRequest("No future occurrences found for this habit this week, or weekly target already met.");
+                return BadRequest("No future scheduled dates found for this habit this week, or weekly target already met.");
             }
 
-            Console.WriteLine($"📅 Next scheduled occurrence found: {nextScheduledDate:yyyy-MM-dd}");
+            Console.WriteLine($"📅 Next scheduled date: {nextScheduledDate:yyyy-MM-dd}");
 
-            // 5. Check if already completed today (prevent double completion)
+            // 4. Check if already completed on that future date
             var existingCompletion = await _context.HabitCompletions
-                .FirstOrDefaultAsync(c => c.HabitId == request.HabitId && c.Date.Date == today);
+                .FirstOrDefaultAsync(c => c.HabitId == request.HabitId && c.Date.Date == nextScheduledDate.Value.Date);
 
             if (existingCompletion?.IsCompleted == true)
             {
-                return BadRequest("This habit has already been completed today.");
+                return BadRequest($"This habit is already completed for {nextScheduledDate.Value:yyyy-MM-dd}.");
             }
 
-            // 6. Create or update the completion record with today's date
+            // 5. Create completion record for the FUTURE scheduled date
             if (existingCompletion != null)
             {
                 existingCompletion.IsCompleted = true;
                 existingCompletion.CompletedAt = DateTime.Now;
+                existingCompletion.Notes = $"Advanced completion from {today:yyyy-MM-dd}";
             }
             else
             {
                 var newCompletion = new HabitCompletion
                 {
                     HabitId = request.HabitId,
-                    Date = today,
+                    Date = nextScheduledDate.Value, // ✅ FUTURE DATE, not today!
                     IsCompleted = true,
-                    CompletedAt = DateTime.Now
+                    CompletedAt = DateTime.Now,
+                    Notes = $"Advanced completion from {today:yyyy-MM-dd}"
                 };
                 _context.HabitCompletions.Add(newCompletion);
             }
 
             await _context.SaveChangesAsync();
 
-            Console.WriteLine($"✅ Advanced completion successful: {habit.Name} completed on {today:yyyy-MM-dd}");
+            Console.WriteLine($"✅ Advanced completion: {habit.Name} marked complete for {nextScheduledDate.Value:yyyy-MM-dd}");
 
-            // 7. Return updated week data
-            var updatedWeekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
-
+            // 6. Return success response
             return Ok(new AdvancedCompleteResponse
             {
                 Success = true,
-                Message = $"{habit.Name} completed successfully!",
-                CompletedDate = today,
+                Message = $"{habit.Name} scheduled for completion on {nextScheduledDate.Value:MMM dd}!",
+                CompletedDate = nextScheduledDate.Value, // The future date
                 OriginalScheduledDate = nextScheduledDate.Value,
-                UpdatedWeekSchedule = updatedWeekSchedule
+                UpdatedWeekSchedule = null // Don't need to return this
             });
         }
         catch (Exception ex)
@@ -1123,10 +1114,124 @@ public class DisciplineController : ControllerBase
         }
     }
 
+    private async Task<DateTime?> FindNextScheduledDate(int habitId, DateTime fromDate)
+    {
+        var tomorrow = fromDate.AddDays(1);
+        var weekStart = GetWeekStart(fromDate);
+        var weekSchedule = await _weeklyScheduleService.GenerateWeekSchedule(weekStart);
+
+        // Find the next day (tomorrow or later) that has this habit scheduled
+        var nextScheduled = weekSchedule.DailySchedules
+            .Where(d => d.Date.Date >= tomorrow.Date) // Tomorrow or later
+            .SelectMany(d => d.ScheduledHabits.Select(h => new { Date = d.Date, Habit = h }))
+            .Where(item => item.Habit.HabitId == habitId)
+            .OrderBy(item => item.Date)
+            .FirstOrDefault();
+
+        return nextScheduled?.Date;
+    }
+
+    [HttpGet("week-stats-with-advanced")]
+    public async Task<IActionResult> GetWeekStatsWithAdvancedCompletions()
+    {
+        try
+        {
+            var today = DateTime.Today;
+            var weekStart = GetWeekStart(today);
+            var weekEnd = weekStart.AddDays(6);
+
+            // 1. Get regular week schedule
+            var weekSchedule = await _weeklyScheduleService.GenerateWeekSchedule(weekStart);
+
+            // 2. Get completions for this week (using your existing pattern)
+            var completions = await _context.HabitCompletions
+                .Where(c => c.Date >= weekStart && c.Date <= weekEnd)
+                .ToListAsync();
+
+            // 3. Build regular day statuses (using your existing method)
+            var dayStatuses = await BuildDayStatuses(weekSchedule, completions);
+
+            // 4. Get advanced completions (completions for future dates)
+            var tomorrow = today.AddDays(1);
+            var advancedCompletions = await _context.HabitCompletions
+                .Where(c => c.IsCompleted &&
+                           c.Date >= tomorrow &&
+                           c.Date <= weekEnd)
+                .Include(c => c.Habit)
+                .ToListAsync();
+
+            // 5. Patch the stats with advanced completions
+            for (int i = 0; i < dayStatuses.Count; i++)
+            {
+                var dayStatus = dayStatuses[i];
+                var dayStatusObj = (dynamic)dayStatus;
+                var statusDate = DateTime.Parse(dayStatusObj.date.ToString());
+
+                // Find advanced completions for this day
+                var advancedForThisDay = advancedCompletions
+                    .Where(ac => ac.Date.Date == statusDate.Date)
+                    .ToList();
+
+                if (advancedForThisDay.Any())
+                {
+                    Console.WriteLine($"📈 Patching stats for {statusDate:yyyy-MM-dd} with {advancedForThisDay.Count} advanced completions");
+
+                    // Calculate additional completions
+                    var additionalCompletedRequired = advancedForThisDay.Count(ac => !ac.Habit.IsOptional);
+                    var additionalCompletedTotal = advancedForThisDay.Count();
+
+                    // Get current values
+                    var currentCompletedRequired = (int)dayStatusObj.completedRequiredCount;
+                    var currentCompletedTotal = (int)dayStatusObj.completedHabits;
+                    var totalRequired = (int)dayStatusObj.requiredHabitsCount;
+                    var totalHabits = (int)dayStatusObj.totalHabits;
+
+                    // Calculate new values
+                    var newCompletedRequired = currentCompletedRequired + additionalCompletedRequired;
+                    var newCompletedTotal = currentCompletedTotal + additionalCompletedTotal;
+
+                    // Create patched status
+                    var patchedStatus = new
+                    {
+                        date = dayStatusObj.date,
+                        isCompleted = newCompletedRequired >= totalRequired && totalRequired > 0,
+                        isPartiallyCompleted = newCompletedRequired > 0 && newCompletedRequired < totalRequired,
+                        canUseGrace = dayStatusObj.canUseGrace,
+                        requiredHabitsCount = totalRequired,
+                        completedRequiredCount = newCompletedRequired,
+                        totalHabits = totalHabits,
+                        completedHabits = newCompletedTotal,
+                        hasAdvancedCompletions = true,
+                        advancedCompletions = advancedForThisDay.Select(ac => new {
+                            habitName = ac.Habit.Name,
+                            completedAt = ac.CompletedAt,
+                            originalDate = ac.Date
+                        }).ToList()
+                    };
+
+                    // Replace in the list
+                    dayStatuses[i] = patchedStatus;
+                }
+            }
+
+            return Ok(new
+            {
+                weekStart = weekStart.ToString("yyyy-MM-dd"),
+                days = dayStatuses,
+                advancedCompletionsCount = advancedCompletions.Count,
+                message = "Week stats with advanced completions included"
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error in GetWeekStatsWithAdvancedCompletions: {ex.Message}");
+            return StatusCode(500, $"Error: {ex.Message}");
+        }
+
     private async Task<DateTime?> FindNextScheduledOccurrence(int habitId, DateTime fromDate)
     {
         var weekStart = GetWeekStart(fromDate);
-        var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+        var weekSchedule = await _weeklyScheduleService.GenerateWeekSchedule(weekStart);
 
         // Find the next day (today or later) that has this habit scheduled
         var nextOccurrence = weekSchedule.DailySchedules
@@ -1547,7 +1652,7 @@ public class DisciplineController : ControllerBase
             }
 
             // Create the deferral
-            await _scheduleService.SmartDeferTask(
+            await _weeklyScheduleService.SmartDeferTask(
                 request.HabitId,
                 currentDate,
                 request.Reason ?? "Moved by user request"
@@ -1572,7 +1677,7 @@ public class DisciplineController : ControllerBase
         {
             Console.WriteLine($"🔄 SmartDeferTask: Moving habit {request.HabitId} from {request.FromDate}");
 
-            var result = await _scheduleService.SmartDeferTask(
+            var result = await _weeklyScheduleService.SmartDeferTask(
                 request.HabitId,
                 DateTime.Parse(request.FromDate),
                 request.Reason ?? "User requested");
@@ -1707,7 +1812,7 @@ public class DisciplineController : ControllerBase
         {
             // Get the schedule for this day
             var weekStart = GetWeekStart(date);
-            var weekSchedule = await _scheduleService.GenerateWeekSchedule(weekStart);
+            var weekSchedule = await _weeklyScheduleService.GenerateWeekSchedule(weekStart);
             var daySchedule = weekSchedule.DailySchedules.FirstOrDefault(d => d.Date.Date == date.Date);
 
             if (daySchedule == null)

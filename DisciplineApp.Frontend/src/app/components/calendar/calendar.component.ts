@@ -167,6 +167,7 @@ export class CalendarComponent implements OnInit {
 private async initializeComponent(): Promise<void> {
   try {
     // Convert your existing methods to promises and run in parallel
+    this.loadCurrentWeekDataWithAdvanced();
     await Promise.all([
       this.loadCurrentWeekDataAsPromise(),
       this.loadFlexibleTasksAsPromise()
@@ -833,6 +834,59 @@ getWeekProgressPercentage(): number {
   
   return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 }
+
+loadCurrentWeekDataWithAdvanced(): void {
+  this.loading = true;
+  this.error = null;
+
+  console.log('🔍 Loading current week data with advanced completions...');
+
+  // Use the new endpoint that includes advanced completions
+  this.disciplineService.getWeekStatsWithAdvanced().subscribe({
+    next: (response) => {
+      console.log('✅ Week data with advanced completions received:', response);
+      
+      // Process the enhanced week data
+      this.processEnhancedWeekData(response);
+      
+      this.loading = false;
+    },
+    error: (error) => {
+      console.error('❌ Error loading week data with advanced completions:', error);
+      
+      // Fallback to regular week data
+      console.log('⚠️ Falling back to regular week data...');
+      this.loadCurrentWeekData();
+    }
+  });
+}
+
+private processEnhancedWeekData(response: any): void {
+  // Map the enhanced day statuses to your existing data structure
+  this.currentWeekDays = response.days.map((dayStatus: any) => ({
+    date: dayStatus.date,
+    isCompleted: dayStatus.isCompleted,
+    isPartiallyCompleted: dayStatus.isPartiallyCompleted,
+    totalHabits: dayStatus.totalHabits,
+    completedHabits: dayStatus.completedHabits,
+    requiredHabitsCount: dayStatus.requiredHabitsCount,
+    completedRequiredCount: dayStatus.completedRequiredCount,
+    hasAdvancedCompletions: dayStatus.hasAdvancedCompletions || false,
+    advancedCompletions: dayStatus.advancedCompletions || [],
+    // Add other properties as needed
+  }));
+
+  // Update today's data if it exists
+  const todayString = new Date().toISOString().split('T')[0];
+  const todayData = response.days.find((d: any) => d.date === todayString);
+  if (todayData) {
+    // Update your todayData property with enhanced data
+    console.log('📊 Today has advanced completions:', todayData.hasAdvancedCompletions);
+  }
+
+  console.log('✅ Enhanced week data processed successfully');
+}
+
 toggleTask(habit: any): void {
     // Prevent toggling locked tasks
     if (habit.isLocked) {
