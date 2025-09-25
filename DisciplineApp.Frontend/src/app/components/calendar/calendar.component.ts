@@ -1272,7 +1272,7 @@ addAdHocTask(): void {
     deadlineDate: this.hasDeadline && this.deadlineDate ? 
       this.deadlineDate : undefined,  
     deadlineTime: "23:59",
-    durationMinutes: this.newTaskEstimatedDuration || 30 // Use provided duration or default to 30
+    estimatedDurationMinutes: this.newTaskEstimatedDuration || 30 // Use provided duration or default to 30
   }).subscribe({
     next: (response) => {
       console.log('Ad-hoc task added successfully:', response);
@@ -1411,7 +1411,7 @@ saveEditedTask(): void {
     adHocId: this.editingTask.adHocId!,
     name: this.editTaskName.trim(),
     description: this.editTaskDescription.trim(),
-    durationMinutes: this.editingTask.estimatedDurationMinutes
+    estimatedDurationMinutes: this.editingTask.estimatedDurationMinutes
   }).subscribe({
     next: (response) => {
       console.log('✅ Ad-hoc task edited successfully:', response);
