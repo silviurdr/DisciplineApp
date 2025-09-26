@@ -34,7 +34,9 @@ public class HabitsController : ControllerBase
                 h.WeeklyTarget,
                 h.MonthlyTarget,
                 h.SeasonalTarget,
-                h.EstimatedDurationMinutes// ✅ ENSURE THIS IS INCLUDED
+                h.EstimatedDurationMinutes,//,
+                h.DeadlineTime,           //✅ ENSURE THIS IS INCLUDED
+                h.HasDeadline
             })
             .ToListAsync();
     }
