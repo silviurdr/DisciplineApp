@@ -416,49 +416,50 @@ async toggleSubHabitCompletion(subHabitId: number, isCompleted: boolean): Promis
 }
 
 async quickCompleteAllSubHabits(habitId: number): Promise<void> {
-
-  const habit = this.habitsWithSubHabits.find(h => h.habitId === habitId);
-    if (habit?.isCompleted) {
-        console.log('Habit already completed, ignoring request');
-        return;
-    }
-  
+  try {
     const today = new Date().toISOString().split('T')[0];
     
-    const request: CompleteAllSubHabitsRequest = {
+    console.log('🚀 Quick completing all sub-habits for habit:', habitId);
+    
+    // Call the backend API to complete all sub-habits
+    const response = await this.subHabitsService.completeAllSubHabits(habitId, {
       date: today
-    };
-
-    try {
-      const response = await this.subHabitsService.completeAllSubHabits(habitId, request).toPromise();
+    }).toPromise();
+    
+    console.log('✅ All sub-habits completed:', response);
+    
+    // Update the frontend immediately
+    const parentHabit = this.habitsWithSubHabits.find(h => h.habitId === habitId);
+    if (parentHabit && parentHabit.subHabits) {
+      // Mark all sub-habits as completed
+      parentHabit.subHabits.forEach((subHabit: any) => {
+        subHabit.isCompleted = true;
+        subHabit.completedAt = new Date().toISOString();
+      });
       
-      if (response) {
-        // Update all sub-habits for this habit
-        const habit = this.habitsWithSubHabits.find(h => h.habitId === habitId);
-        if (habit && habit.subHabits) {
-          habit.subHabits.forEach(subHabit => {
-            subHabit.isCompleted = true;
-            subHabit.completedAt = new Date().toISOString();
-          });
-          
-          // Update completion counts
-          habit.completedSubHabitsCount = habit.totalSubHabitsCount;
-          habit.allSubHabitsCompleted = true;
-          habit.isCompleted = true;
-          
-          // Refresh week data to get updated stats
-/*           await this.refreshWeekData(); */
-        }
-
-        // Play completion sound
-        this.soundService.playTaskCompleted();
-        
-        console.log(`All sub-habits completed for habit ${habitId}`);
+      // Update parent habit counts and completion
+      parentHabit.completedSubHabitsCount = parentHabit.totalSubHabitsCount;
+      parentHabit.allSubHabitsCompleted = true;
+      parentHabit.isCompleted = true;
+      
+      // Update the main habit in todayData
+      const mainHabit = this.todayData?.allHabits?.find(h => h.habitId === habitId);
+      if (mainHabit) {
+        mainHabit.isCompleted = true;
       }
-    } catch (error) {
-      console.error('Error quick-completing all sub-habits:', error);
+      
+      // Play success sound
+      this.soundService.playTaskCompleted();
+      
+      // Update task counts
+      this.updateTaskCounts();
     }
+    
+  } catch (error) {
+    console.error('❌ Error completing all sub-habits:', error);
+    alert('Failed to complete all sub-habits. Please try again.');
   }
+}
 
   private async refreshWeekData(): Promise<void> {
     try {
@@ -834,7 +835,7 @@ getWeekProgressPercentage(): number {
   return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 }
 
-toggleTask(habit: any): void {
+  async toggleTask(habit: any): Promise<void> {
     // Prevent toggling locked tasks
     if (habit.isLocked) {
       console.log('Task is locked, cannot toggle');
@@ -848,12 +849,13 @@ toggleTask(habit: any): void {
     }
 
     // If habit has sub-habits and we're trying to complete it, check if all sub-habits are done
+// If habit has sub-habits and we're trying to complete it, auto-complete all sub-habits
     const habitWithSubHabits = this.habitsWithSubHabits.find(h => h.habitId === habit.habitId);
-    
+
     if (habitWithSubHabits && habitWithSubHabits.hasSubHabits && !habit.isCompleted) {
       if (!habitWithSubHabits.allSubHabitsCompleted) {
-        // Show warning that not all sub-habits are completed
-        alert('Please complete all sub-habits first, or use the "Complete All" button.');
+        // Auto-complete all sub-habits instead of showing warning
+        await this.quickCompleteAllSubHabits(habit.habitId);
         return;
       }
     }

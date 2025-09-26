@@ -217,9 +217,6 @@ public class WeeklyScheduleService
 
         foreach (var habit in rollingHabits)
         {
-            var lastCompletion = recentCompletions
-                .FirstOrDefault(c => c.HabitId == habit.Id)?.Date;
-
             var rollingDays = new[] { 0, 2, 4, 6 }; // Monday, Wednesday, Friday, Sunday
 
             foreach (var dayIndex in rollingDays)
@@ -240,29 +237,34 @@ public class WeeklyScheduleService
 
                     if (!wasMovedFromThisDay && !isAlreadyDeferredToThisDay)
                     {
+                        // ✅ FIX: Always add the habit to the schedule, regardless of completion status
+                        // The completion status will be determined later when building the response
+
+                        var lastCompletion = recentCompletions
+                            .FirstOrDefault(c => c.HabitId == habit.Id)?.Date;
+
                         var daysSinceLastCompletion = lastCompletion.HasValue
                             ? (targetDate - lastCompletion.Value).Days
                             : 999;
 
-                        if (daysSinceLastCompletion >= 2)
+                        // Determine the reason and priority based on completion status
+                        var priority = daysSinceLastCompletion >= 2 ? SchedulePriority.Required : SchedulePriority.Optional;
+                        var reason = lastCompletion.HasValue
+                            ? $"Last completed {daysSinceLastCompletion} days ago"
+                            : "Never completed";
+
+                        schedule.DailySchedules[dayIndex].ScheduledHabits.Add(new ScheduledHabit
                         {
-                            schedule.DailySchedules[dayIndex].ScheduledHabits.Add(new ScheduledHabit
-                            {
-                                HabitId = habit.Id,
-                                HabitName = habit.Name,
-                                Description = habit.Description,
-                                Priority = SchedulePriority.Required,
-                                Reason = lastCompletion.HasValue
-                                    ? $"Last completed {daysSinceLastCompletion} days ago"
-                                    : "Never completed",
-                                Frequency = habit.Frequency.ToString(),
-                                IsRequired = true,
-                                IsCompleted = false,
-                                IsAdHoc = false
-                            });
-                            // ✅ REMOVE THE break; STATEMENT HERE
-                            // Rolling habits might need to be scheduled multiple times per week
-                        }
+                            HabitId = habit.Id,
+                            HabitName = habit.Name,
+                            Description = habit.Description,
+                            Priority = priority,
+                            Reason = reason,
+                            Frequency = habit.Frequency.ToString(),
+                            IsRequired = daysSinceLastCompletion >= 2,
+                            IsCompleted = false, // This will be set correctly in BuildDayResponse
+                            IsAdHoc = false
+                        });
                     }
                 }
             }
