@@ -98,7 +98,10 @@
           [class.today]="isToday(day.date)"
           [class.future]="isFuture(day.date)"
           [class.failed]="!isToday(day.date) && !isFuture(day.date) && !day.isCompleted"
-          (click)="openDayDetail(day)">
+          (click)="openDayDetail(day)"
+               (mouseenter)="showTooltip($event, day)"
+     (mouseleave)="hideTooltip()"
+     (mousemove)="updateTooltipPosition($event)">
         
         <div class="day-header">
           <div class="day-name">{{ getDayName(day.date) }}</div>
@@ -518,4 +521,11 @@
       </div>
     </div>
   </div>
+  <div #tooltipContainer 
+     class="tooltip-container"
+     [style.display]="showTooltipFlag ? 'block' : 'none'"
+     [style.left.px]="tooltipPosition.x"
+     [style.top.px]="tooltipPosition.y">
+  <app-day-tooltip [dayData]="tooltipData" *ngIf="tooltipData"></app-day-tooltip>
+</div>
 </div>

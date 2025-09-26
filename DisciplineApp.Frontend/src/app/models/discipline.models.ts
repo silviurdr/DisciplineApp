@@ -160,6 +160,7 @@ export interface DayData {
   isFuture: boolean;
   isPast: boolean;
   hasAdvancedCompletion: boolean;
+  adHocTasks: ScheduledHabit[];
 }
 
 export interface WeekData {

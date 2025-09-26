@@ -70,7 +70,8 @@ import { FormsModule } from '@angular/forms';
 import { DisciplineService } from '../../services/discipline.services';
 import { SoundService } from '../../services/sound.service';
 import { LoadingService } from '../../services/loading.service';
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ElementRef, ViewChild, HostListener} from '@angular/core';
+import { SimpleDayData, SimpleTask, DayTooltipComponent } from '../day-tooltip/day-tooltip.component';
 import { 
   WeekData, 
   DayData, 
@@ -146,12 +147,19 @@ export class CalendarComponent implements OnInit {
   successMessage: string | null = null;
   errorMessageBox: string | null = null;
 
+   // NEW: Simple tooltip properties
+  showTooltipFlag: boolean = false;
+  tooltipData: SimpleDayData | null = null;
+  tooltipPosition = { x: 0, y: 0 };
+  private tooltipTimeout: any;
+
   constructor(
     private disciplineService: DisciplineService,
     private soundService: SoundService,
     private loadingService: LoadingService,
     private subHabitsService: SubHabitsService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private elementRef: ElementRef
   ) {}
 
   ngOnInit(): void {
@@ -1574,6 +1582,92 @@ getCompletionIcon(day: DayData): string {
   // If none of the above, it's a past day that wasn't completed
   return '❌'; // Failed
 }
+
+
+showTooltip(event: MouseEvent, day: DayData): void {
+    // Don't show tooltip on future days
+    if (this.isFuture(day.date)) {
+      return;
+    }
+
+    if (this.tooltipTimeout) {
+      clearTimeout(this.tooltipTimeout);
+    }
+
+    this.tooltipTimeout = setTimeout(() => {
+      this.tooltipData = this.mapToSimpleData(day);
+      this.updateTooltipPosition(event);
+      this.showTooltipFlag = true;
+    }, 300);
+  }
+
+  hideTooltip(): void {
+    if (this.tooltipTimeout) {
+      clearTimeout(this.tooltipTimeout);
+    }
+    this.showTooltipFlag = false;
+    this.tooltipData = null;
+  }
+
+  updateTooltipPosition(event: MouseEvent): void {
+    const containerRect = this.elementRef.nativeElement.getBoundingClientRect();
+    let x = event.clientX - containerRect.left + 10;
+    let y = event.clientY - containerRect.top - 10;
+
+    // Keep tooltip within viewport
+    if (x + 300 > window.innerWidth) {
+      x = event.clientX - containerRect.left - 310;
+    }
+    if (y < 10) {
+      y = event.clientY - containerRect.top + 20;
+    }
+
+    this.tooltipPosition = { x, y };
+  }
+
+  @HostListener('window:scroll')
+  onWindowScroll(): void {
+    if (this.showTooltipFlag) {
+      this.hideTooltip();
+    }
+  }
+
+  private mapToSimpleData(day: DayData): SimpleDayData {
+    const tasks: SimpleTask[] = [];
+
+    // Map your existing allHabits to simple tasks
+    if (day.allHabits) {
+      day.allHabits.forEach((habit: any) => {
+        tasks.push({
+          name: habit.name || habit.habitName,
+          category: habit.category,
+          isCompleted: habit.isCompleted || false,
+          type: habit.isAdHoc ? 'adhoc' : 
+                habit.isDeferred ? 'deferred' : 
+                (habit.priority === 'required' || habit.isRequired) ? 'required' : 'optional'
+        });
+      });
+    }
+
+    // Add ad-hoc tasks if they exist
+    if (day.adHocTasks) {
+      day.adHocTasks.forEach((task: any) => {
+        tasks.push({
+          name: task.name,
+          category: 'Ad-hoc',
+          isCompleted: task.isCompleted || false,
+          type: 'adhoc'
+        });
+      });
+    }
+
+    return {
+      date: new Date(day.date),
+      tasks
+    };
+  }
+
+
 calculateWeekProgress(): number {
   if (!this.currentWeekDays) return 0;
   

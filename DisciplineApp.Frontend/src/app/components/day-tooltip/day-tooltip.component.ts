@@ -13,6 +13,7 @@ export interface SimpleDayData {
 }
 
 @Component({
+  standalone: true,
   selector: 'app-day-tooltip',
   templateUrl: './day-tooltip.component.html',
   styleUrls: ['./day-tooltip.component.scss']
