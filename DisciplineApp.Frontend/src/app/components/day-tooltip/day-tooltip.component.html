@@ -1,0 +1,33 @@
+<div class="day-tooltip" *ngIf="dayData">
+  <!-- Day Header -->
+  <div class="tooltip-header">
+    <span class="day-name">{{ getDayName(dayData.date) }}</span>
+    <span class="day-number">{{ getDayNumber(dayData.date) }}</span>
+  </div>
+
+  <!-- Task List -->
+  <div class="task-list" *ngIf="dayData.tasks && dayData.tasks.length > 0">
+    <div class="task-item" 
+         *ngFor="let task of dayData.tasks"
+         [class.completed]="task.isCompleted"
+         [class.required]="task.type === 'required'"
+         [class.optional]="task.type === 'optional'"
+         [class.adhoc]="task.type === 'adhoc'"
+         [class.deferred]="task.type === 'deferred'">
+      
+      <span class="task-checkbox">
+        {{ task.isCompleted ? '✓' : '○' }}
+      </span>
+      
+      <div class="task-info">
+        <span class="task-name">{{ task.name }}</span>
+        <span class="task-category" *ngIf="task.category">{{ task.category }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!dayData.tasks || dayData.tasks.length === 0">
+    <span class="empty-text">No tasks scheduled</span>
+  </div>
+</div>
