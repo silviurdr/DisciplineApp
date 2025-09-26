@@ -934,3 +934,29 @@
 .modal-open {
   overflow: hidden;
 }
+
+/* ===================================
+   HABIT DEADLINE DISPLAY
+   =================================== */
+.habit-deadline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+  padding: 6px 10px;
+  background: rgba(100, 181, 246, 0.1);
+  border: 1px solid rgba(100, 181, 246, 0.2);
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.deadline-label {
+  color: #8b8fa3;
+  font-weight: 500;
+}
+
+.deadline-time {
+  color: #64b5f6;
+  font-weight: 600;
+  font-family: monospace;
+}

@@ -198,7 +198,10 @@
           </div>
           
           <div class="habit-description" *ngIf="habit.description">{{ habit.description }}</div>
-          
+          <div *ngIf="habit.hasDeadline && habit.deadlineTime" class="habit-deadline">
+          <span class="deadline-label">Deadline:</span>
+          <span class="deadline-time">{{ formatDeadlineTime(habit.deadlineTime) }}</span>
+        </div>
           <div class="habit-meta">
             <div class="frequency-info">Daily</div>
             <div class="duration-info" *ngIf="habit.estimatedDurationMinutes">

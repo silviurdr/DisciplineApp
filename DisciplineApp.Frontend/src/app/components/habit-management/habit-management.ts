@@ -188,22 +188,67 @@ export class HabitManagementComponent implements OnInit {
     }
   }
 
-  openEditForm(habit: Habit): void {
-    this.showAddForm = true;
-    this.editingHabit = habit;
-    this.habitForm.patchValue({
-      name: habit.name,
-      description: habit.description,
-      frequency: this.getFrequencyName(habit.frequency),
-      weeklyTarget: habit.weeklyTarget,
-      monthlyTarget: habit.monthlyTarget,
-      seasonalTarget: habit.seasonalTarget,
-      hasDeadline: habit.hasDeadline,
-      deadlineTime: habit.deadlineTime || '',
-      isOptional: habit.isOptional,
-      estimatedDurationMinutes: habit.estimatedDurationMinutes || 0
-    });
+openEditForm(habit: Habit): void {
+  this.showAddForm = true;
+  this.editingHabit = habit;
+  
+  // ✅ FIX: Convert TimeSpan format to HTML time input format
+  let deadlineTimeFormatted = '';
+  if (habit.hasDeadline && habit.deadlineTime) {
+    // Handle different possible formats from backend
+    let timeStr = habit.deadlineTime.toString();
+    
+    // If it's in TimeSpan format (21:30:00.0000000), extract HH:MM
+    if (timeStr.includes(':')) {
+      const timeParts = timeStr.split(':');
+      if (timeParts.length >= 2) {
+        const hours = timeParts[0].padStart(2, '0');
+        const minutes = timeParts[1].padStart(2, '0');
+        deadlineTimeFormatted = `${hours}:${minutes}`;
+      }
+    }
   }
+  
+  this.habitForm.patchValue({
+    name: habit.name,
+    description: habit.description,
+    frequency: this.getFrequencyName(habit.frequency),
+    weeklyTarget: habit.weeklyTarget,
+    monthlyTarget: habit.monthlyTarget,
+    seasonalTarget: habit.seasonalTarget,
+    hasDeadline: habit.hasDeadline || false, // ✅ Explicitly set boolean
+    deadlineTime: deadlineTimeFormatted, // ✅ Properly formatted time
+    isOptional: habit.isOptional,
+    estimatedDurationMinutes: habit.estimatedDurationMinutes || 0
+  });
+}
+
+formatDeadlineTime(deadlineTime: string | undefined): string {
+  if (!deadlineTime) return '';
+  
+  try {
+    // Handle TimeSpan format (21:30:00.0000000)
+    let timeStr = deadlineTime.toString();
+    
+    if (timeStr.includes(':')) {
+      const timeParts = timeStr.split(':');
+      if (timeParts.length >= 2) {
+        const hours = parseInt(timeParts[0]);
+        const minutes = parseInt(timeParts[1]);
+        
+        // Convert to 12-hour format for display
+        const period = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+        
+        return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+      }
+    }
+    
+    return timeStr;
+  } catch {
+    return deadlineTime?.toString() || '';
+  }
+}
 
   closeForm(): void {
     this.showAddForm = false;
