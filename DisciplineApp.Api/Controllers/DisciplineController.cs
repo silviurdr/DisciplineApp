@@ -427,11 +427,11 @@ public class DisciplineController : ControllerBase
         // ✅ PHONE LOCK-BASED COMPLETION (like your original logic)
         var streakStartDate = _streakStartDate;
         var daysSinceStart = streakStartDate.HasValue ? (date.Date - streakStartDate.Value.Date).Days + 1 : 0;
-        bool isInFirst7Days = daysSinceStart <= 7;
+        bool isInFirst30Days = daysSinceStart <= 30;
 
         bool dayIsCompleted = false;
 
-        if (isInFirst7Days)
+        if (isInFirst30Days)
         {
             // ✅ FIRST 7 DAYS: Only check Phone Lock task
             var phoneLockHabit = allHabits.FirstOrDefault(h =>
@@ -1854,9 +1854,9 @@ public class DisciplineController : ControllerBase
             // ✅ SIMPLE LOGIC: Check Phone Lock Box for early days, all required habits for later days
             var totalCompletedDays = await GetTotalCompletedDaysCount(date);
 
-            if (totalCompletedDays <= 7)
+            if (totalCompletedDays <= 30)
             {
-                // First 7 days: only check if "Phone Lock Box" is completed
+                // First 30 days: only check if "Phone Lock Box" is completed
                 var phoneLockCompletion = completions.FirstOrDefault(c =>
                     _context.Habits.Any(h => h.Id == c.HabitId && h.Name.Contains("Phone Lock")));
 

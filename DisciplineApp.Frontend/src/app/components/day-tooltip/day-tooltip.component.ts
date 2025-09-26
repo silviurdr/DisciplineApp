@@ -1,4 +1,5 @@
 import { Component, Input } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 export interface SimpleTask {
   name: string;
@@ -14,6 +15,7 @@ export interface SimpleDayData {
 
 @Component({
   standalone: true,
+  imports: [CommonModule], // <- ADD this line
   selector: 'app-day-tooltip',
   templateUrl: './day-tooltip.component.html',
   styleUrls: ['./day-tooltip.component.scss']

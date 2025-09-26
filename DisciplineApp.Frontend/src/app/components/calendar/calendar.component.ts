@@ -115,7 +115,7 @@ export class SortCompletedPipe implements PipeTransform {
 @Component({
   selector: 'app-calendar',
   standalone: true,
-  imports: [CommonModule, FormsModule, SortCompletedPipe, DaysLeftPipe],
+  imports: [CommonModule, FormsModule, SortCompletedPipe, DaysLeftPipe, DayTooltipComponent],
   templateUrl: './calendar.component.html',
   styleUrls: ['./calendar.component.scss']
 })
@@ -1585,21 +1585,18 @@ getCompletionIcon(day: DayData): string {
 
 
 showTooltip(event: MouseEvent, day: DayData): void {
-    // Don't show tooltip on future days
-    if (this.isFuture(day.date)) {
-      return;
-    }
+  // REMOVED: Don't show tooltip on future days check
 
-    if (this.tooltipTimeout) {
-      clearTimeout(this.tooltipTimeout);
-    }
-
-    this.tooltipTimeout = setTimeout(() => {
-      this.tooltipData = this.mapToSimpleData(day);
-      this.updateTooltipPosition(event);
-      this.showTooltipFlag = true;
-    }, 300);
+  if (this.tooltipTimeout) {
+    clearTimeout(this.tooltipTimeout);
   }
+
+  this.tooltipTimeout = setTimeout(() => {
+    this.tooltipData = this.mapToSimpleData(day);
+    this.updateTooltipPosition(event);
+    this.showTooltipFlag = true;
+  }, 300);
+}
 
   hideTooltip(): void {
     if (this.tooltipTimeout) {
@@ -1632,41 +1629,40 @@ showTooltip(event: MouseEvent, day: DayData): void {
     }
   }
 
-  private mapToSimpleData(day: DayData): SimpleDayData {
-    const tasks: SimpleTask[] = [];
+private mapToSimpleData(day: DayData): SimpleDayData {
+  const tasks: SimpleTask[] = [];
 
-    // Map your existing allHabits to simple tasks
-    if (day.allHabits) {
-      day.allHabits.forEach((habit: any) => {
-        tasks.push({
-          name: habit.name || habit.habitName,
-          category: habit.category,
-          isCompleted: habit.isCompleted || false,
-          type: habit.isAdHoc ? 'adhoc' : 
-                habit.isDeferred ? 'deferred' : 
-                (habit.priority === 'required' || habit.isRequired) ? 'required' : 'optional'
-        });
+  // Map your existing allHabits to simple tasks
+  if (day.allHabits) {
+    day.allHabits.forEach((habit: any) => {
+      tasks.push({
+        name: habit.name || habit.habitName,
+        category: habit.category,
+        isCompleted: habit.isCompleted || false,
+        type: habit.isAdHoc ? 'adhoc' : 
+              habit.isDeferred ? 'deferred' : 
+              (habit.priority === 'required' || habit.isRequired) ? 'required' : 'optional'
       });
-    }
-
-    // Add ad-hoc tasks if they exist
-    if (day.adHocTasks) {
-      day.adHocTasks.forEach((task: any) => {
-        tasks.push({
-          name: task.name,
-          category: 'Ad-hoc',
-          isCompleted: task.isCompleted || false,
-          type: 'adhoc'
-        });
-      });
-    }
-
-    return {
-      date: new Date(day.date),
-      tasks
-    };
+    });
   }
 
+  // Add ad-hoc tasks if they exist (with proper type checking)
+  if (day.adHocTasks && Array.isArray(day.adHocTasks)) {
+    day.adHocTasks.forEach((task: any) => {
+      tasks.push({
+        name: task.name,
+        category: task.category || 'Ad-hoc',
+        isCompleted: task.isCompleted || false,
+        type: 'adhoc'
+      });
+    });
+  }
+
+  return {
+    date: new Date(day.date),
+    tasks
+  };
+}
 
 calculateWeekProgress(): number {
   if (!this.currentWeekDays) return 0;
