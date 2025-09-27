@@ -589,6 +589,15 @@ public class DisciplineController : ControllerBase
         var partialDays = pastDays.Count(d => !d.IsDayCompleted && d.CompletedTasks > 0);
         var incompleteDays = pastDays.Count(d => d.CompletedTasks == 0);
 
+        // ✅ CRITICAL FIX: Get ALL daily stats for global streak calculation
+        var allDailyStats = _context.DailyStats
+            .OrderByDescending(d => d.Date)
+            .ToList();
+
+        var globalCurrentStreak = CalculateGlobalCurrentStreak(allDailyStats);
+
+        Console.WriteLine($"🎯 Month {monthStart.Month}: Using global streak {globalCurrentStreak} instead of month-only streak");
+
         return new
         {
             totalDays = totalDays,
@@ -605,7 +614,7 @@ public class DisciplineController : ControllerBase
                 Math.Round((double)pastDays.Sum(d => d.TotalTasks) / totalDays, 1) : 0,
             averageCompletedPerDay = totalDays > 0 ?
                 Math.Round((double)pastDays.Sum(d => d.CompletedTasks) / totalDays, 1) : 0,
-            currentStreak = CalculateCurrentStreakFromDailyStats(dailyStats),
+            currentStreak = globalCurrentStreak,  // ✅ Use global streak, not month-only
             monthName = monthStart.ToString("MMMM")
         };
     }
@@ -1349,7 +1358,7 @@ public class DisciplineController : ControllerBase
         var checkDate = DateTime.Today.AddDays(-1);
         var streak = 0;
 
-        Console.WriteLine($"📊 Calculating streak starting from {checkDate:yyyy-MM-dd}");
+        Console.WriteLine($"📊 Calculating global streak starting from {checkDate:yyyy-MM-dd}");
 
         // Count consecutive completed days working backwards from yesterday
         while (true)
