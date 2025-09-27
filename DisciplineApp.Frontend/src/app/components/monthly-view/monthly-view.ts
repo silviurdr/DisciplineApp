@@ -218,6 +218,12 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
         totalDays: response.monthlyStats.totalDays,
         completedDays: response.monthlyStats.completedDays,
         completionRate: response.monthlyStats.completionRate,
+        totalTasks: response.monthlyStats.totalTasks || 0,
+      completedTasks: response.monthlyStats.completedTasks || 0,
+      taskCompletionRate: response.monthlyStats.taskCompletionRate || 0,
+      monthName: response.monthlyStats.monthName || new Date(this.currentYear, this.currentMonth).toLocaleString('default', { month: 'long' }),
+      averageTasksPerDay: response.monthlyStats.averageTasksPerDay || 0,
+      averageCompletedPerDay: response.monthlyStats.averageCompletedPerDay || 0,
         currentStreak: response.monthlyStats.currentStreak || 0,
         totalHabits: response.monthlyStats.totalTasks || 0
       };
@@ -620,6 +626,8 @@ getDayClasses(day: MonthlyDayData): string[] {
   return classes;
 }
 
+// Removed erroneous getStreakInfo() method; use disciplineService.getStreakInfo() instead.
+
 
 private formatDateString(date: Date): string {
   return date.toISOString().split('T')[0];
@@ -685,13 +693,20 @@ private formatDateString(date: Date): string {
       const completedDays = this.calendarDays.filter(d => d.isCurrentMonth && d.isCompleted).length;
       const currentStreak = this.calculateCurrentStreak();
       const totalHabits = this.calendarDays.reduce((sum, d) => sum + (d.totalHabits || 0), 0);
+      const completedHabits = this.calendarDays.reduce((sum, d) => sum + (d.completedHabits || 0), 0)
 
       this.monthlyStats = {
-        totalDays,
-        completedDays,
-        completionRate: totalDays > 0 ? (completedDays / totalDays) * 100 : 0,
-        currentStreak,
-        totalHabits
+      totalDays,
+      completedDays,
+      completionRate: totalDays > 0 ? Math.round((completedDays / totalDays) * 100) : 0,
+      totalTasks: totalHabits,
+      completedTasks: completedHabits,  // ✅ NOW USING CORRECT VARIABLE
+      taskCompletionRate: totalHabits > 0 ? Math.round((completedHabits / totalHabits) * 100) : 0,
+      averageTasksPerDay: totalDays > 0 ? Math.round((totalHabits / totalDays) * 10) / 10 : 0,
+      averageCompletedPerDay: totalDays > 0 ? Math.round((completedHabits / totalDays) * 10) / 10 : 0,
+      currentStreak,
+      totalHabits: totalHabits,
+      monthName: new Date(this.currentYear, this.currentMonth).toLocaleString('default', { month: 'long' })
       };
       resolve();
       this.markCurrentStreakDays();
@@ -869,66 +884,91 @@ private formatDateString(date: Date): string {
   }
 
   // Keep all your existing utility methods...
-  private calculateProjectedRewards(): void {
-    // Clear previous projected rewards
-    this.projectedRewards = [];
-    
-    const currentStreak = this.monthlyStats?.currentStreak || 0;
-    
-    // Find the next upcoming reward milestones (not every day!)
-    const upcomingRewards = this.rewardSchedule.filter(reward => reward.day > currentStreak);
-    
-    // Only show the next 3-4 upcoming rewards to avoid clutter
-    const nextRewards = upcomingRewards.slice(0, 4);
-    
-    this.calendarDays.forEach(day => {
-      if (day.isFuture && day.isCurrentMonth) {
-        const futureDaysFromToday = Math.ceil((day.date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-        const projectedStreak = currentStreak + futureDaysFromToday;
-        
-        // Only show reward if this day is EXACTLY a milestone day (not every day)
-        const exactReward = this.rewardSchedule.find(r => r.day === projectedStreak);
-        
-        if (exactReward) {
-          const tier = this.rewardTiers[exactReward.tier];
-          day.projectedReward = {
-            day: exactReward.day,
-            daysUntil: futureDaysFromToday,
-            tier: exactReward.tier,
-            icon: tier.icon,
-            name: tier.name,
-            color: tier.color,
-            isAchievable: true,
-            description: `${tier.name} milestone!`
-          };
-        } else {
-          // Clear any previous reward assignment for non-milestone days
-          day.projectedReward = undefined;
-        }
-      }
-    });
-    
-    // Generate the projected rewards list for the progress section
-    nextRewards.forEach(reward => {
-      const tier = this.rewardTiers[reward.tier];
-      const daysUntil = reward.day - currentStreak;
+private calculateProjectedRewards(): void {
+  this.projectedRewards = [];
+  
+  // Use global streak from monthly stats (now correctly set by loadGlobalStreakInfo)
+  const currentStreak = this.monthlyStats?.currentStreak || 0;
+  
+  console.log(`🏆 Calculating rewards with current streak: ${currentStreak}`);
+  
+  // Find the next upcoming reward milestones
+  const upcomingRewards = this.rewardSchedule.filter(reward => reward.day > currentStreak);
+  const nextRewards = upcomingRewards.slice(0, 4);
+  
+  this.calendarDays.forEach(day => {
+    if (day.isFuture && day.isCurrentMonth) {
+      const futureDaysFromToday = Math.ceil((day.date.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+      const projectedStreak = currentStreak + futureDaysFromToday;
       
-      if (daysUntil > 0) {
-        this.projectedRewards.push({
-          day: reward.day,
-          daysUntil: daysUntil,
-          tier: reward.tier,
+      // Only show reward if this day is EXACTLY a milestone day
+      const exactReward = this.rewardSchedule.find(r => r.day === projectedStreak);
+      
+      if (exactReward) {
+        const tier = this.rewardTiers[exactReward.tier];
+        day.projectedReward = {
+          day: exactReward.day,
+          daysUntil: futureDaysFromToday,
+          tier: exactReward.tier,
           icon: tier.icon,
           name: tier.name,
           color: tier.color,
-          isAchievable: daysUntil <= 30, // Only mark as achievable if within 30 days
-          description: `${tier.name} in ${daysUntil} days`
-        });
+          isAchievable: true,
+          description: `${tier.name} milestone!`
+        };
+        console.log(`🎁 Added reward for day ${day.dayNumber}: ${tier.name} (Day ${projectedStreak})`);
+      } else {
+        day.projectedReward = undefined;
       }
-    });
-    
-    console.log(`🏆 Calculated ${this.projectedRewards.length} projected rewards for progress section`);
+    }
+  });
+  
+  // IMPORTANT: Also check if TODAY should have a reward (already earned)
+  const today = new Date();
+  const todayDay = this.calendarDays.find(d => 
+    d.date.toDateString() === today.toDateString() && d.isCurrentMonth
+  );
+  
+  if (todayDay && currentStreak > 0) {
+    // Check if current streak matches a milestone
+    const earnedReward = this.rewardSchedule.find(r => r.day === currentStreak);
+    if (earnedReward) {
+      const tier = this.rewardTiers[earnedReward.tier];
+      todayDay.projectedReward = {
+        day: earnedReward.day,
+        daysUntil: 0, // Already earned!
+        tier: earnedReward.tier,
+        icon: tier.icon,
+        name: tier.name,
+        color: tier.color,
+        isAchievable: true,
+        description: `${tier.name} earned!`
+      };
+      console.log(`🎉 TODAY has earned reward: ${tier.name} (Day ${currentStreak})`);
+    }
   }
+  
+  // Generate the projected rewards list for the progress section
+  nextRewards.forEach(reward => {
+    const tier = this.rewardTiers[reward.tier];
+    const daysUntil = reward.day - currentStreak;
+    
+    if (daysUntil > 0) {
+      this.projectedRewards.push({
+        day: reward.day,
+        daysUntil: daysUntil,
+        tier: reward.tier,
+        icon: tier.icon,
+        name: tier.name,
+        color: tier.color,
+        isAchievable: daysUntil <= 30,
+        description: `${tier.name} in ${daysUntil} days`
+      });
+    }
+  });
+  
+  console.log(`🏆 Calculated ${this.projectedRewards.length} projected rewards for progress section`);
+}
 
   // Keep all existing utility methods unchanged
   getRequiredTaskCompletionPercentage(day: MonthlyDayData): number {

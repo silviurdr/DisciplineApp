@@ -206,6 +206,12 @@ export interface MonthlyStats {
   bestDay?: string;
   worstDay?: string;
   flexibilityUsageRate?: number;
+  totalTasks: number;        
+  completedTasks: number;      
+  taskCompletionRate: number;  
+  averageTasksPerDay: number; 
+  averageCompletedPerDay: number; 
+  monthName: string;
 }
 
 export interface ProjectedReward {

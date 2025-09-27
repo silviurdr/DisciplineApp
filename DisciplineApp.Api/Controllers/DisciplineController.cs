@@ -1294,6 +1294,128 @@ public class DisciplineController : ControllerBase
     // CORRECTED BuildCurrentDayResponse - matches your existing structure
     // REPLACE your BuildCurrentDayResponse method in DisciplineController.cs with this fixed version:
 
+    [HttpGet("streak-info")]
+    public async Task<IActionResult> GetStreakInfo()
+    {
+        try
+        {
+            Console.WriteLine("🎯 GetStreakInfo endpoint called");
+
+            // Get ALL daily stats across all months, not just current month
+            var allDailyStats = await _context.DailyStats
+                .OrderByDescending(d => d.Date)
+                .ToListAsync();
+
+            Console.WriteLine($"📊 Found {allDailyStats.Count} daily stats records");
+
+            var currentStreak = CalculateGlobalCurrentStreak(allDailyStats);
+            var longestStreak = CalculateGlobalLongestStreak(allDailyStats);
+            var totalCompletedDays = allDailyStats.Count(d => d.IsDayCompleted);
+
+            // Calculate next milestone
+            var milestones = new[] { 7, 14, 21, 30, 60, 90, 180, 365 };
+            var nextMilestone = milestones.FirstOrDefault(m => m > currentStreak);
+
+            var result = new
+            {
+                currentStreak,
+                longestStreak,
+                totalCompletedDays,
+                nextMilestone,
+                lastUpdate = DateTime.UtcNow
+            };
+
+            Console.WriteLine($"🎯 Returning streak info: Current={currentStreak}, Longest={longestStreak}, Total={totalCompletedDays}");
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error getting streak info: {ex.Message}");
+            Console.WriteLine($"❌ Stack trace: {ex.StackTrace}");
+            return StatusCode(500, new { error = "Failed to get streak info", details = ex.Message });
+        }
+    }
+
+    private int CalculateGlobalCurrentStreak(List<DailyStats> allDailyStats)
+    {
+        if (!allDailyStats.Any())
+        {
+            Console.WriteLine("📊 No daily stats found, returning streak 0");
+            return 0;
+        }
+
+        // Start from yesterday (today doesn't count toward current streak until completed)
+        var checkDate = DateTime.Today.AddDays(-1);
+        var streak = 0;
+
+        Console.WriteLine($"📊 Calculating streak starting from {checkDate:yyyy-MM-dd}");
+
+        // Count consecutive completed days working backwards from yesterday
+        while (true)
+        {
+            var dayStats = allDailyStats.FirstOrDefault(d => d.Date.Date == checkDate.Date);
+
+            if (dayStats != null && dayStats.IsDayCompleted)
+            {
+                streak++;
+                Console.WriteLine($"✅ Day {checkDate:yyyy-MM-dd} completed, streak now: {streak}");
+                checkDate = checkDate.AddDays(-1);
+            }
+            else
+            {
+                // Gap found or no data - streak broken
+                Console.WriteLine($"❌ Day {checkDate:yyyy-MM-dd} not completed or missing, stopping streak calculation");
+                break;
+            }
+        }
+
+        Console.WriteLine($"🎯 Final global current streak: {streak} days");
+        return streak;
+    }
+    private int CalculateGlobalLongestStreak(List<DailyStats> allDailyStats)
+    {
+        if (!allDailyStats.Any())
+        {
+            return 0;
+        }
+
+        var completedDays = allDailyStats
+            .Where(d => d.IsDayCompleted)
+            .OrderBy(d => d.Date)
+            .Select(d => d.Date)
+            .ToList();
+
+        if (!completedDays.Any())
+        {
+            return 0;
+        }
+
+        int longestStreak = 1;
+        int currentStreak = 1;
+
+        for (int i = 1; i < completedDays.Count; i++)
+        {
+            var previousDate = completedDays[i - 1];
+            var currentDate = completedDays[i];
+
+            // Check if dates are consecutive
+            if (currentDate.Date == previousDate.Date.AddDays(1))
+            {
+                currentStreak++;
+                longestStreak = Math.Max(longestStreak, currentStreak);
+            }
+            else
+            {
+                currentStreak = 1;
+            }
+        }
+
+        Console.WriteLine($"🏆 Longest streak calculated: {longestStreak} days");
+        return longestStreak;
+    }
+
+
     private async Task<object> BuildCurrentDayResponse(DateTime date, WeekSchedule weekSchedule, List<HabitCompletion> completions, List<AdHocTask> adHocTasks)
     {
         var daySchedule = weekSchedule.DailySchedules.FirstOrDefault(d => d.Date.Date == date.Date);
