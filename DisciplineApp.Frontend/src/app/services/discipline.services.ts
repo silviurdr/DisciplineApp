@@ -771,6 +771,15 @@ getStreakInfo(): Observable<StreakInfo> {
   );
 }
 
+getDailyStats(year: number, month: number): Observable<any> {
+  return this.http.get(`${this.baseUrl}/daily-stats/${year}/${month}`).pipe(
+    tap(response => console.log('📊 Daily stats received:', response)),
+    catchError(this.handleError)
+  );
+}
+
+
+
 completeAdHocTask(request: { 
   taskId: number; 
   isCompleted: boolean; 

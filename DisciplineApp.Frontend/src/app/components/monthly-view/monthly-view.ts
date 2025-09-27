@@ -3,7 +3,7 @@
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject } from 'rxjs';
+import { Subject, Observable } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { DisciplineService } from '../../services/discipline.services'; // Keep your existing import path
 import { LoadingService } from '../../services/loading.service';
@@ -139,23 +139,27 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
   // UPDATED INITIALIZATION METHOD
   // ===================================
 
-  private async initializeMonthlyView(): Promise<void> {
-    this.loading = true;
-    this.error = null;
-    this.loadingService.show();
+private async initializeMonthlyView(): Promise<void> {
+  this.loading = true;
+  this.error = null;
+  this.loadingService.show();
 
-    try {
-      // ALWAYS try the DailyStats approach first - this should show historical data
-      console.log(`🗓️ Loading month data for ${this.currentYear}-${this.currentMonth + 1}`);
-      await this.loadMonthDataFromDailyStats();
-    } catch (error) {
-      console.error('Error loading monthly view:', error);
-      this.error = 'Failed to load monthly data. Please try again.';
-    } finally {
-      this.loading = false;
-      this.loadingService.hide();
-    }
+  try {
+    // ALWAYS try the DailyStats approach first for ALL months
+    console.log(`📅 Loading month data for ${this.currentYear}-${this.currentMonth + 1}`);
+    await this.loadMonthDataFromDailyStats();
+    
+    // SUCCESS: We have monthly stats with global streak
+    console.log(`✅ Monthly stats loaded with streak: ${this.monthlyStats?.currentStreak}`);
+    
+  } catch (error) {
+    console.error('Error loading monthly view:', error);
+    this.error = 'Failed to load monthly data. Please try again.';
+  } finally {
+    this.loading = false;
+    this.loadingService.hide();
   }
+}
 
   // ===================================
   // NEW METHOD: Load from DailyStats
@@ -165,103 +169,69 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
   // UPDATED DATA LOADING METHODS
   // ===================================
 
-  public async loadMonthDataFromDailyStats(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      // Check if the getMonthData method exists on the service
-      if (!this.disciplineService.getMonthData) {
-        console.log('📅 getMonthData method not found on service, falling back to existing approach');
-        this.loadMonthDataAsPromise().then(resolve).catch(reject);
-        return;
-      }
-
-      console.log(`📅 Attempting to call getMonthData(${this.currentYear}, ${this.currentMonth + 1})`);
-      
-      this.disciplineService.getMonthData(this.currentYear, this.currentMonth + 1)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (response: any) => {
-            console.log(`✅ DailyStats month data received successfully:`, response);
-            
-            // Verify we got the expected data structure
-            if (response && response.days && Array.isArray(response.days)) {
-              console.log(`📊 Processing ${response.days.length} days from DailyStats API`);
-              this.processMonthDataFromDailyStats(response);
-              resolve();
-            } else {
-              console.error('❌ Invalid response structure from getMonthData, falling back');
-              this.loadMonthDataAsPromise().then(resolve).catch(reject);
-            }
-          },
-          error: (error) => {
-            console.error('❌ Error calling getMonthData API:', error);
-            console.error('Error details:', error.message, error.status);
-            
-            // Check if it's a 404 (endpoint not implemented)
-            if (error.status === 404) {
-              console.log('📅 Month data endpoint not implemented yet, falling back to getCurrentWeek approach');
-            } else {
-              console.log('📅 API error occurred, falling back to getCurrentWeek approach');
-            }
-            
-            this.loadMonthDataAsPromise().then(resolve).catch(reject);
-          }
-        });
-    });
-  }
-
-  private processMonthDataFromDailyStats(response: any): void {
-    console.log(`📅 Processing DailyStats: ${response.totalDaysWithStoredStats}/${response.totalDaysInResponse} days from stored stats`);
+public async loadMonthDataFromDailyStats(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const year = this.currentYear;
+    const month = this.currentMonth + 1;
     
-    // Store monthly statistics from API
-    if (response.monthlyStats) {
-      this.monthlyStats = {
-        totalDays: response.monthlyStats.totalDays,
-        completedDays: response.monthlyStats.completedDays,
-        completionRate: response.monthlyStats.completionRate,
-        totalTasks: response.monthlyStats.totalTasks || 0,
+    console.log(`📅 Calling getMonthData(${year}, ${month})`);
+    
+    this.disciplineService.getMonthData(year, month)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response: any) => {
+          console.log(`✅ Month data API response received successfully`);
+          console.log(`🎯 API returned currentStreak: ${response.monthlyStats?.currentStreak}`);
+          
+          if (response && response.days && Array.isArray(response.days)) {
+            console.log(`📊 Processing ${response.days.length} days from Month API`);
+            this.processMonthDataFromDailyStats(response);
+            resolve();
+          } else {
+            console.error('❌ Invalid response structure from getMonthData');
+            reject(new Error('Invalid API response structure'));
+          }
+        },
+        error: (error) => {
+          console.error('❌ Error calling getMonthData API:', error);
+          reject(error);
+        }
+      });
+  });
+}
+
+private processMonthDataFromDailyStats(response: any): void {
+  console.log(`📅 Processing DailyStats: ${response.days?.length} days received`);
+  
+  // Store monthly statistics from API - CRITICAL: This includes the global streak
+  if (response.monthlyStats) {
+    this.monthlyStats = {
+      totalDays: response.monthlyStats.totalDays || 0,
+      completedDays: response.monthlyStats.completedDays || 0,
+      completionRate: response.monthlyStats.completionRate || 0,
+      totalTasks: response.monthlyStats.totalTasks || 0,
       completedTasks: response.monthlyStats.completedTasks || 0,
       taskCompletionRate: response.monthlyStats.taskCompletionRate || 0,
-      monthName: response.monthlyStats.monthName || new Date(this.currentYear, this.currentMonth).toLocaleString('default', { month: 'long' }),
       averageTasksPerDay: response.monthlyStats.averageTasksPerDay || 0,
       averageCompletedPerDay: response.monthlyStats.averageCompletedPerDay || 0,
-        currentStreak: response.monthlyStats.currentStreak || 0,
-        totalHabits: response.monthlyStats.totalTasks || 0
-      };
-      this.markCurrentStreakDays();
-    }
+      currentStreak: response.monthlyStats.currentStreak || 0,  // CRITICAL: Global streak
+      monthName: response.monthlyStats.monthName || new Date(this.currentYear, this.currentMonth).toLocaleString('default', { month: 'long' }),
+      totalHabits: response.monthlyStats.totalHabits || 0
+    };
     
-    // ✅ DEBUG: Show what we received from API
-    console.log(`🔍 API RESPONSE ANALYSIS:`);
-    console.log(`Total days in response: ${response.days.length}`);
-    
-    const completedDays = response.days.filter((d: any) => d.isCompleted);
-    const partialDays = response.days.filter((d: any) => d.isPartiallyCompleted);
-    const incompleteDays = response.days.filter((d: any) => !d.isCompleted && !d.isPartiallyCompleted);
-    
-    console.log(`✅ Completed days (${completedDays.length}):`, completedDays.map((d: any) => d.date));
-    console.log(`🟡 Partial days (${partialDays.length}):`, partialDays.map((d: any) => d.date));
-    console.log(`❌ Incomplete days (${incompleteDays.length}):`, incompleteDays.map((d: any) => d.date));
-    
-    // Build calendar grid from API data
-    this.buildCalendarGridFromDailyStats(response.days);
-    
-    // ✅ DEBUG: Check what happened after building calendar
-    const calendarCompleted = this.calendarDays.filter(d => d.isCompleted && d.isCurrentMonth);
-    const calendarPartial = this.calendarDays.filter(d => d.isPartiallyCompleted && d.isCurrentMonth);
-    const calendarIncomplete = this.calendarDays.filter(d => !d.isCompleted && !d.isPartiallyCompleted && d.isCurrentMonth && !d.isFuture);
-    
-    console.log(`🔍 CALENDAR AFTER PROCESSING:`);
-    console.log(`✅ Calendar completed days (${calendarCompleted.length}):`, calendarCompleted.map(d => d.dayNumber));
-    console.log(`🟡 Calendar partial days (${calendarPartial.length}):`, calendarPartial.map(d => d.dayNumber));
-    console.log(`❌ Calendar incomplete days (${calendarIncomplete.length}):`, calendarIncomplete.map(d => d.dayNumber));
-    
-    // IMPORTANT: Calculate projected rewards AFTER we have monthly stats
-    this.calculateProjectedRewards();
-    
-    console.log(`✅ Calendar generated with ${this.calendarDays.length} days using DailyStats`);
-    console.log(`🏆 Current streak: ${this.monthlyStats?.currentStreak}, Projected rewards: ${this.projectedRewards.length}`);
-    this.markCurrentStreakDays();
+    console.log(`🎯 CRITICAL: Monthly stats set with currentStreak = ${this.monthlyStats ? this.monthlyStats.currentStreak : 'N/A'}`);
   }
+  
+  // Build calendar grid from API data
+  this.buildCalendarGridFromDailyStats(response.days);
+  
+  // IMPORTANT: Calculate projected rewards AFTER we have monthly stats with global streak
+  this.calculateProjectedRewards();
+  
+  console.log(`✅ Calendar generated with global streak: ${this.monthlyStats?.currentStreak}`);
+  console.log(`🏆 Projected rewards calculated: ${this.projectedRewards.length}`);
+}
+
 
   private buildCalendarGridFromDailyStats(apiDays: any[]): void {
     const today = new Date();
