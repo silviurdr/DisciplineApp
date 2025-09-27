@@ -119,6 +119,14 @@ namespace DisciplineApp.Api.Models
         public bool IsCompleted { get; set; }
         public string? Notes { get; set; }
     }
+
+    public class EarnedReward
+    {
+        public int Id { get; set; }
+        public string RewardType { get; set; } = string.Empty; // "Coffee", "Book", "Clothing", etc.
+        public int Count { get; set; } = 0;
+        public DateTime LastUpdated { get; set; }
+    }
     public enum StreakColor
     {
         None,     // No completion

@@ -941,6 +941,32 @@ public class DisciplineController : ControllerBase
         }
     }
 
+    [HttpGet("earned-rewards")]
+    public async Task<IActionResult> GetEarnedRewards()
+    {
+        var rewards = await _context.EarnedRewards.ToListAsync();
+        return Ok(rewards);
+    }
+
+    [HttpPost("consume-reward")]
+    public async Task<IActionResult> ConsumeReward([FromBody] ConsumeRewardRequest request)
+    {
+        var reward = await _context.EarnedRewards
+            .FirstOrDefaultAsync(r => r.RewardType == request.RewardType);
+
+        if (reward == null || reward.Count <= 0)
+        {
+            return BadRequest("No rewards of this type available");
+        }
+
+        reward.Count--;
+        reward.LastUpdated = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        return Ok(new { rewardType = request.RewardType, remainingCount = reward.Count });
+    }
+
+
     //// ✅ HELPER: Calculate monthly stats from daily stats
     //private object CalculateMonthlyStatsFromDailyStats(List<DailyStats> dailyStats, DateTime monthStart, DateTime monthEnd)
     //{
@@ -1939,6 +1965,29 @@ public class DisciplineController : ControllerBase
             }
         }
 
+    private async Task IncrementEarnedReward(string rewardType)
+    {
+        var earnedReward = await _context.EarnedRewards
+            .FirstOrDefaultAsync(r => r.RewardType == rewardType);
+
+        if (earnedReward == null)
+        {
+            earnedReward = new EarnedReward
+            {
+                RewardType = rewardType,
+                Count = 1,
+                LastUpdated = DateTime.UtcNow
+            };
+            _context.EarnedRewards.Add(earnedReward);
+        }
+        else
+        {
+            earnedReward.Count++;
+            earnedReward.LastUpdated = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+    }
     private async Task<bool> IsDayCompletedNonRecursive(DateTime date)
     {
         try
@@ -2102,6 +2151,12 @@ public class AdvancedCompleteResponse
     public DateTime CompletedDate { get; set; }
     public DateTime OriginalScheduledDate { get; set; }
     public WeekSchedule UpdatedWeekSchedule { get; set; }
+}
+
+// Add this class for the request
+public class ConsumeRewardRequest
+{
+    public string RewardType { get; set; } = string.Empty;
 }
 
 

@@ -19,6 +19,7 @@ public class DisciplineDbContext : DbContext
     public DbSet<SubHabit> SubHabits { get; set; }
     public DbSet<SubHabitCompletion> SubHabitCompletions { get; set; }
     public DbSet<DailyStats> DailyStats { get; set; }
+    public DbSet<EarnedReward> EarnedRewards { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // DisciplineEntry configuration
