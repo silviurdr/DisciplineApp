@@ -1317,3 +1317,55 @@
   
   /* The .completed and .completed-current-streak classes above will override these colors */
 }
+
+.reward-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #ff4444;
+  color: white;
+  border-radius: 50%;
+  min-width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: bold;
+  cursor: pointer;
+  
+  &:hover {
+    background: #ff6666;
+    transform: scale(1.1);
+  }
+}
+
+.reward-types {
+  margin-top: 20px;
+  
+  .reward-legend {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px;
+    
+    .reward-title {
+      margin: 0 0 20px 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #fff;
+    }
+    
+    .reward-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      
+      .reward-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        // ... rest of existing styles
+      }
+    }
+  }
+}

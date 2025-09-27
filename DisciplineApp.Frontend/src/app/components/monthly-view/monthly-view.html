@@ -136,8 +136,32 @@
     </div>
   </div>
 
-  <!-- ORIGINAL Reward Legend - All 6 tiers with proper days -->
-  <div class="reward-legend" *ngIf="!loading && !error">
+<div class="reward-types">
+  <div class="reward-legend">
+    <h3 class="reward-title">Reward Types</h3>
+    <div class="reward-items">
+      <div class="reward-item" *ngFor="let rewardType of rewardTypesList">
+        <div class="reward-icon-wrapper" (click)="consumeReward(rewardType.name)">
+          <span class="reward-icon" [style.color]="rewardType.color">
+            {{ rewardType.icon }}
+          </span>
+          
+          <!-- Consumable badge -->
+<div class="reward-badge" *ngIf="true">
+  +{{ getRewardCountValue(rewardType.name) }}
+</div>
+        </div>
+        
+        <span class="reward-text">
+          {{ rewardType.name }} ({{ rewardType.days }} days)
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- 
+  <-- ORIGINAL Reward Legend - All 6 tiers with proper days -->
+<!--   <div class="reward-legend" *ngIf="!loading && !error">
     <h4>Reward Types</h4>
     <div class="legend-items">
       <div class="legend-item">
@@ -165,5 +189,5 @@
         <span>Concert Ticket (180+ days)</span>
       </div>
     </div>
-  </div>
+  </div> -->
 </div>

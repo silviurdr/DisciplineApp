@@ -778,6 +778,13 @@ getDailyStats(year: number, month: number): Observable<any> {
   );
 }
 
+getEarnedRewards(): Observable<any[]> {
+  return this.http.get<any[]>(`${this.baseUrl}/earned-rewards`);
+}
+
+consumeReward(rewardType: string): Observable<any> {
+  return this.http.post(`${this.baseUrl}/consume-reward`, { rewardType });
+}
 
 
 completeAdHocTask(request: { 

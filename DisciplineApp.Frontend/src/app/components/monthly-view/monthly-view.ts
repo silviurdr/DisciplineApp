@@ -1,7 +1,7 @@
 // Updated monthly-view.component.ts - DailyStats Integration
 // This version preserves your existing structure and patterns while integrating DailyStats
 
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, Observable } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -40,6 +40,7 @@ interface MonthlyDayData {
   completionRules?: string;
   dataSource?: string;
   isCurrentStreak?: boolean;
+  
 }
 
 interface ProjectedReward {
@@ -84,6 +85,15 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
   loading = false;
   error: string | null = null;
   private streakStartDate = new Date('2025-09-14');
+  earnedRewards: any[] = [];
+  rewardTypesList = [
+    { name: 'Coffee Reward', icon: '☕', color: '#8D6E63', days: 7 },
+    { name: 'Book Reward', icon: '📚', color: '#5C6BC0', days: 14 },
+    { name: 'Clothing Reward', icon: '👕', color: '#66BB6A', days: 30 },
+    { name: 'Head Phones', icon: '🎧', color: '#FFA726', days: 60 },
+    { name: 'Tennis Reward', icon: '🎾', color: '#FFA726', days: 90 },
+    { name: 'Concert Ticket', icon: '🎫', color: '#FFA726', days: 180 }
+  ];
 
   private destroy$ = new Subject<void>();
 
@@ -118,7 +128,8 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
 
   constructor(
     private disciplineService: DisciplineService,   
-    private loadingService: LoadingService
+    private loadingService: LoadingService,
+    private cdr: ChangeDetectorRef
   ) {
     const today = new Date();
     this.currentMonth = today.getMonth();
@@ -128,6 +139,7 @@ export class MonthlyViewComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadingService.show();
     this.initializeMonthlyView();
+    this.loadEarnedRewards();
   }
 
   ngOnDestroy(): void {
@@ -397,6 +409,7 @@ private processMonthDataFromDailyStats(response: any): void {
   }
 
   
+  
 
   // If we don't have streak data, assume all past completed days are not in current streak
   if (!this.monthlyStats) {
@@ -416,6 +429,58 @@ private processMonthDataFromDailyStats(response: any): void {
   const isInCurrentStreak = dayDate >= currentStreak.startDate && dayDate <= currentStreak.endDate;
   
   return !isInCurrentStreak;
+}
+
+loadEarnedRewards(): void {
+  this.disciplineService.getEarnedRewards().subscribe({
+    next: (rewards) => {
+      this.earnedRewards = rewards;
+      console.log('Loaded earned rewards:', rewards);
+      // Trigger change detection to update the UI
+      this.cdr.detectChanges();
+    },
+    error: (error) => {
+      console.error('Error loading earned rewards:', error);
+    }
+  });
+}
+
+getRewardCountValue(rewardName: string): number {
+  if (!this.earnedRewards || this.earnedRewards.length === 0) {
+    return 0;
+  }
+  const reward = this.earnedRewards.find(r => r.rewardType === rewardName);
+  return reward ? reward.count : 0;
+}
+
+consumeReward(rewardType: string): void {
+  const count = this.getRewardCount(rewardType);
+  if (count <= 0) {
+    console.log(`No ${rewardType} rewards available to consume`);
+    return;
+  }
+
+  this.disciplineService.consumeReward(rewardType).subscribe({
+    next: (response) => {
+      console.log(`✅ Consumed ${rewardType} reward! Remaining: ${response.remainingCount}`);
+      this.loadEarnedRewards(); // Refresh the badges
+      
+      // Optional: Show a toast notification
+      // this.showSuccessMessage(`Enjoyed your ${rewardType}!`);
+    },
+    error: (error) => {
+      console.error('Error consuming reward:', error);
+    }
+  });
+}
+
+
+getRewardCount(rewardName: string): number {
+  console.log('getRewardCount called for:', rewardName);
+  console.log('Available earned rewards:', this.earnedRewards);
+  const reward = this.earnedRewards.find(r => r.rewardType === rewardName);
+  console.log('Found reward:', reward);
+  return reward ? reward.count : 0;
 }
 
 private findCurrentStreak(): { startDate: Date, endDate: Date } | null {
