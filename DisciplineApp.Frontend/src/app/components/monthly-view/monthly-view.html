@@ -136,6 +136,8 @@
     </div>
   </div>
 
+
+
 <div class="reward-types">
   <div class="reward-legend">
     <h3 class="reward-title">Reward Types</h3>
@@ -147,8 +149,12 @@
           </span>
           
           <!-- Consumable badge -->
-<div class="reward-badge" *ngIf="true">
-  +{{ getRewardCountValue(rewardType.name) }}
+
+
+<div class="reward-badge" 
+     *ngIf="getRewardCount(rewardType.name) > 0"
+     [title]="getBadgeTooltip(rewardType.name)">
+  {{ getRewardCount(rewardType.name) }}
 </div>
         </div>
         

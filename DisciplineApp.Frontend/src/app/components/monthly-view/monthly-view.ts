@@ -445,12 +445,13 @@ loadEarnedRewards(): void {
   });
 }
 
-getRewardCountValue(rewardName: string): number {
-  if (!this.earnedRewards || this.earnedRewards.length === 0) {
-    return 0;
+getBadgeTooltip(rewardName: string): string {
+  const count = this.getRewardCount(rewardName);
+  if (count === 1) {
+    return `You have 1 ${rewardName} to enjoy! Click to consume.`;
+  } else {
+    return `You have ${count} ${rewardName}s to enjoy! Click to consume.`;
   }
-  const reward = this.earnedRewards.find(r => r.rewardType === rewardName);
-  return reward ? reward.count : 0;
 }
 
 consumeReward(rewardType: string): void {

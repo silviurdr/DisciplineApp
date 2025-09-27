@@ -1318,27 +1318,6 @@
   /* The .completed and .completed-current-streak classes above will override these colors */
 }
 
-.reward-badge {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background: #ff4444;
-  color: white;
-  border-radius: 50%;
-  min-width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
-  font-weight: bold;
-  cursor: pointer;
-  
-  &:hover {
-    background: #ff6666;
-    transform: scale(1.1);
-  }
-}
 
 .reward-types {
   margin-top: 20px;
@@ -1349,7 +1328,7 @@
     padding: 16px;
     
     .reward-title {
-      margin: 0 0 20px 0;
+      margin: 0 0 12px 0;
       font-size: 1.1rem;
       font-weight: 600;
       color: #fff;
@@ -1364,8 +1343,55 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        // ... rest of existing styles
+        
+        .reward-icon-wrapper {
+          position: relative; // THIS IS CRITICAL
+          cursor: pointer;
+          padding: 8px;
+          border-radius: 8px;
+          transition: background-color 0.2s;
+          
+          &:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+          }
+          
+          .reward-icon {
+            font-size: 1.2rem;
+          }
+          
+        }
+        
+        .reward-text {
+          font-size: 0.9rem;
+          color: #ccc;
+        }
       }
     }
+  }
+}
+
+
+.reward-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #2d3748;  // Dark charcoal/black
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1.5px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  z-index: 15;
+  transition: all 0.15s ease;
+  
+  &:hover {
+    background: #4a5568;  // Lighter gray on hover
+    transform: scale(1.05);
   }
 }
